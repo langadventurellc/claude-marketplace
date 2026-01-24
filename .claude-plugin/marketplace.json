@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Official plugins for the Task Trellis task management system for AI coding agents",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "task-trellis",
       "source": {
-        "source": "github",
-        "repo": "langadventurellc/task-trellis-mcp",
+        "source": "url",
+        "url": "https://github.com/langadventurellc/task-trellis-mcp.git",
         "path": "plugins/task-trellis"
       },
       "description": "Task Trellis - Hierarchical task management for AI coding agents",
