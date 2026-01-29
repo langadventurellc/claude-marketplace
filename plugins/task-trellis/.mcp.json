@@ -6,7 +6,7 @@
       "args": [
         "@langadventurellc/task-trellis-mcp@latest",
         "--projectRootFolder",
-        "\"$(git rev-parse --show-toplevel)\""
+        "./"
       ],
       "env": {}
     }
