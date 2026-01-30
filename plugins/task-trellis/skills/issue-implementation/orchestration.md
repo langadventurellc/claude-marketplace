@@ -223,21 +223,31 @@ Use `TaskOutput` to wait for the review to complete.
 
 #### 6.5 Commit Task Changes
 
-After implementation and review pass, commit the changes:
+After implementation and review pass, commit the changes.
 
-1. **Stage all changes**:
+**CRITICAL - Update Trellis BEFORE committing:**
+
+The `.trellis/` directory contains issue state that must be included in commits. Always update Trellis issues first, then commit.
+
+1. **Update Trellis state** (if not already done):
+   - Ensure task is marked complete via `complete_task`
+   - Append any final log entries via `append_issue_log`
+
+2. **Commit the changes** using the `/git:commit` skill (if available) or manually:
+
+   **Using the skill** (preferred):
+   ```
+   /git:commit [TASK_ID] Summary of changes
+   ```
+
+   **Manual fallback** (if skill unavailable):
    ```bash
    git add .
-   ```
-   Always stage everything—this ensures Trellis state files, configuration updates, and any other ancillary changes are included. Don't worry about unrecognized files; assume they belong in the commit.
-
-2. **Create commit** with message referencing the task:
-   ```bash
    git commit -m "[TASK_ID] Summary of changes"
    ```
    Example: `[T-add-user-validation] Add email validation to user registration`
 
-3. **Verify commit succeeded** before proceeding to next child
+3. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
 
 4. **Log the commit** using `append_issue_log` on the parent issue
 
@@ -298,14 +308,26 @@ Use `TaskOutput` to wait for the docs-updater to complete.
 
 If the docs-updater made changes:
 
-1. Stage and commit all changes:
+**CRITICAL - Update Trellis BEFORE committing:**
+
+1. **Update Trellis first**:
+   - Log the documentation update using `append_issue_log`
+   - Make any other Trellis updates needed
+
+2. **Commit the changes** using the `/git:commit` skill (if available) or manually:
+
+   **Using the skill** (preferred):
+   ```
+   /git:commit docs: update documentation for [ISSUE_ID]
+   ```
+
+   **Manual fallback** (if skill unavailable):
    ```bash
    git add .
-   git commit -m "[ISSUE_ID] Update documentation"
+   git commit -m "docs: update documentation for [ISSUE_ID]"
    ```
-   Always stage everything to ensure all related changes are included.
 
-2. Log the documentation update using `append_issue_log`
+3. **Verify no `.trellis/` changes remain uncommitted**
 
 ### 9. Complete Parent Issue
 
@@ -314,7 +336,20 @@ When all children are done and documentation is updated:
 1. Verify all children have status `done` (or `wont-do` if skipped by user direction)
 2. Update the parent status to `done` using `update_issue`
 3. Log completion using `append_issue_log`
-4. Report summary to user:
+4. **If any uncommitted changes exist** (including `.trellis/`), commit them using the `/git:commit` skill (if available) or manually:
+
+   **Using the skill** (preferred):
+   ```
+   /git:commit chore: complete [ISSUE_ID]
+   ```
+
+   **Manual fallback** (if skill unavailable):
+   ```bash
+   git add .
+   git commit -m "chore: complete [ISSUE_ID]"
+   ```
+5. **Verify no uncommitted changes remain** - especially in `.trellis/`
+6. Report summary to user:
    - Total direct children completed
    - Total descendants completed (all levels)
    - Any issues skipped
@@ -337,12 +372,16 @@ Throughout orchestration:
 - **Respect dependencies**: Never start a child before its prerequisites are done
 - **Stop on failure**: Always stop and ask user when something goes wrong
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
+- **Trellis before commits**: Always update Trellis issues BEFORE making git commits
 - **Commit after each task**: Ensure changes are committed before moving to the next task
 - **Update docs before completing**: Always run docs-updater before marking parent as done
+- **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
 <rules>
   <critical>STOP on ANY error - permission errors, hook failures, or unexpected results</critical>
   <critical>NEVER work around errors or assume they don't apply</critical>
   <critical>Do NOT proceed to next child if current child encountered errors</critical>
   <critical>Report ALL errors to the user, even if you think they're false positives</critical>
+  <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
+  <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
 </rules>

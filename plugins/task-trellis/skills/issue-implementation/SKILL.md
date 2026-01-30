@@ -81,3 +81,26 @@ All issue types share these principles:
 </rules>
 
 **Why this matters**: Hooks are configured to enforce quality checks, permissions, and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken or invalid code being committed.
+
+## Critical: Commit Ordering Requirement
+
+**NEVER commit code before Trellis updates are complete.**
+
+The `.trellis/` directory contains issue state files that must be included in commits. If you commit code first and then update Trellis issues, those Trellis changes will be left uncommitted.
+
+<rules>
+  <critical>Always update Trellis issues (append logs, mark complete, etc.) BEFORE making git commits</critical>
+  <critical>Never leave .trellis/ changes uncommitted after completing work</critical>
+</rules>
+
+**Correct order:**
+1. Make code changes
+2. Update Trellis issues (append logs, mark complete, etc.)
+3. THEN commit (code + .trellis/ changes together)
+
+**Wrong order:**
+1. Make code changes
+2. Commit
+3. Update Trellis issues ← These are now uncommitted!
+
+This applies to ALL commits, including documentation commits, final commits, and any intermediate commits. When you finish work, there should be no uncommitted changes in `.trellis/`.

@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Official plugins for the Task Trellis task management system for AI coding agents",
-    "version": "1.0.9"
+    "version": "1.0.10"
   },
   "plugins": [
     {
@@ -21,6 +21,13 @@
       "description": "Mise-en-place integration with Task Trellis for AI coding agents",
       "category": "productivity",
       "tags": ["ai-agents", "trellis"]
+    },
+    {
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Git workflow skills for AI coding agents",
+      "category": "productivity",
+      "tags": ["git", "ai-agents", "trellis"]
     }
   ]
 }

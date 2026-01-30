@@ -215,7 +215,6 @@ Provide a summary of the creation and review process:
   <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
   <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
   <critical>Research the codebase before creating issues - parent issues may be outdated</critical>
-  <critical>Complete all Trellis issue updates BEFORE making any git commits so updates are included in commits</critical>
   <important>Let the user decide how to handle review findings</important>
   <important>Proceed autonomously when given a parent issue ID - do not ask for confirmation</important>
   <important>Default to coarser-grained issues for easier AI orchestration</important>

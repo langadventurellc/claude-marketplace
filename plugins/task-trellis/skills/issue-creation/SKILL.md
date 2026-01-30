@@ -65,4 +65,3 @@ All issue types share these principles:
 - **Include acceptance criteria** - All issues should have measurable success criteria.
 - **Keep it simple** - Follow KISS, YAGNI principles. Don't over-engineer the structure.
 - **Create sequentially** - When creating multiple issues, do them one at a time, not in parallel.
-- **Update Trellis before commits** - Complete all issue updates before any git commits so updates are included.

@@ -80,6 +80,15 @@ Ask questions when:
 - **Write meaningful summary**: Describe what was implemented and key decisions
 - **List all changed files**: Document what was created or modified
 
+**CRITICAL - Commit Ordering:**
+
+Before making any git commits, you MUST complete all Trellis updates first:
+
+1. Update Trellis issues (append logs, complete_task, etc.)
+2. THEN commit (so `.trellis/` changes are included)
+
+Never commit code first and then update Trellis - this leaves `.trellis/` changes uncommitted.
+
 Use `complete_task` with task ID, summary, and files changed.
 
 **STOP!** - Complete one task only. Do not implement another task.
