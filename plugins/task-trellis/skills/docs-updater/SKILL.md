@@ -66,11 +66,40 @@ Evaluate whether documentation updates are needed:
 
 For each type of documentation, assess relevance:
 
-**CLAUDE.md**:
-- New coding patterns or conventions
-- New tools, commands, or workflows
-- Changes to project structure
-- Updated instructions for Claude Code
+**CLAUDE.md** (Agent Steering Spec):
+
+CLAUDE.md should be a steering spec for agents, not a code index. Think "minimum instructions the agent always needs" and push everything else to linked docs.
+
+*Core Principles:*
+- Keep it short enough to fit comfortably in context (aim ≤150 lines)
+- Make every line actionable: commands, rules, gotchas; avoid prose that doesn't change behavior
+- Do not mirror the README or list files; link to existing docs instead
+- Mental model: "If this disappeared, what would cause the agent to start making bad choices?"
+
+*Recommended Structure:*
+1. **Project overview** (1-3 sentences) - What the app is, main tech stack, key constraints
+2. **How to run, build, and test** - Explicit commands in code blocks, including non-obvious flags
+3. **Conventions and boundaries** - Code style not enforced by tooling, folder layout, naming patterns, architectural rules. Include "Always / Ask first / Never" lists for risky operations (DB schema, auth, infra, secrets, CI)
+4. **Task workflow for agents** - Branching/commit style, PR expectations, whether to run tests/linters before proposing changes
+5. **Links to deeper docs** - Point to README, docs/, ADRs, or external URLs instead of duplicating content
+
+*What to Remove:*
+- Raw listings of files or directories beyond high-level structure
+- Generated agent output verbatim (summaries, long path lists from scans)
+- Obvious advice ("write clean code", "add comments when appropriate")
+
+*What to Keep (but compress):*
+- Very short "Project structure" section, only for key folders and special patterns
+- Non-obvious layering rules (e.g., "components may import hooks, but hooks must not import components")
+
+*What to Push Elsewhere:*
+- Detailed API docs, schema docs, ADRs, design notes → put in docs/ and link
+- Domain tutorials or user guides
+
+*Patterns That Work Well:*
+- Progressive disclosure: Root file is minimal; deeper topics live in separate files linked from the root
+- Clear precedence: For monorepos, use nested CLAUDE.md where "closest file wins" for local instructions
+- Explicit guardrails work better than vague cautions: "Ask before adding new runtime dependencies", "Never edit GitHub Actions workflows"
 
 **README.md**:
 - Installation or setup changes
@@ -78,11 +107,31 @@ For each type of documentation, assess relevance:
 - Configuration options
 - Usage examples
 
-**docs/**:
-- API documentation
-- Architecture documentation
-- User guides
-- Reference materials
+**docs/** (Living Specification):
+
+The `/docs` folder serves as the living specification and source of truth for the project. All developers and AI agents should turn to these docs when they need information about how the system is supposed to work.
+
+*Purpose:*
+- Documents the intended behavior, architecture, and design decisions of the system
+- Acts as the authoritative reference that code should conform to
+- Provides context that helps agents make correct decisions
+
+*What Belongs in docs/:*
+- API documentation and specifications
+- Architecture documentation and diagrams
+- Design decisions and ADRs (Architecture Decision Records)
+- User guides and tutorials
+- Reference materials and schema documentation
+- Domain-specific knowledge and business rules
+- Integration guides and protocols
+
+*Maintenance Guidelines:*
+- Keep docs synchronized with actual system behavior
+- When code changes conflict with docs, determine which is correct (sometimes the doc is the spec and code needs fixing; other times the doc is stale)
+- Prefer updating existing docs over creating new ones to avoid fragmentation
+- Use clear, consistent naming and organization
+- Link from CLAUDE.md to relevant docs rather than duplicating content
+- If information isn't in the docs and an agent needs it, that's a signal the docs may need updating (consult the user first)
 
 ### 4. Make Documentation Updates
 

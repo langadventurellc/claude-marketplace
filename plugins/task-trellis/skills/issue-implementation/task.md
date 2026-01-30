@@ -94,6 +94,10 @@ Use `complete_task` with task ID, summary, and files changed.
 
 Before writing any tests, read the [Testing Guidelines](testing-guidelines.md).
 
+## Documentation
+
+Before writing any code documentation (docstrings, JSDoc, etc.), read the [Code Documentation Guidelines](code-documentation-guidelines.md).
+
 ## Critical: Error Handling
 
 <rules>

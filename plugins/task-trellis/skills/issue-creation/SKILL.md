@@ -58,8 +58,11 @@ Based on the user's request, determine which issue type to create:
 
 All issue types share these principles:
 
-- **Ask clarifying questions** - Use AskUserQuestion when uncertain. Agents tend to be overconfident about what they can infer.
-- **Search the codebase** - Look for existing patterns and conventions before creating issues.
+- **Research the codebase FIRST** - Before creating any issues, search the codebase to understand current state. Parent issues may be outdated. The codebase is the source of truth.
+- **Proceed autonomously with parent IDs** - When given a parent issue ID (P-, E-, F-), create child issues without asking for confirmation.
+- **Default to coarser granularity** - Prefer fewer, larger issues that are easier for AI agents to orchestrate. Don't create many tiny issues.
+- **Ask questions only when necessary** - Only ask when requirements are genuinely ambiguous, critical information is missing, or decisions have significant irreversible consequences.
 - **Include acceptance criteria** - All issues should have measurable success criteria.
 - **Keep it simple** - Follow KISS, YAGNI principles. Don't over-engineer the structure.
 - **Create sequentially** - When creating multiple issues, do them one at a time, not in parallel.
+- **Update Trellis before commits** - Complete all issue updates before any git commits so updates are included.

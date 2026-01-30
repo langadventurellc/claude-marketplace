@@ -23,6 +23,19 @@ Orchestrate issue creation with automatic review to ensure created issues accura
 
 Create Trellis issues using the `issue-creation` skill, then automatically verify them against the original requirements using `issue-creation-review`. Handle any questions or findings from the review before completing.
 
+## Autonomous Operation
+
+**When given a parent issue ID** (e.g., "F-feature-id", "E-epic-id"), proceed directly to creating child issues without asking for confirmation. The user has already decided they want child issues created by invoking this skill.
+
+**Do not ask about granularity.** Default to coarser-grained issues that are easier for AI agents to orchestrate during implementation. Fewer, larger issues are preferred over many small ones. Use your judgment to determine appropriate scope - the user does not need to micromanage issue structure.
+
+**Only ask clarifying questions when:**
+- Requirements are genuinely ambiguous and could be interpreted multiple ways
+- Critical information is missing that cannot be inferred from context
+- A decision has significant irreversible consequences
+
+Otherwise, make reasonable decisions and proceed.
+
 ## Input
 
 `$ARGUMENTS` - The user's original requirements/instructions for issue creation
@@ -42,15 +55,29 @@ Original User Requirements:
 
 This exact text will be passed to the review agent. Do not paraphrase, summarize, or modify it in any way. The reviewer needs the original requirements to verify the created issues accurately.
 
-### 2. Invoke Issue Creation
+### 2. Research the Codebase
+
+**CRITICAL**: Before creating any issues, you MUST research the current state of the codebase. Parent issues may have been written before other work was completed - never assume the parent issue reflects reality.
+
+1. **Read the parent issue** to understand the intended scope
+2. **Search the codebase** using Glob and Grep to understand:
+   - What already exists that's relevant to this work
+   - Existing patterns and conventions to follow
+   - What may have already been partially implemented
+   - Current architecture and file structure
+3. **Compare parent issue against reality** - identify any gaps between what was written and what currently exists
+4. **Adjust scope accordingly** - only create issues for work that actually needs to be done
+
+Do not blindly create issues based on text in a parent issue. The codebase is the source of truth.
+
+### 3. Invoke Issue Creation
 
 Use the `issue-creation` skill to create the requested issues:
 
 1. Determine the appropriate issue type(s) from the user's request
 2. Follow the issue-creation workflow for that type
-3. Ask clarifying questions as needed using AskUserQuestion
-4. Create the issue(s) using the Trellis MCP tools
-5. Track all created issue IDs and their types
+3. Create the issue(s) using the Trellis MCP tools - proceed autonomously when given a parent ID
+4. Track all created issue IDs and their types
 
 **Record created issues:**
 ```
@@ -59,7 +86,7 @@ Created Issues:
 - [ISSUE_ID]: [ISSUE_TYPE] - [TITLE]
 ```
 
-### 3. Spawn Review for Created Issues
+### 4. Spawn Review for Created Issues
 
 After all issues are created, spawn `issue-creation-review` as an async subagent to verify each issue.
 
@@ -90,7 +117,7 @@ Task tool parameters:
 
 Use `TaskOutput` to wait for the review to complete.
 
-### 4. Handle Review Results
+### 5. Handle Review Results
 
 Process the review output based on its content:
 
@@ -187,5 +214,9 @@ Provide a summary of the creation and review process:
   <critical>Preserve the original user instructions VERBATIM when passing to the review agent</critical>
   <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
   <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
+  <critical>Research the codebase before creating issues - parent issues may be outdated</critical>
+  <critical>Complete all Trellis issue updates BEFORE making any git commits so updates are included in commits</critical>
   <important>Let the user decide how to handle review findings</important>
+  <important>Proceed autonomously when given a parent issue ID - do not ask for confirmation</important>
+  <important>Default to coarser-grained issues for easier AI orchestration</important>
 </rules>

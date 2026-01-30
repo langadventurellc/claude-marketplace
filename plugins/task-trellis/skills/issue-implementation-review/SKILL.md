@@ -106,7 +106,7 @@ Verify all requirements are addressed:
 
 - **Functional requirements**: All requirements from the task are implemented
 - **Acceptance criteria**: Parent feature/epic criteria that apply are satisfied
-- **Test coverage**: Tests exist for the new functionality
+- **Test coverage**: Tests exist for the new functionality (see [Testing Guidelines](testing-guidelines.md))
 - **Quality checks**: Code passes linting, formatting, and type checks
 
 ### 5. Simplicity Review
@@ -121,6 +121,17 @@ Evaluate for over-engineering:
 - **Over-abstraction**: Helpers or utilities for one-time operations
 
 **Guideline**: Three similar lines of code is often better than a premature abstraction.
+
+### 6. Documentation Review
+
+Evaluate code documentation against the [Code Documentation Guidelines](code-documentation-guidelines.md):
+
+- **Over-documentation**: JSDoc/docstrings on private or internal functions
+- **Redundant documentation**: Comments that restate what the code shows (parameter types, return types, obvious behavior)
+- **Verbose documentation**: Multi-paragraph docs where one sentence would suffice
+- **Missing public docs**: Public interfaces without any documentation
+
+**Guideline**: Documentation is for AI agents who have already read the code. If the documentation just restates what's visible in the signature and implementation, flag it for removal.
 
 ## Output
 

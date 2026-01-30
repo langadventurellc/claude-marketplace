@@ -35,48 +35,51 @@ The input may contain:
 - Analyze the provided requirements directly
 - No parent context needed, focus on the specific functionality described
 
-### 2. Analyze Requirements
+### 2. Research the Codebase
 
-**Thoroughly analyze the requirements (epic description OR standalone requirements) to identify natural feature boundaries:**
+**CRITICAL**: Before creating features, you MUST research the current codebase state. Parent issues may have been written before other work was completed.
 
-- **Search codebase** for similar feature patterns or implementations
-- Extract all deliverables and components from the epic description
-- Review architecture diagrams and technical specifications
+1. **Search the codebase** using Glob and Grep to understand:
+   - What already exists that's relevant to this epic
+   - Existing patterns, conventions, and architecture
+   - What may have already been partially implemented
+   - Current file structure and dependencies
+2. **Compare parent issue against reality** - the epic description may reference work that's already done or assume a state that no longer exists
+3. **Identify actual gaps** - only create features for work that genuinely needs to be done
+
+Do not blindly create features based on an epic description. The codebase is the source of truth.
+
+### 3. Analyze Requirements
+
+**After researching the codebase**, analyze requirements to identify remaining features:
+
+- Extract deliverables and components from the epic description that don't already exist
+- Review architecture and adjust based on current codebase state
 - Analyze user stories to identify discrete user-facing functionality
 - Consider non-functional requirements that need specific implementation
 - Group related functionality into cohesive features
 - Identify dependencies between features
 - Note any specific instructions provided in `input`
 
-### 3. Gather Additional Information
+### 4. Gather Additional Information (Only When Necessary)
 
-**Ask clarifying questions as needed to refine the feature structure:**
+**Proceed autonomously unless information is truly ambiguous.** Do not ask about:
+- Feature granularity (default to coarser-grained features)
+- How many features to create (use your judgment)
+- Whether to proceed with feature creation (just do it)
 
-Use this structured approach:
-
-- **Ask one question at a time** with specific options
-- **Focus on feature boundaries** - understand what constitutes a complete, testable feature
-- **Identify component relationships** - how features interact with each other
-- **Continue until complete** - don't stop until you have clear feature structure
-
-Key areas to clarify:
-
-- **Feature Boundaries**: What constitutes a complete, testable feature?
-- **Dependencies**: Which features must be implemented before others?
-- **Technical Approach**: How should complex functionality be divided?
-- **Testing Strategy**: What meaningful tests are needed? (See [Testing Guidelines](testing-guidelines.md))
-- **Integration Points**: Where do features interface with each other?
-
-**When in doubt, ask.** Use the AskUserQuestion tool to clarify requirements. Agents tend to be overconfident about what they can infer - a human developer would ask more questions, not fewer. If you're making assumptions, stop and ask instead.
+**Only ask clarifying questions when:**
+- Requirements are genuinely ambiguous with multiple valid interpretations
+- Critical technical information is missing that cannot be inferred
+- A decision has significant irreversible consequences
 
 Continue until the feature structure:
 
-- Covers all aspects of the epic specification
-- Represents 6-20 tasks worth of work per feature
+- Covers all aspects of the epic specification that aren't already implemented
 - Has clear implementation boundaries
 - Enables independent development and testing
 
-### 4. Generate Feature Structure
+### 5. Generate Feature Structure
 
 For each feature, create:
 
@@ -94,19 +97,27 @@ For each feature, create:
 
 **Feature Granularity Guidelines:**
 
-Each feature should be sized appropriately for task breakdown:
+**Default to COARSER-grained features** that are easier for AI agents to orchestrate:
 
-- **1-2 hours per task** - When broken down, each task should be completable in 1-2 hours
+- **Fewer, larger features** - Prefer 2-4 substantial features over 8+ small ones
+- **Meaningful scope** - Each feature should represent a coherent area of functionality
 - **Independent implementation** - Features should be implementable without blocking other features
-- **Testable boundaries** - Features should have clear success criteria and testing strategies
+- **Clear boundaries** - Each feature should have distinct responsibilities
+- **Testable outcomes** - Features should have clear success criteria
 
-### 5. Create Features Using MCP
+**Why coarser features:**
+- Easier for AI agents to understand context and implement correctly
+- Reduces overhead of managing many small features
+- Fewer dependencies between features
+- More cohesive implementation per feature
+
+### 6. Create Features Using MCP
 
 For each feature, use `create_issue` with type `"feature"`, the generated title and description, and set `parent` to the epic ID if applicable. Include `prerequisites` for any feature dependencies. Set status to `"open"` or `"draft"` based on user preference.
 
 **For standalone features**: Omit the `parent` parameter.
 
-### 6. Output Format
+### 7. Output Format
 
 After successful creation:
 

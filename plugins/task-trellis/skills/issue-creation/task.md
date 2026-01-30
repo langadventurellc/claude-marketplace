@@ -33,13 +33,26 @@ The input may contain:
 - Analyze the provided requirements directly
 - No parent context needed, focus on the specific work described
 
-### 2. Analyze Requirements
+### 2. Research the Codebase
 
-**Thoroughly analyze the requirements (feature description OR standalone requirements) to identify required tasks:**
+**CRITICAL**: Before creating tasks, you MUST research the current codebase state. Parent issues may have been written before other work was completed.
 
-- **Search codebase** for similar task patterns or implementations
-- Extract all components and deliverables from the feature description
-- Review implementation guidance and technical approach
+1. **Search the codebase** using Glob and Grep to understand:
+   - What already exists that's relevant to this feature
+   - Existing patterns, conventions, and architecture
+   - What may have already been partially implemented
+   - Current file structure and dependencies
+2. **Compare parent issue against reality** - the feature description may reference work that's already done or assume a state that no longer exists
+3. **Identify actual gaps** - only create tasks for work that genuinely needs to be done
+
+Do not blindly create tasks based on a feature description. The codebase is the source of truth.
+
+### 3. Analyze Requirements
+
+**After researching the codebase**, analyze requirements to identify remaining tasks:
+
+- Extract components and deliverables from the feature description that don't already exist
+- Review implementation guidance and adjust based on current codebase state
 - Identify testing requirements for comprehensive coverage
 - Consider security considerations that need implementation
 - Analyze performance requirements and constraints
@@ -47,35 +60,25 @@ The input may contain:
 - Identify task dependencies and sequencing
 - Note any specific instructions provided in `input`
 
-### 3. Gather Additional Information
+### 4. Gather Additional Information (Only When Necessary)
 
-**Ask clarifying questions as needed to refine the task breakdown:**
+**Proceed autonomously unless information is truly ambiguous.** Do not ask about:
+- Task granularity (default to coarser-grained tasks)
+- How many tasks to create (use your judgment)
+- Whether to proceed with task creation (just do it)
 
-Use this structured approach:
-
-- **Ask one question at a time** with specific options
-- **Focus on task boundaries** - understand what constitutes a complete, testable task
-- **Identify implementation details** - specific technical approaches or patterns
-- **Continue until complete** - don't stop until you have clear task structure
-
-Key areas to clarify:
-
-- **Implementation Details**: Specific technical approaches or patterns?
-- **Task Boundaries**: What constitutes a complete, testable task?
-- **Dependencies**: Which tasks must complete before others?
-- **Testing Approach**: See [Testing Guidelines](testing-guidelines.md)
-- **Security Implementation**: How to handle validation and authorization?
-
-**When in doubt, ask.** Use the AskUserQuestion tool to clarify requirements. Agents tend to be overconfident about what they can infer - a human developer would ask more questions, not fewer. If you're making assumptions, stop and ask instead.
+**Only ask clarifying questions when:**
+- Requirements are genuinely ambiguous with multiple valid interpretations
+- Critical technical information is missing that cannot be inferred
+- A decision has significant irreversible consequences
 
 Continue until the task structure:
 
-- Covers all aspects of the feature specification
-- Represents atomic units of work (1-2 hours each)
+- Covers all aspects of the feature specification that aren't already implemented
 - Has clear implementation boundaries
 - Addresses security considerations appropriately
 
-### 4. Generate Task Structure
+### 5. Generate Task Structure
 
 For each task, create:
 
@@ -101,19 +104,25 @@ For each task, create:
 
 **Task Granularity Guidelines:**
 
-Each task should be sized appropriately for implementation:
+**Default to COARSER-grained tasks** that are easier for AI agents to orchestrate:
 
-- **1-2 hours per task** - Tasks should be completable in one sitting
-- **Atomic units of work** - Each task should produce a meaningful, testable change
+- **Fewer, larger tasks** - Prefer 3-5 substantial tasks over 10+ small ones
+- **Meaningful scope** - Each task should represent a coherent piece of functionality
 - **Independent implementation** - Tasks should be workable without blocking others
-- **Specific scope** - Implementation approach should be clear from the task description
+- **Clear boundaries** - Implementation approach should be clear from the task description
 - **Testable outcome** - Tasks should have defined acceptance criteria
+
+**Why coarser tasks:**
+- Easier for AI agents to understand context and implement correctly
+- Reduces overhead of switching between many small tasks
+- Fewer dependencies to manage
+- More cohesive changes per task
 
 **Default task hierarchy approach:**
 
 - **Prefer flat structure** - Most tasks should be at the same level
-- **Only create sub-tasks when necessary** - When a task is genuinely too large (>2 hours)
-- **Keep it simple** - Avoid unnecessary complexity in task organization
+- **Avoid sub-tasks** - Keep the structure simple
+- **Group related work** - Combine related changes into single tasks
 
 Group tasks logically:
 
@@ -121,13 +130,13 @@ Group tasks logically:
 - **Core Implementation**: Main functionality (includes unit tests and documentation)
 - **Security**: Validation and protection (includes related tests and docs)
 
-### 5. Create Tasks Using MCP
+### 6. Create Tasks Using MCP
 
 For each task, use `create_issue` with type `"task"`, the generated title and description, and set `parent` to the feature ID if applicable. Include `prerequisites` for task dependencies. Set `priority` based on criticality (high for blockers/security-critical, medium for standard work, low for enhancements). Set status to `"open"` or `"draft"` based on user preference.
 
 **For standalone tasks**: Omit the `parent` parameter.
 
-### 6. Output Format
+### 7. Output Format
 
 After successful creation:
 
