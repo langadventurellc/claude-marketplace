@@ -123,58 +123,51 @@ Evaluate for over-engineering:
 
 ## Output
 
-Provide a review report with the following sections:
+Return only actionable findings. Skip positive assessments, status indicators, and "everything looks good" observations. The output is consumed by AI agents that need to act on findings.
 
-### Review Report Template
+### Output Format
 
 ```
-## Implementation Review: [Task ID] - [Task Title]
+## Review Findings
 
-### Context Summary
-- **Task**: [Brief description of what was implemented]
-- **Files Changed**: [Count and list of modified files]
-- **Parent Feature**: [Feature ID and title if applicable]
-
-### Correctness Assessment
-**Status**: Correct / Issues Found
-
-**Findings**:
-- [Specific correctness observations]
-- [Any bugs, logic errors, or integration issues]
-
-### Completeness Assessment
-**Status**: Complete / Partial / Incomplete
-
-**Requirements Coverage**:
-- [x] [Requirement 1 - met/not met]
-- [x] [Requirement 2 - met/not met]
-
-**Gaps** (if any):
-- [Missing functionality or requirements]
-
-### Simplicity Assessment
-**Status**: Appropriate / Over-engineered
-
-**Observations**:
-- [Scope alignment with requirements]
-- [Any unnecessary complexity identified]
-
-### Code Quality
-- **Tests**: Present/Missing - [observation]
-- **Patterns**: Consistent/Inconsistent - [observation]
-- **Error Handling**: Adequate/Needs Improvement - [observation]
+### Critical (must fix)
+- [file:line] [Specific issue that must be addressed before proceeding]
 
 ### Recommendations
-**Critical** (must fix):
-- [Issues that must be addressed]
+- [file:line] [Suggested improvement with rationale]
 
-**Suggested** (nice to have):
-- [Improvements that would enhance the code]
+### Gaps
+- [Missing requirement or functionality from the task description]
 
-### Verdict
-**APPROVED** / **NEEDS REVISION** / **REJECTED**
+### Questions
+- [Item needing user clarification before review can complete]
+```
 
-[Summary of decision rationale]
+### Output Rules
+
+- **Omit empty sections**: If a section has no items, do not include it
+- **No findings = approved**: If there are no findings, return only: `No issues found.`
+- **No verdict section**: Empty output implicitly means approved
+- **Always include file:line**: Reference specific code locations for all findings
+- **Skip positive observations**: Do not report things that are correct or working well
+
+### Examples
+
+**When issues are found:**
+```
+## Review Findings
+
+### Critical (must fix)
+- src/auth/login.ts:45 Missing null check before accessing user.email
+- src/auth/login.ts:78 SQL query vulnerable to injection, use parameterized query
+
+### Recommendations
+- src/auth/login.ts:23 Consider extracting validation logic to separate function for testability
+```
+
+**When no issues are found:**
+```
+No issues found.
 ```
 
 ## Review Standards
@@ -182,4 +175,4 @@ Provide a review report with the following sections:
 - **Evidence-based**: Support findings with specific code references (file:line)
 - **Actionable**: Recommendations should be specific and implementable
 - **Proportionate**: Don't nitpick style when substance matters more
-- **Fair**: Acknowledge good implementation decisions, not just problems
+- **Concise**: Only report items that require action or decision
