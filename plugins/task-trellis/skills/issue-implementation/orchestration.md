@@ -27,7 +27,35 @@ Complete all planned child issues within a parent by coordinating their executio
 
 Use `get_issue` to retrieve the issue details. If no ID is specified, use `get_next_available_issue` with the appropriate `issueType` to find the next available issue.
 
-### 2. Verify Planned Work Exists
+### 2. Create Feature Branch
+
+Before starting implementation, ensure work is on a feature branch.
+
+#### Check Current Branch
+
+Use Bash to check the current branch:
+
+```bash
+git branch --show-current
+```
+
+#### Branch Logic
+
+- **If on `main`**: Create and checkout a feature branch:
+  ```bash
+  git checkout -b feature/{ISSUE_ID}
+  ```
+  Example: `feature/F-add-user-auth` or `feature/E-auth-system`
+
+- **If already on a non-main branch**: Continue without branching
+
+#### Log Branch Status
+
+Use `append_issue_log` to record:
+- Branch created: "Created feature branch feature/{ISSUE_ID}"
+- Existing branch: "Continuing on existing branch {BRANCH_NAME}"
+
+### 3. Verify Planned Work Exists
 
 **CRITICAL**: Before starting, verify all work is planned.
 
@@ -51,7 +79,49 @@ Use `get_issue` to retrieve the issue details. If no ID is specified, use `get_n
 - Ask the user to complete the planning before proceeding
 - **Do NOT create issues yourself** - implementation does not include planning
 
-### 3. Determine Execution Order
+### 4. Evaluate Complexity and Plan (Optional)
+
+Before executing children, evaluate whether the work would benefit from upfront planning.
+
+#### Complexity Signals
+
+Consider spawning a planner for issues with:
+
+- **Multiple tasks** (more than 3-4 tasks)
+- **Refactoring or migration** language in task descriptions
+- **Architectural changes** mentioned
+- **Multiple integration points** or subsystems involved
+- **Cross-cutting concerns** that affect multiple areas
+
+This is a judgment call—no hard threshold required.
+
+#### Spawn Implementation Planner
+
+If judged sufficiently complex:
+
+1. Use the `Task` tool to spawn `issue-implementation-planner` as an async subagent:
+   ```
+   Task tool parameters:
+   - subagent_type: "general-purpose"
+   - description: "Plan implementation for {ISSUE_ID}"
+   - run_in_background: true
+   - prompt: |
+       Use the /issue-implementation-planner skill to create an implementation plan for {ISSUE_ID}.
+
+       Issue: {ISSUE_ID} - {ISSUE_TITLE}
+       Description: {ISSUE_DESCRIPTION}
+
+       Children to implement:
+       {LIST_OF_CHILDREN_WITH_DESCRIPTIONS}
+
+       Create a comprehensive plan that identifies key files, patterns, and implementation approach.
+   ```
+
+2. Use `TaskOutput` to wait for the planner to complete
+3. Store the planner's output as context for implementation agents
+4. Include relevant plan context when spawning child implementations
+
+### 5. Determine Execution Order
 
 Analyze the direct children to determine the correct execution order:
 
@@ -65,17 +135,17 @@ Analyze the direct children to determine the correct execution order:
 - If a child has no prerequisites, it can start immediately (after any currently running child)
 - Execute children **sequentially** - wait for each to complete before starting the next
 
-### 4. Execute Children
+### 6. Execute Children
 
 For each child in the execution queue:
 
-#### 4.1 Verify Child is Ready
+#### 6.1 Verify Child is Ready
 
 - Check all prerequisites are `done`
 - Check child status is `open` or `draft` (not already `in-progress` or `done`)
 - If not ready, skip and check next child
 
-#### 4.2 Launch Child Implementation
+#### 6.2 Launch Child Implementation
 
 Use the `Task` tool to spawn a subagent that implements the child:
 
@@ -90,6 +160,8 @@ Task tool parameters:
     - Parent: [PARENT_ID] - [PARENT_TITLE]
     - [CHILD_TYPE]: [CHILD_ID] - [CHILD_TITLE]
 
+    [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
+
     Follow the implementation workflow for this issue type.
     If it's a task, implement it directly.
     If it's a feature, epic, or project, orchestrate its children.
@@ -98,17 +170,77 @@ Task tool parameters:
     Do NOT continue to other issues - only implement this single [CHILD_TYPE].
 ```
 
-**Wait for the subagent to complete** before proceeding to the next child.
+**Wait for the subagent to complete** before proceeding.
 
-#### 4.3 Verify Child Completion
+#### 6.3 Verify Child Completion
 
 After the subagent returns:
 
 1. Use `get_issue` to check the child's status
-2. If status is `done`: Proceed to next child
-3. If status is NOT `done`: **STOP** and handle the error
+2. If status is `done`: Continue to review step
+3. If status is NOT `done`: **STOP** and handle the error (see Section 7)
 
-### 5. Handle Errors
+#### 6.4 Review Implementation (For Tasks)
+
+After a task completes successfully, evaluate if a review is warranted.
+
+**Skip review for trivial tasks** (judgment call):
+- Single configuration change
+- One-line fix
+- Comment or documentation-only change
+- Simple rename or move
+
+**For non-trivial tasks**, spawn `issue-implementation-review`:
+
+```
+Task tool parameters:
+- subagent_type: "general-purpose"
+- description: "Review implementation of [TASK_ID]"
+- run_in_background: true
+- prompt: |
+    Use the /issue-implementation-review skill to review task [TASK_ID].
+
+    Task: [TASK_ID] - [TASK_TITLE]
+    Parent Feature: [PARENT_ID] - [PARENT_TITLE]
+
+    Review the implementation for correctness, completeness, and simplicity.
+```
+
+Use `TaskOutput` to wait for the review to complete.
+
+**Handle review outcomes:**
+
+- **No findings / empty output**: Proceed to commit
+- **Minor issues** (style, small improvements): Auto-fix the issues, then proceed to commit
+- **Major issues** (bugs, missing functionality, security concerns):
+  - **STOP** orchestration
+  - Use `AskUserQuestion` to report the issues and ask how to proceed
+  - Options: fix and re-review, skip review, stop orchestration
+- **Questions requiring answers**:
+  - **STOP** orchestration
+  - Use `AskUserQuestion` to get answers from the user
+  - Re-run review with the answers provided
+
+#### 6.5 Commit Task Changes
+
+After implementation and review pass, commit the changes:
+
+1. **Stage modified files**:
+   ```bash
+   git add [LIST_OF_MODIFIED_FILES]
+   ```
+
+2. **Create commit** with message referencing the task:
+   ```bash
+   git commit -m "[TASK_ID] Summary of changes"
+   ```
+   Example: `[T-add-user-validation] Add email validation to user registration`
+
+3. **Verify commit succeeded** before proceeding to next child
+
+4. **Log the commit** using `append_issue_log` on the parent issue
+
+### 7. Handle Errors
 
 If a child fails or the subagent reports an error:
 
@@ -120,9 +252,45 @@ If a child fails or the subagent reports an error:
    - Stop orchestration entirely
 4. **Follow user direction** - Do what the user decides
 
-### 6. Complete Parent Issue
+### 8. Update Documentation
 
-When all children are done:
+When all children are done (before marking the parent as complete):
+
+#### Spawn Documentation Updater
+
+Use the `Task` tool to spawn `docs-updater`:
+
+```
+Task tool parameters:
+- subagent_type: "general-purpose"
+- description: "Update documentation for [ISSUE_ID]"
+- run_in_background: true
+- prompt: |
+    Use the /docs-updater skill to review and update documentation.
+
+    Issue: [ISSUE_ID] - [ISSUE_TITLE]
+
+    Review the changes made during this implementation and update any relevant
+    documentation files (CLAUDE.md, README.md, docs/**).
+```
+
+Use `TaskOutput` to wait for the docs-updater to complete.
+
+#### Commit Documentation Changes
+
+If the docs-updater made changes:
+
+1. Stage and commit documentation updates:
+   ```bash
+   git add [DOCUMENTATION_FILES]
+   git commit -m "[ISSUE_ID] Update documentation"
+   ```
+
+2. Log the documentation update using `append_issue_log`
+
+### 9. Complete Parent Issue
+
+When all children are done and documentation is updated:
 
 1. Verify all children have status `done` (or `wont-do` if skipped by user direction)
 2. Update the parent status to `done` using `update_issue`
@@ -131,6 +299,8 @@ When all children are done:
    - Total direct children completed
    - Total descendants completed (all levels)
    - Any issues skipped
+   - Commits created
+   - Documentation updates made
    - Overall outcome
 
 ## Progress Tracking
@@ -148,3 +318,5 @@ Throughout orchestration:
 - **Respect dependencies**: Never start a child before its prerequisites are done
 - **Stop on failure**: Always stop and ask user when something goes wrong
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
+- **Commit after each task**: Ensure changes are committed before moving to the next task
+- **Update docs before completing**: Always run docs-updater before marking parent as done
