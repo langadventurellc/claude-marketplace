@@ -11,6 +11,7 @@ allowed-tools:
   - WebFetch
   - WebSearch
   - TodoWrite
+  - mcp__perplexity-ask__perplexity_ask
   - mcp__task-trellis__get_issue
   - mcp__task-trellis__list_issues
 ---

@@ -6,6 +6,7 @@ allowed-tools:
   - mcp__task-trellis__get_issue
   - mcp__task-trellis__update_issue
   - mcp__task-trellis__list_issues
+  - mcp__perplexity-ask__perplexity_ask
   - Task
   - TaskOutput
   - Glob
@@ -181,3 +182,10 @@ Provide a summary of the creation and review process:
 - **Transparent process**: Keep the user informed of what's happening at each step
 - **User control**: Let the user decide how to handle review findings
 - **Single review cycle**: Aim to resolve issues in one re-review; if still failing, escalate to user
+
+<rules>
+  <critical>Preserve the original user instructions VERBATIM when passing to the review agent</critical>
+  <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
+  <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
+  <important>Let the user decide how to handle review findings</important>
+</rules>

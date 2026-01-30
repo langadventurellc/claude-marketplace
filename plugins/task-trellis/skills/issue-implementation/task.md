@@ -67,7 +67,7 @@ Ask questions when:
 - **Write clean code**: Follow project conventions and best practices
 - **Implement incrementally**: Build and test small pieces before moving on
 - **Run quality checks frequently**: Format, lint, and test after each major change
-- **Write tests alongside code**: Don't leave testing for the end
+- **Write purposeful tests**: Only test logic with meaningful complexity (see [Testing Guidelines](testing-guidelines.md))
 - **Handle errors gracefully**: Include proper error handling
 - **Log progress**: Use `append_issue_log` to record significant progress milestones
 
@@ -87,10 +87,22 @@ Use `complete_task` with task ID, summary, and files changed.
 ## Quality Standards
 
 - **Research First**: Never skip research phase unless specifically instructed by the user
-- **Test Coverage**: Write tests in same task
+- **Purposeful Testing**: Write tests only for meaningful complexity—not every piece of code needs tests
 - **Quality Checks**: All tests must pass before marking task complete
 
-## Error Handling
+## Testing
+
+Before writing any tests, read the [Testing Guidelines](testing-guidelines.md).
+
+## Critical: Error Handling
+
+<rules>
+  <critical>If you encounter a permission error, STOP IMMEDIATELY and report to the user. Do NOT attempt workarounds.</critical>
+  <critical>If a hook returns any unexpected error sor fails, STOP IMMEDIATELY and report to the user. Hook errors indicate important validation failures.</critical>
+  <critical>NEVER work around errors by skipping steps, using alternative approaches, or ignoring validation failures.</critical>
+  <critical>When blocked by any unexpected error - even if you think it doesn't apply to you - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
+  <critical>Do NOT assume an error is irrelevant or a false positive. Report any unexpected errors to the user and let them decide.</critical>
+</rules>
 
 If you encounter errors during implementation:
 
@@ -98,3 +110,42 @@ If you encounter errors during implementation:
 2. **Log the error** - Use `append_issue_log` to document what went wrong
 3. **Ask for help** - Use AskUserQuestion to inform the user and ask how to proceed
 4. **Do not skip** - Never mark a failed task as complete
+
+**Common error scenarios that require stopping:**
+
+- Permission denied when running commands
+- Hook failures (pre-commit, post-edit, quality checks)
+- Test failures that you cannot resolve
+- Linting or formatting errors from automated tools
+- Missing dependencies or configuration issues
+
+**Why this matters**: Hooks are configured to enforce quality checks and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems.
+
+## Security & Performance Principles
+
+### Security Always:
+
+- **Validate ALL inputs** - Never trust user data
+- **Use secure defaults** - Fail closed, not open
+- **Parameterized queries** - Never concatenate SQL/queries
+- **Secure random** - Use cryptographically secure generators
+- **Least privilege** - Request minimum permissions needed
+- **Error handling** - Don't expose internal details in error messages
+
+### Forbidden Patterns:
+
+- **NO "any" types** - Use specific, concrete types
+- **NO sleep/wait loops** - Use proper async patterns
+- **NO keeping old and new code together** - Delete replaced code immediately
+- **NO hardcoded secrets or environment values**
+- **NO concatenating user input into queries** - Use parameterized queries
+
+<rules>
+  <critical>ALWAYS follow Research and Plan -> Implement workflow</critical>
+  <critical>NEVER skip quality checks before completing task</critical>
+  <critical>All tests must pass before marking task complete</critical>
+  <critical>STOP and ask the user if you encounter ANY errors or blockers</critical>
+  <important>Search codebase for patterns before implementing</important>
+  <important>Write tests in the same task as implementation</important>
+  <important>Apply security best practices to all code</important>
+</rules>

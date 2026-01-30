@@ -26,7 +26,19 @@ Hierarchical task management for AI coding agents. Provides skills and hooks for
 - Project creation and management workflows
 - Epic and feature breakdown skills
 - Task implementation guidance
-- Automatic task status updates via hooks
+
+### mise
+
+Integrates [mise](https://mise.jdx.dev/) task runner with Task Trellis for automatic quality validation during AI coding workflows.
+
+**Features:**
+- Runs lint and type-check after file edits
+- Runs quality checks and tests before task completion
+- Only activates in projects with mise configured
+
+```
+/plugin install mise@task-trellis-marketplace
+```
 
 ## License
 

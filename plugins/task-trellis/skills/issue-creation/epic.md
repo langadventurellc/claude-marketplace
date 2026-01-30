@@ -127,9 +127,18 @@ When creating epics, follow these guidelines:
 - **NO feature creep** - Stick to the specified project requirements
 - **NO complex dependencies** - Keep epic relationships simple and clear
 
+### Forbidden Patterns:
+
+- **NO premature optimization** - Don't optimize epic structure unless requested
+- **NO feature creep** - Stick to the specified project requirements
+- **NO complex dependencies** - Keep epic relationships simple and clear
+- **NO unnecessary technical debt** - Choose maintainable approaches
+- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
+
 ### Modular Architecture:
 
 - **Clear boundaries** - Each epic should have distinct, well-defined responsibilities
 - **Minimal coupling** - Epics should interact through clean interfaces, not internal dependencies
 - **High cohesion** - Related functionality should be grouped within the same epic
+- **Avoid big ball of mud** - Prevent tangled cross-dependencies between epics
 - **Clean interfaces** - Define clear contracts between epics for data and functionality exchange

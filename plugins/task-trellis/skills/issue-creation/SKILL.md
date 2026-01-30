@@ -6,6 +6,7 @@ allowed-tools:
   - mcp__task-trellis__get_issue
   - mcp__task-trellis__update_issue
   - mcp__task-trellis__list_issues
+  - mcp__perplexity-ask__perplexity_ask
   - Task
   - Glob
   - Grep

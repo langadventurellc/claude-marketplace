@@ -100,3 +100,30 @@ Status: [actual-status]
 Project Summary:
 [First paragraph of description]
 ```
+
+## Simplicity Principles
+
+When creating projects, follow these guidelines:
+
+### Keep It Simple:
+
+- **No over-engineering** - Create only the specifications needed for the project
+- **No extra features** - Don't add functionality that wasn't requested
+- **Choose straightforward approaches** - Simple project structure over complex architectures
+- **Solve the actual problem** - Don't anticipate future requirements
+
+### Forbidden Patterns:
+
+- **NO premature optimization** - Don't optimize project structure unless requested
+- **NO feature creep** - Stick to the specified project requirements
+- **NO complex architectures** - Choose simple, maintainable approaches
+- **NO unnecessary abstractions** - Use direct solutions that work
+- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
+
+### Modular Architecture:
+
+- **Clear boundaries** - Project should define distinct modules with well-defined responsibilities
+- **Minimal coupling** - Modules should interact through clean interfaces, not internal dependencies
+- **High cohesion** - Related functionality should be grouped within the same module
+- **Avoid big ball of mud** - Prevent tangled cross-dependencies between system components
+- **Clean interfaces** - Define clear contracts between modules for data and functionality exchange

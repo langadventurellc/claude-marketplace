@@ -10,6 +10,7 @@ allowed-tools:
   - mcp__task-trellis__append_modified_files
   - mcp__task-trellis__update_issue
   - mcp__task-trellis__list_issues
+  - mcp__perplexity-ask__perplexity_ask
   - Task
   - Glob
   - Grep
@@ -67,3 +68,16 @@ All issue types share these principles:
 - **Respect dependencies** - Only start work when all prerequisites are completed.
 - **Stop on errors** - When encountering failures, stop and ask the user how to proceed.
 - **Track progress** - Update issue logs to track what's been done.
+
+## Critical: Error and Failure Handling
+
+<rules>
+  <critical>If you encounter a permission error, STOP IMMEDIATELY and report to the user. Do NOT attempt workarounds.</critical>
+  <critical>If a hook returns any unexpected errors or fails, STOP IMMEDIATELY and report to the user. Hook errors indicate important validation failures that must be addressed.</critical>
+  <critical>NEVER work around errors by skipping steps, using alternative approaches, or ignoring validation failures.</critical>
+  <critical>When blocked by any unexpected error - even if you think it doesn't apply to you - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
+  <critical>Do NOT assume an error is irrelevant or a false positive. Report any unexpected errors to the user and let them decide.</critical>
+  <critical>NEVER mark a task as complete if any unexpected errors occurred during implementation, even if you think the core work succeeded.</critical>
+</rules>
+
+**Why this matters**: Hooks are configured to enforce quality checks, permissions, and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken or invalid code being committed.

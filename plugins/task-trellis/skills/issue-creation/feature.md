@@ -64,7 +64,7 @@ Key areas to clarify:
 - **Feature Boundaries**: What constitutes a complete, testable feature?
 - **Dependencies**: Which features must be implemented before others?
 - **Technical Approach**: How should complex functionality be divided?
-- **Testing Strategy**: How can features be tested independently?
+- **Testing Strategy**: What meaningful tests are needed? (See [Testing Guidelines](testing-guidelines.md))
 - **Integration Points**: Where do features interface with each other?
 
 **When in doubt, ask.** Use the AskUserQuestion tool to clarify requirements. Agents tend to be overconfident about what they can infer - a human developer would ask more questions, not fewer. If you're making assumptions, stop and ask instead.
@@ -88,7 +88,7 @@ For each feature, create:
   - Technical requirements
   - Dependencies on other features
   - **Implementation Guidance** - Technical approach and patterns to follow
-  - **Testing Requirements** - How to verify the feature works correctly
+  - **Testing Requirements** - What meaningful tests are needed (see [Testing Guidelines](testing-guidelines.md))
   - **Security Considerations** - Input validation, authorization, data protection needs as applicable
   - **Performance Requirements** - Response times, resource usage constraints as applicable
 
@@ -126,3 +126,31 @@ Created Features:
 Feature Summary:
 - Total Features: [N]
 ```
+
+## Simplicity Principles
+
+When creating features, follow these guidelines:
+
+### Keep It Simple:
+
+- **No over-engineering** - Create only the features needed for the epic
+- **No extra features** - Don't add functionality that wasn't requested
+- **Choose straightforward approaches** - Simple feature structure over complex designs
+- **Solve the actual problem** - Don't anticipate future requirements
+
+### Forbidden Patterns:
+
+- **NO premature optimization** - Don't optimize feature structure unless requested
+- **NO feature creep** - Stick to the specified epic requirements
+- **NO complex dependencies** - Keep feature relationships simple and clear
+- **NO unnecessary abstractions** - Choose direct, maintainable approaches
+- **NO pure research/analysis features** - Every feature must produce actual code, configuration, or tangible deliverables
+- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
+
+### Modular Architecture:
+
+- **Clear boundaries** - Each feature should have distinct, well-defined responsibilities
+- **Minimal coupling** - Features should interact through clean interfaces, not internal dependencies
+- **High cohesion** - Related functionality should be grouped within the same feature
+- **Avoid big ball of mud** - Prevent tangled cross-dependencies between features
+- **Clean interfaces** - Define clear contracts between features for data and functionality exchange

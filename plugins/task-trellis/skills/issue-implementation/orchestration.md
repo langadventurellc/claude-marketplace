@@ -225,10 +225,11 @@ Use `TaskOutput` to wait for the review to complete.
 
 After implementation and review pass, commit the changes:
 
-1. **Stage modified files**:
+1. **Stage all changes**:
    ```bash
-   git add [LIST_OF_MODIFIED_FILES]
+   git add .
    ```
+   Always stage everything—this ensures Trellis state files, configuration updates, and any other ancillary changes are included. Don't worry about unrecognized files; assume they belong in the commit.
 
 2. **Create commit** with message referencing the task:
    ```bash
@@ -242,6 +243,14 @@ After implementation and review pass, commit the changes:
 
 ### 7. Handle Errors
 
+<rules>
+  <critical>If you encounter a permission error, STOP IMMEDIATELY and report to the user. Do NOT attempt workarounds.</critical>
+  <critical>If a hook returns any unexpected errors or fails, STOP IMMEDIATELY and report to the user. Hook errors indicate important validation failures.</critical>
+  <critical>NEVER work around errors by skipping steps, using alternative approaches, or ignoring validation failures.</critical>
+  <critical>When blocked by any unexpected error - even if you think it doesn't apply to you - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
+  <critical>Do NOT assume an error is irrelevant or a false positive. Report any unexpected errors to the user and let them decide.</critical>
+</rules>
+
 If a child fails or the subagent reports an error:
 
 1. **Stop execution** - Do not proceed to other children
@@ -251,6 +260,15 @@ If a child fails or the subagent reports an error:
    - Skip the failed child and continue
    - Stop orchestration entirely
 4. **Follow user direction** - Do what the user decides
+
+**Common error scenarios that require stopping:**
+
+- Permission denied when running commands
+- Unexpected hook failures (pre-commit, post-edit, quality checks)
+- Subagent returning errors or incomplete results
+- Git commit failures
+
+**Why this matters**: Hooks are configured to enforce quality checks and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken code being committed.
 
 ### 8. Update Documentation
 
@@ -280,11 +298,12 @@ Use `TaskOutput` to wait for the docs-updater to complete.
 
 If the docs-updater made changes:
 
-1. Stage and commit documentation updates:
+1. Stage and commit all changes:
    ```bash
-   git add [DOCUMENTATION_FILES]
+   git add .
    git commit -m "[ISSUE_ID] Update documentation"
    ```
+   Always stage everything to ensure all related changes are included.
 
 2. Log the documentation update using `append_issue_log`
 
@@ -320,3 +339,10 @@ Throughout orchestration:
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
 - **Commit after each task**: Ensure changes are committed before moving to the next task
 - **Update docs before completing**: Always run docs-updater before marking parent as done
+
+<rules>
+  <critical>STOP on ANY error - permission errors, hook failures, or unexpected results</critical>
+  <critical>NEVER work around errors or assume they don't apply</critical>
+  <critical>Do NOT proceed to next child if current child encountered errors</critical>
+  <critical>Report ALL errors to the user, even if you think they're false positives</critical>
+</rules>
