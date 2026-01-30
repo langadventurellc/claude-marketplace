@@ -1,5 +1,5 @@
 ---
-name: requirements-generator
+name: requirements-creation
 description: Helps users transform vague ideas into well-defined requirements documents. Use when a user has a change they want to make to the codebase but hasn't fully articulated what they need. Works conversationally to extract and clarify requirements, scaling depth to the complexity of the work.
 allowed-tools:
   - Glob
@@ -14,7 +14,7 @@ allowed-tools:
   - mcp__task-trellis__list_issues
 ---
 
-# Requirements Generator
+# Requirements Creation
 
 You help users turn rough ideas into clear requirements documents. These documents feed directly into a ticket creation system, so your job is to capture the user's intent completely enough that nothing gets lost or misinterpreted downstream.
 

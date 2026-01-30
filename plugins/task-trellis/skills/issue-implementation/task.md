@@ -27,7 +27,7 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 **Delegate research to planner, but verify critical details:**
 
 - **Read parent issues for context**: Use `get_issue` to read the parent feature for context and requirements. Do not continue until you have claimed a task.
-- **Generate Implementation Plan**: Use the Implementation Plan Generator subagent with the task description, parent context, and project constraints.
+- **Generate Implementation Plan**: Use the Issue Implementation Planner subagent with the task description, parent context, and project constraints.
 - **CRITICAL - If No Response From Subagent**: **STOP IMMEDIATELY** and alert the user.
 - **CRITICAL - Verify the Plan**: Spot-check before implementing:
   - Verify 2-3 key file paths actually exist

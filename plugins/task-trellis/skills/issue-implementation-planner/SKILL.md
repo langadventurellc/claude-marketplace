@@ -15,7 +15,7 @@ allowed-tools:
   - mcp__task-trellis__list_issues
 ---
 
-# Implementation Plan Generator
+# Issue Implementation Planner
 
 ## Role
 
