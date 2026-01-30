@@ -3,10 +3,15 @@
 # Post-tool use hook for file edits
 # Runs lint and type-check after editing files
 
-echo "🔧 Running post-edit checks..."
+# Only run in git repos with mise configured
+cd "$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 
-# Change to project root
-cd "$(git rev-parse --show-toplevel)"
+# Skip if no mise config
+if [ ! -f ".mise.toml" ] && [ ! -f "mise.toml" ] && [ ! -f ".tool-versions" ]; then
+    exit 0
+fi
+
+echo "🔧 Running post-edit checks..."
 
 echo "📝 Running lint checks..."
 LINT_OUTPUT=$(mise run lint 2>&1)
