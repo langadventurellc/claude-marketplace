@@ -1,6 +1,6 @@
 ---
 name: issue-implementation
-description: This skill should be used when the user asks to "implement task", "implement feature", "implement epic", "implement project", "claim task", "work on task", "work on feature", "start working", "execute feature", "execute epic", "execute project", or mentions implementing, claiming, or executing any Trellis issue.
+description: This skill should be used when the user asks to "implement task", "claim task", "work on task", or mentions implementing a single task in Trellis. For features, epics, or projects, use issue-implementation-orchestration instead.
 allowed-tools:
   - mcp__task-trellis__claim_task
   - mcp__task-trellis__get_issue
@@ -21,53 +21,37 @@ allowed-tools:
   - AskUserQuestion
 ---
 
-# Implement Trellis Issues
+# Implement Trellis Task
 
-Implement issues in the Trellis task management system. This skill supports all issue types: tasks, features, epics, and projects.
+Implement a single task from the Trellis task management system. This skill handles direct task implementation only.
 
-## Issue Type Hierarchy
+**Note**: For implementing features, epics, or projects (which orchestrate multiple tasks), use the `issue-implementation-orchestration` skill instead.
 
-Trellis uses a hierarchical issue structure:
+## Task Implementation
 
-```
-Project -> Epic -> Feature -> Task
-```
+Tasks are atomic units of work (1-2 hours) that are implemented directly. Follow the detailed process in [task.md](task.md).
 
-- **Task**: Atomic unit of work (1-2 hours) - directly implemented
-- **Feature**: Implementable functionality - orchestrates task execution
-- **Epic**: Major work stream - orchestrates feature execution
-- **Project**: Top-level container - orchestrates epic execution
+## Input
 
-## Determining Issue Type
+`$ARGUMENTS` (optional) - Can specify:
 
-Based on the user's request, determine which issue type to implement:
+- **Task ID**: Specific task ID to claim (e.g., "T-create-user-model")
+- **Scope**: Hierarchical scope for task filtering (P-, E-, F- prefixed)
+- **Force**: Bypass validation when claiming specific task (only with task ID)
 
-| User Request                                                      | Issue Type | Reference                            |
-| ----------------------------------------------------------------- | ---------- | ------------------------------------ |
-| "implement task", "claim task", "work on task", no type specified | Task       | [task.md](task.md)                   |
-| "implement feature", "execute feature", "work on feature F-xxx"   | Feature    | [orchestration.md](orchestration.md) |
-| "implement epic", "execute epic", "work on epic E-xxx"            | Epic       | [orchestration.md](orchestration.md) |
-| "implement project", "execute project", "work on project P-xxx"   | Project    | [orchestration.md](orchestration.md) |
-
-**Default Behavior**: When no issue type is specified or the user simply says "implement" or "work on next task", default to **Task** implementation.
+**If no task ID specified**: Claims the next available task based on priority and readiness (prerequisites satisfied).
 
 ## Instructions
 
-1. **Identify the issue type** the user wants to implement based on their request
-2. **Read the appropriate file** for detailed implementation instructions:
-   - For tasks: Read [task.md](task.md) - direct implementation
-   - For features, epics, or projects: Read [orchestration.md](orchestration.md) - orchestrates child issues
-3. **Follow the detailed process** in that file to implement the issue
+Read and follow the detailed implementation process in [task.md](task.md).
 
-## Common Principles
+## Key Constraints
 
-All issue types share these principles:
-
-- **Ask clarifying questions** - Use AskUserQuestion when uncertain. Agents tend to be overconfident about what they can infer.
-- **Only implement planned work** - Do not create new tasks, features, epics, or projects during implementation. If work is missing, stop and inform the user.
-- **Respect dependencies** - Only start work when all prerequisites are completed.
-- **Stop on errors** - When encountering failures, stop and ask the user how to proceed.
-- **Track progress** - Update issue logs to track what's been done.
+- **Do NOT commit changes** - Leave all changes uncommitted for review by the orchestration skill or another agent
+- **Only implement planned work** - Do not create new tasks during implementation
+- **Respect dependencies** - Only start work when all prerequisites are completed
+- **Stop on errors** - When encountering failures, stop and ask the user how to proceed
+- **Track progress** - Update issue logs to track what's been done
 
 ## Critical: Error and Failure Handling
 
@@ -78,29 +62,7 @@ All issue types share these principles:
   <critical>When blocked by any unexpected error - even if you think it doesn't apply to you - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
   <critical>Do NOT assume an error is irrelevant or a false positive. Report any unexpected errors to the user and let them decide.</critical>
   <critical>NEVER mark a task as complete if any unexpected errors occurred during implementation, even if you think the core work succeeded.</critical>
+  <critical>NEVER commit changes - leave all changes uncommitted for review by another agent or developer</critical>
 </rules>
 
 **Why this matters**: Hooks are configured to enforce quality checks, permissions, and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken or invalid code being committed.
-
-## Critical: Commit Ordering Requirement
-
-**NEVER commit code before Trellis updates are complete.**
-
-The `.trellis/` directory contains issue state files that must be included in commits. If you commit code first and then update Trellis issues, those Trellis changes will be left uncommitted.
-
-<rules>
-  <critical>Always update Trellis issues (append logs, mark complete, etc.) BEFORE making git commits</critical>
-  <critical>Never leave .trellis/ changes uncommitted after completing work</critical>
-</rules>
-
-**Correct order:**
-1. Make code changes
-2. Update Trellis issues (append logs, mark complete, etc.)
-3. THEN commit (code + .trellis/ changes together)
-
-**Wrong order:**
-1. Make code changes
-2. Commit
-3. Update Trellis issues ← These are now uncommitted!
-
-This applies to ALL commits, including documentation commits, final commits, and any intermediate commits. When you finish work, there should be no uncommitted changes in `.trellis/`.

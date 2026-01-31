@@ -75,6 +75,15 @@ Use `complete_task` with task ID, summary, and files changed.
 
 **STOP!** - Complete one task only. Do not implement another task.
 
+### 6. Do NOT Commit
+
+**Your changes must be reviewed before committing.**
+
+- **Do not run git commit** - Leave all changes uncommitted
+- **Do not use the /commit skill** - This will be done after review
+- **Leave changes staged or unstaged** - The reviewer needs to see the diff
+- A separate agent or developer will review your implementation and commit if approved
+
 ## Quality Standards
 
 - **Research First**: Never skip research phase unless specifically instructed by the user
@@ -140,6 +149,7 @@ If you encounter errors during implementation:
   <critical>NEVER skip quality checks before completing task</critical>
   <critical>All tests must pass before marking task complete</critical>
   <critical>STOP and ask the user if you encounter ANY errors or blockers</critical>
+  <critical>NEVER commit changes - leave all changes uncommitted for review by another agent or developer</critical>
   <important>Search codebase for patterns before implementing</important>
   <important>Write tests in the same task as implementation</important>
   <important>Apply security best practices to all code</important>

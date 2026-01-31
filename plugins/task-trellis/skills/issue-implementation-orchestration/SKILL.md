@@ -1,10 +1,36 @@
+---
+name: issue-implementation-orchestration
+description: Orchestrates issue implementation with automatic review and commits. Use when asked to "implement feature", "implement epic", "implement project", "execute feature", "execute epic", "execute project", or when you want implementations automatically reviewed and committed.
+allowed-tools:
+  - mcp__task-trellis__claim_task
+  - mcp__task-trellis__get_issue
+  - mcp__task-trellis__get_next_available_issue
+  - mcp__task-trellis__complete_task
+  - mcp__task-trellis__append_issue_log
+  - mcp__task-trellis__append_modified_files
+  - mcp__task-trellis__update_issue
+  - mcp__task-trellis__list_issues
+  - mcp__perplexity-ask__perplexity_ask
+  - Task
+  - TaskOutput
+  - Glob
+  - Grep
+  - Read
+  - Bash
+  - AskUserQuestion
+---
+
 # Orchestrate Issue Implementation
 
-Orchestrate the implementation of a parent issue (project, epic, or feature) by executing its child issues sequentially.
+Orchestrate the implementation of a parent issue (project, epic, or feature) by executing its child issues sequentially, reviewing each implementation, and committing approved changes.
 
 ## Goal
 
-Complete all planned child issues within a parent by coordinating their execution in the correct order, respecting dependencies, and ensuring each child completes successfully before proceeding.
+Complete all planned child issues within a parent by:
+1. Spawning task implementations via the `issue-implementation` skill
+2. Reviewing completed work via the `issue-implementation-review` skill
+3. Committing approved changes
+4. Updating documentation when all children are complete
 
 ## Issue Hierarchy
 
@@ -149,12 +175,33 @@ For each child in the execution queue:
 
 Use the `Task` tool to spawn a subagent that implements the child:
 
+**For Tasks** - spawn the `issue-implementation` skill:
 ```
 Task tool parameters:
 - subagent_type: "general-purpose"
-- description: "Implement [CHILD_TYPE] [CHILD_ID]"
+- description: "Implement task [TASK_ID]"
 - prompt: |
-    Use the /implement-task skill to implement [CHILD_TYPE] [CHILD_ID].
+    Use the /issue-implementation skill to implement task [TASK_ID].
+
+    Context:
+    - Parent: [PARENT_ID] - [PARENT_TITLE]
+    - Task: [TASK_ID] - [TASK_TITLE]
+
+    [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
+
+    Implement this task following the task implementation workflow.
+    Do NOT commit your changes - leave them uncommitted for review.
+
+    If you encounter any errors or blockers, STOP and report back.
+```
+
+**For Features/Epics/Projects** - spawn the `issue-implementation-orchestration` skill (recursive):
+```
+Task tool parameters:
+- subagent_type: "general-purpose"
+- description: "Orchestrate [CHILD_TYPE] [CHILD_ID]"
+- prompt: |
+    Use the /issue-implementation-orchestration skill to implement [CHILD_TYPE] [CHILD_ID].
 
     Context:
     - Parent: [PARENT_ID] - [PARENT_TITLE]
@@ -162,12 +209,9 @@ Task tool parameters:
 
     [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
 
-    Follow the implementation workflow for this issue type.
-    If it's a task, implement it directly.
-    If it's a feature, epic, or project, orchestrate its children.
+    Orchestrate the implementation of this issue and its children.
 
     If you encounter any errors or blockers, STOP and report back.
-    Do NOT continue to other issues - only implement this single [CHILD_TYPE].
 ```
 
 **Wait for the subagent to complete** before proceeding.
@@ -177,10 +221,10 @@ Task tool parameters:
 After the subagent returns:
 
 1. Use `get_issue` to check the child's status
-2. If status is `done`: Continue to review step
+2. If status is `done`: Continue to review step (for tasks) or next child (for orchestrated children)
 3. If status is NOT `done`: **STOP** and handle the error (see Section 7)
 
-#### 6.4 Review Implementation (For Tasks)
+#### 6.4 Review Task Implementation
 
 After a task completes successfully, evaluate if a review is warranted.
 
