@@ -13,6 +13,7 @@ allowed-tools:
   - mcp__perplexity-ask__perplexity_ask
   - Task
   - TaskOutput
+  - Skill
   - Glob
   - Grep
   - Read
@@ -103,7 +104,9 @@ Use `append_issue_log` to record:
   - Children that have no sub-children
   - Functionality from the description not covered
 - Ask the user to complete the planning before proceeding
-- **Do NOT create issues yourself** - implementation does not include planning
+- **Do NOT create primary work issues yourself** - initial planning must happen before orchestration begins
+
+**Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 6.6).
 
 ### 4. Evaluate Complexity and Plan (Optional)
 
@@ -173,7 +176,9 @@ For each child in the execution queue:
 
 #### 6.2 Launch Child Implementation
 
-Use the `Task` tool to spawn a subagent that implements the child:
+Use the `Task` tool to spawn a subagent that implements the child.
+
+**CRITICAL**: Store the agent ID returned by the Task tool. You will need this ID to resume the agent if review feedback requires changes.
 
 **For Tasks** - spawn the `issue-implementation` skill:
 ```
@@ -194,6 +199,8 @@ Task tool parameters:
 
     If you encounter any errors or blockers, STOP and report back.
 ```
+
+After the Task tool returns, note the agent ID from the response (e.g., `agent_id: "abc123"`). You will use this with the `resume` parameter if the review identifies issues.
 
 **For Features/Epics/Projects** - spawn the `issue-implementation-orchestration` skill (recursive):
 ```
@@ -254,16 +261,40 @@ Use `TaskOutput` to wait for the review to complete.
 **Handle review outcomes:**
 
 - **No findings / empty output**: Proceed to commit
-- **Findings identified**: You MUST address ALL findings before proceeding:
-  1. **Review each finding** - Evaluate whether it's valid
-  2. **Fix valid findings** - Make the necessary changes, including minor ones (documentation, style, small improvements)
-  3. **Challenge incorrect findings** - If you believe a finding is wrong, explain your reasoning in the issue log. You are not required to blindly follow incorrect recommendations, but you must justify skipping any finding.
-  4. **Re-run review** after making fixes to verify they were addressed
-  5. **Proceed to commit** only when all valid findings are resolved
+- **Findings identified**: Resume the original implementation agent to address the feedback:
+  1. **Resume the implementation agent** using the Task tool with the `resume` parameter:
+     ```
+     Task tool parameters:
+     - subagent_type: "general-purpose"
+     - description: "Address review feedback for [TASK_ID]"
+     - resume: "[AGENT_ID_FROM_STEP_6.2]"
+     - prompt: |
+         The review identified the following issues that need to be addressed:
+
+         [PASTE_REVIEW_FINDINGS_HERE]
+
+         Please address ALL findings:
+         - Fix valid findings, including minor ones (documentation, style, small improvements)
+         - If you believe a finding is incorrect, explain your reasoning. You must justify skipping any finding.
+
+         Do NOT commit your changes - leave them uncommitted for re-review.
+     ```
+  2. **Wait for the agent to complete** the fixes
+  3. **Re-run review** to verify the findings were addressed
+  4. **Repeat** this cycle until all valid findings are resolved
+  5. **Proceed to commit** only when the review passes
 - **Questions requiring answers**:
   - **STOP** orchestration
   - Use `AskUserQuestion` to get answers from the user
-  - Re-run review with the answers provided
+  - Resume the implementation agent with the answers provided
+
+**CRITICAL - Orchestrator Role**: The orchestrator does NOT write code. It only orchestrates:
+- Spawning implementation agents
+- Spawning review agents
+- Sending feedback to implementation agents for fixes
+- Committing approved changes
+
+If fixes are needed, ALWAYS resume the original implementation agent. The original agent already has full context about what it implemented, making it far more efficient than spawning a new agent that would need to rebuild context.
 
 **CRITICAL**: Do not categorize findings as "minor" and skip them. Every finding from a review must be either fixed or explicitly challenged with reasoning. Ignoring feedback is not acceptable.
 
@@ -296,6 +327,66 @@ The `.trellis/` directory contains issue state that must be included in commits.
 3. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
 
 4. **Log the commit** using `append_issue_log` on the parent issue
+
+#### 6.6 Handle Follow-up Work
+
+During implementation or review, you may identify work that wasn't originally planned but should be addressed. Rather than just noting "this needs follow-up," take action to ensure follow-up actually happens.
+
+**When follow-up work is identified:**
+
+1. **Search for existing coverage** before creating anything:
+
+   a. **Check for existing issues** that cover this work:
+   ```
+   Use list_issues to search for issues that might already cover this work:
+   - Search by relevant keywords in titles
+   - Check both open issues AND recently completed issues
+   - Look in the current feature's siblings and parent hierarchy
+   ```
+
+   b. **Check planned but unstarted work** in the current project/epic:
+   - Review other features under the same epic
+   - Review other tasks under sibling features
+   - The work might already be planned for a later phase
+
+   c. **If already covered**: Log the discovery and reference the existing issue, then move on
+
+2. **If genuinely new work** that isn't covered elsewhere:
+
+   a. **Determine the appropriate parent**:
+   - **Preferred**: Add to the current feature (if still open or can be reopened)
+   - **Alternative**: Add to a sibling feature that's still open
+   - **Fallback**: Create as a standalone task (no parent)
+
+   b. **Handle completed parent features**:
+   - If the current feature is marked `done`, use `update_issue` to change its status back to `open`
+   - Log why the feature was reopened: "Reopened to add follow-up task discovered during implementation"
+   - This is acceptable—features can be reopened when new work is discovered
+
+   c. **Create the follow-up task** using the issue-creation skill:
+   ```
+   Invoke the Skill tool:
+   - skill: "task-trellis:issue-creation"
+   - args: "Create a task under [PARENT_ID]: [DESCRIPTION_OF_FOLLOW_UP_WORK]"
+   ```
+
+   d. **Log the creation**: Use `append_issue_log` on the current task to record that follow-up work was identified and a new task was created
+
+3. **What qualifies as follow-up work:**
+   - Technical debt discovered during implementation
+   - Edge cases not covered by original requirements
+   - Refactoring opportunities that would improve maintainability
+   - Missing tests or documentation identified during review
+   - Integration issues that need separate attention
+   - Performance improvements identified but out of scope for current task
+
+4. **What does NOT require follow-up tasks:**
+   - Items that should be addressed in the current task (don't defer unnecessarily)
+   - Known limitations that are explicitly acceptable
+   - "Nice to have" improvements with no real impact
+   - Stylistic preferences that don't affect functionality
+
+**CRITICAL**: The goal is ensuring follow-up work actually gets tracked—not just mentioned. If you identify something that genuinely needs to be done later, create the issue. But always search first to avoid duplicates.
 
 ### 7. Handle Errors
 
@@ -413,8 +504,10 @@ Throughout orchestration:
 
 ## Important Constraints
 
+- **Orchestration only**: The orchestrator does NOT write code or make fixes. It only spawns agents, routes feedback, and commits approved changes.
+- **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
 - **No parallel execution**: Run only one child at a time
-- **No creating work**: Do not create new issues; only execute planned work
+- **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.6)
 - **Respect dependencies**: Never start a child before its prerequisites are done
 - **Stop on failure**: Always stop and ask user when something goes wrong
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
@@ -424,6 +517,8 @@ Throughout orchestration:
 - **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
 <rules>
+  <critical>The orchestrator does NOT write code - it only orchestrates agents and commits</critical>
+  <critical>ALWAYS resume the original implementation agent when review finds issues - never spawn a new agent or fix code yourself</critical>
   <critical>STOP on ANY error - permission errors, hook failures, or unexpected results</critical>
   <critical>NEVER work around errors or assume they don't apply</critical>
   <critical>Do NOT proceed to next child if current child encountered errors</critical>
@@ -432,4 +527,6 @@ Throughout orchestration:
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
   <critical>If you skip a review finding, you MUST explain why you believe it is incorrect</critical>
+  <critical>When follow-up work is identified, ALWAYS search for existing coverage first - never create duplicates</critical>
+  <critical>Create follow-up tasks to track genuinely new work - don't just mention it and move on</critical>
 </rules>
