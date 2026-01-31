@@ -76,12 +76,6 @@ git branch --show-current
 
 - **If already on a non-main branch**: Continue without branching
 
-#### Log Branch Status
-
-Use `append_issue_log` to record:
-- Branch created: "Created feature branch feature/{ISSUE_ID}"
-- Existing branch: "Continuing on existing branch {BRANCH_NAME}"
-
 ### 3. Verify Planned Work Exists
 
 **CRITICAL**: Before starting, verify all work is planned.
@@ -308,7 +302,6 @@ The `.trellis/` directory contains issue state that must be included in commits.
 
 1. **Update Trellis state** (if not already done):
    - Ensure task is marked complete via `complete_task`
-   - Append any final log entries via `append_issue_log`
 
 2. **Commit the changes** using the `/git:commit` skill (if available) or manually:
 
@@ -354,8 +347,6 @@ The `.trellis/` directory contains issue state that must be included in commits.
 
 4. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
 
-5. **Log the commit** using `append_issue_log` on the parent issue
-
 #### 6.6 Handle Follow-up Work
 
 During implementation or review, you may identify work that wasn't originally planned but should be addressed. Rather than just noting "this needs follow-up," take action to ensure follow-up actually happens.
@@ -397,8 +388,6 @@ During implementation or review, you may identify work that wasn't originally pl
    - skill: "task-trellis:issue-creation"
    - args: "Create a task under [PARENT_ID]: [DESCRIPTION_OF_FOLLOW_UP_WORK]"
    ```
-
-   d. **Log the creation**: Use `append_issue_log` on the current task to record that follow-up work was identified and a new task was created
 
 3. **What qualifies as follow-up work:**
    - Technical debt discovered during implementation
@@ -474,12 +463,11 @@ When an error is caused by the implementation agent's work:
 For errors NOT caused by the implementation:
 
 1. **Stop execution** - Do not proceed to other children
-2. **Log the failure** - Use `append_issue_log` on the parent to record what happened
-3. **Ask the user** - Use AskUserQuestion to report the failure and ask how to proceed:
+2. **Ask the user** - Use AskUserQuestion to report the failure and ask how to proceed:
    - Fix the infrastructure issue and retry
    - Skip the failed child and continue
    - Stop orchestration entirely
-4. **Follow user direction** - Do what the user decides
+3. **Follow user direction** - Do what the user decides
 
 **CRITICAL - Orchestrator Role**: The orchestrator NEVER debugs code, reads stack traces to diagnose issues, or attempts fixes. When something fails due to code, the orchestrator's only job is to send the error back to the implementation agent that wrote the code.
 
@@ -511,15 +499,7 @@ Use `TaskOutput` to wait for the docs-updater to complete.
 
 #### Commit Documentation Changes
 
-If the docs-updater made changes:
-
-**CRITICAL - Update Trellis BEFORE committing:**
-
-1. **Update Trellis first**:
-   - Log the documentation update using `append_issue_log`
-   - Make any other Trellis updates needed
-
-2. **Commit the changes** using the `/git:commit` skill (if available) or manually:
+If the docs-updater made changes, commit them using the `/git:commit` skill (if available) or manually:
 
    **Using the skill** (preferred):
    ```
@@ -532,16 +512,13 @@ If the docs-updater made changes:
    git commit -m "docs: update documentation for [ISSUE_ID]"
    ```
 
-3. **Verify no `.trellis/` changes remain uncommitted**
-
 ### 9. Complete Parent Issue
 
 When all children are done and documentation is updated:
 
 1. Verify all children have status `done` (or `wont-do` if skipped by user direction)
 2. Update the parent status to `done` using `update_issue`
-3. Log completion using `append_issue_log`
-4. **If any uncommitted changes exist** (including `.trellis/`), commit them using the `/git:commit` skill (if available) or manually:
+3. **If any uncommitted changes exist** (including `.trellis/`), commit them using the `/git:commit` skill (if available) or manually:
 
    **Using the skill** (preferred):
    ```
@@ -553,8 +530,8 @@ When all children are done and documentation is updated:
    git add .
    git commit -m "chore: complete [ISSUE_ID]"
    ```
-5. **Verify no uncommitted changes remain** - especially in `.trellis/`
-6. Report summary to user:
+4. **Verify no uncommitted changes remain** - especially in `.trellis/`
+5. Report summary to user:
    - Total direct children completed
    - Total descendants completed (all levels)
    - Any issues skipped
@@ -562,13 +539,60 @@ When all children are done and documentation is updated:
    - Documentation updates made
    - Overall outcome
 
-## Progress Tracking
+### 10. Summarize Expected Changes for User
 
-Throughout orchestration:
+After completing the parent issue, provide a clear summary of what the user should expect to see now that this work is complete. This is the most important output for the user.
 
-- Use `append_issue_log` on the parent to record progress
-- Report status to user after each child completes
-- Keep user informed of which child is currently running
+#### What Changed Summary
+
+Provide a concise description of what's different now:
+
+1. **New capabilities**: What can the user (or the system) do now that wasn't possible before?
+2. **Behavior changes**: What existing functionality works differently?
+3. **Files affected**: High-level summary of which areas of the codebase were touched (not exhaustive file lists)
+
+#### How to Verify
+
+Tell the user how they can see the changes in action:
+
+1. **For UI changes**: Describe where to look and what they'll see
+2. **For API changes**: Example commands or endpoints to test
+3. **For CLI changes**: Commands to run
+4. **For configuration**: What settings are now available
+5. **For internal refactors**: How to verify the code still works (e.g., "run the test suite")
+
+#### Example Summary Format
+
+```
+## What's New
+
+[FEATURE_TITLE] is now complete. Here's what changed:
+
+**New Capabilities:**
+- [Describe what users can now do]
+- [Any new commands, endpoints, or UI elements]
+
+**Key Changes:**
+- [Brief description of the main implementation approach]
+- [Any notable architectural decisions]
+
+**How to Verify:**
+- [Specific steps to see the feature in action]
+- [Commands to run, URLs to visit, or actions to take]
+
+**Files Changed:**
+- [Area 1]: [Brief description of changes]
+- [Area 2]: [Brief description of changes]
+```
+
+#### Why This Matters
+
+The user initiated this work to achieve a specific outcome. They need to know:
+- That the work is actually complete
+- What they can do with it now
+- How to verify it works as expected
+
+A summary of commits and task counts is process information. The user needs **outcome information**—what's different in their codebase and how to use it.
 
 ## Important Constraints
 
