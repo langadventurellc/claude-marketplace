@@ -324,9 +324,37 @@ The `.trellis/` directory contains issue state that must be included in commits.
    ```
    Example: `[T-add-user-validation] Add email validation to user registration`
 
-3. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
+3. **Handle commit failures** - If the commit fails (e.g., pre-commit hook, smoke test, linting):
 
-4. **Log the commit** using `append_issue_log` on the parent issue
+   **CRITICAL**: Do NOT debug or fix the issue yourself. Resume the original implementation agent:
+   ```
+   Task tool parameters:
+   - subagent_type: "general-purpose"
+   - description: "Fix commit failure for [TASK_ID]"
+   - resume: "[AGENT_ID_FROM_STEP_6.2]"
+   - prompt: |
+       The commit failed with the following error:
+
+       [PASTE_FULL_ERROR_OUTPUT_HERE]
+
+       Please fix the issue that caused this failure. Common causes include:
+       - Failing tests or smoke tests
+       - Linting errors
+       - Type errors
+       - Pre-commit hook violations
+
+       After fixing, verify the fix works locally, then report back.
+       Do NOT commit - leave changes uncommitted.
+   ```
+
+   After the agent fixes the issue:
+   - Re-attempt the commit
+   - If it fails again, resume the agent with the new error
+   - Repeat until the commit succeeds
+
+4. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
+
+5. **Log the commit** using `append_issue_log` on the parent issue
 
 #### 6.6 Handle Follow-up Work
 
@@ -392,28 +420,68 @@ During implementation or review, you may identify work that wasn't originally pl
 
 <rules>
   <critical>If you encounter a permission error, STOP IMMEDIATELY and report to the user. Do NOT attempt workarounds.</critical>
-  <critical>If a hook returns any unexpected errors or fails, STOP IMMEDIATELY and report to the user. Hook errors indicate important validation failures.</critical>
+  <critical>NEVER debug or fix code issues yourself - always send them back to the implementation agent.</critical>
   <critical>NEVER work around errors by skipping steps, using alternative approaches, or ignoring validation failures.</critical>
-  <critical>When blocked by any unexpected error - even if you think it doesn't apply to you - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
-  <critical>Do NOT assume an error is irrelevant or a false positive. Report any unexpected errors to the user and let them decide.</critical>
+  <critical>When blocked by infrastructure errors (not code issues) - your only options are: (1) ask the user for help, or (2) stop completely.</critical>
 </rules>
 
-If a child fails or the subagent reports an error:
+#### Error Classification
+
+**Implementation errors** (send back to the implementation agent):
+- Failing tests or smoke tests
+- Linting or formatting errors
+- Type errors or compilation failures
+- Pre-commit hook failures due to code quality
+- Runtime errors in the implemented code
+- Any error caused by code the implementation agent wrote
+
+**Infrastructure errors** (stop and ask the user):
+- Permission denied when running commands
+- Missing dependencies or tools
+- Network/connectivity issues
+- Git configuration problems
+- Environment setup issues
+
+#### Handling Implementation Errors
+
+When an error is caused by the implementation agent's work:
+
+1. **Resume the implementation agent** with the error details:
+   ```
+   Task tool parameters:
+   - subagent_type: "general-purpose"
+   - description: "Fix error for [TASK_ID]"
+   - resume: "[AGENT_ID_FROM_STEP_6.2]"
+   - prompt: |
+       An error occurred that needs to be fixed:
+
+       [PASTE_FULL_ERROR_OUTPUT_HERE]
+
+       Please diagnose and fix this issue. The error is related to code you implemented.
+
+       After fixing, verify the fix works, then report back.
+       Do NOT commit - leave changes uncommitted.
+   ```
+
+2. **Wait for the fix** and re-attempt the failed operation
+
+3. **Repeat if needed** - If new errors occur, send them back to the agent
+
+4. **Escalate to user** only if the agent cannot resolve the issue after reasonable attempts
+
+#### Handling Infrastructure Errors
+
+For errors NOT caused by the implementation:
 
 1. **Stop execution** - Do not proceed to other children
 2. **Log the failure** - Use `append_issue_log` on the parent to record what happened
 3. **Ask the user** - Use AskUserQuestion to report the failure and ask how to proceed:
-   - Retry the failed child
+   - Fix the infrastructure issue and retry
    - Skip the failed child and continue
    - Stop orchestration entirely
 4. **Follow user direction** - Do what the user decides
 
-**Common error scenarios that require stopping:**
-
-- Permission denied when running commands
-- Unexpected hook failures (pre-commit, post-edit, quality checks)
-- Subagent returning errors or incomplete results
-- Git commit failures
+**CRITICAL - Orchestrator Role**: The orchestrator NEVER debugs code, reads stack traces to diagnose issues, or attempts fixes. When something fails due to code, the orchestrator's only job is to send the error back to the implementation agent that wrote the code.
 
 **Why this matters**: Hooks are configured to enforce quality checks and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken code being committed.
 
@@ -504,12 +572,13 @@ Throughout orchestration:
 
 ## Important Constraints
 
-- **Orchestration only**: The orchestrator does NOT write code or make fixes. It only spawns agents, routes feedback, and commits approved changes.
+- **Orchestration only**: The orchestrator does NOT write code, debug errors, or make fixes. It only spawns agents, routes feedback/errors, and commits approved changes.
 - **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
+- **Resume for errors**: When commit hooks, tests, or other validations fail due to code issues, ALWAYS resume the original implementation agent with the error. Never debug or fix code yourself.
 - **No parallel execution**: Run only one child at a time
 - **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.6)
 - **Respect dependencies**: Never start a child before its prerequisites are done
-- **Stop on failure**: Always stop and ask user when something goes wrong
+- **Stop on infrastructure failure**: Stop and ask user only for infrastructure errors (permissions, missing tools, network). Code errors go back to the implementation agent.
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
 - **Trellis before commits**: Always update Trellis issues BEFORE making git commits
 - **Commit after each task**: Ensure changes are committed before moving to the next task
@@ -517,12 +586,12 @@ Throughout orchestration:
 - **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
 <rules>
-  <critical>The orchestrator does NOT write code - it only orchestrates agents and commits</critical>
+  <critical>The orchestrator does NOT write code or debug errors - it only orchestrates agents and commits</critical>
   <critical>ALWAYS resume the original implementation agent when review finds issues - never spawn a new agent or fix code yourself</critical>
-  <critical>STOP on ANY error - permission errors, hook failures, or unexpected results</critical>
-  <critical>NEVER work around errors or assume they don't apply</critical>
-  <critical>Do NOT proceed to next child if current child encountered errors</critical>
-  <critical>Report ALL errors to the user, even if you think they're false positives</critical>
+  <critical>ALWAYS resume the original implementation agent when commits fail due to code issues (tests, hooks, linting) - never debug yourself</critical>
+  <critical>NEVER read stack traces, analyze errors, or attempt to diagnose code problems - send them to the implementation agent</critical>
+  <critical>STOP only for infrastructure errors (permissions, missing tools) - code errors go back to the implementation agent</critical>
+  <critical>Do NOT proceed to next child if current child has unresolved errors</critical>
   <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
