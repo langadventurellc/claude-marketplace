@@ -123,7 +123,7 @@ Process the review output based on its content:
 
 #### Review Passes (No Issues Found)
 
-If the review returns "APPROVED" or has no critical findings:
+If the review returns "APPROVED" with no findings:
 
 - Report success to the user
 - Proceed to output summary
@@ -163,18 +163,31 @@ Task tool parameters:
 
 #### Review Finds Issues
 
-If the review returns "NEEDS REVISION" or critical findings:
+If the review returns with ANY findings (major or minor):
 
-1. Report the findings to the user clearly
-2. Use `AskUserQuestion` to ask how to proceed:
-   - **Fix issues**: Update the created issues based on findings
-   - **Accept as-is**: Keep issues despite findings
-   - **Delete and restart**: Remove issues and start over
+**CRITICAL**: You MUST address ALL findings, not just "critical" ones. Every piece of feedback matters.
 
-3. Follow the user's direction:
-   - If fixing: Use `update_issue` to make corrections, then re-run review
-   - If accepting: Proceed to output summary with note about accepted findings
-   - If restarting: Delete issues and return to Step 2
+1. **Evaluate each finding**:
+   - Is this finding valid and applicable?
+   - If you believe a finding is incorrect, document your reasoning
+
+2. **Fix all valid findings**:
+   - Use `update_issue` to make corrections for EVERY valid finding
+   - This includes minor issues like documentation, wording, or clarity improvements
+   - Do not skip findings because they seem small
+
+3. **Challenge incorrect findings** (if any):
+   - If you genuinely believe a finding is wrong, explain why in your response
+   - You are not required to blindly follow incorrect recommendations
+   - But you MUST justify why you're not addressing a specific finding
+
+4. **Re-run review** after making fixes to verify all findings were addressed
+
+5. **Escalate only when blocked**:
+   - Use `AskUserQuestion` only if you cannot resolve a finding yourself
+   - Or if fixing a finding would contradict the original requirements
+
+**Do NOT categorize findings as "minor" and ignore them.** The review exists to improve quality - every finding deserves attention.
 
 ## Output Format
 
@@ -207,7 +220,8 @@ Provide a summary of the creation and review process:
 
 - **Verbatim preservation**: Never modify the original requirements when passing to review
 - **Transparent process**: Keep the user informed of what's happening at each step
-- **User control**: Let the user decide how to handle review findings
+- **Address all findings**: Fix every valid review finding, including minor ones
+- **Challenge thoughtfully**: If a finding seems wrong, explain why rather than silently ignoring it
 - **Single review cycle**: Aim to resolve issues in one re-review; if still failing, escalate to user
 
 <rules>
@@ -215,7 +229,8 @@ Provide a summary of the creation and review process:
   <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
   <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
   <critical>Research the codebase before creating issues - parent issues may be outdated</critical>
-  <important>Let the user decide how to handle review findings</important>
+  <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
+  <critical>If you skip a finding, you MUST explain why you believe it is incorrect</critical>
   <important>Proceed autonomously when given a parent issue ID - do not ask for confirmation</important>
   <important>Default to coarser-grained issues for easier AI orchestration</important>
 </rules>

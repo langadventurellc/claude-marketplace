@@ -24,25 +24,17 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 
 ### 2. Research and Planning Phase (MANDATORY)
 
-**Delegate research to planner, but verify critical details:**
+**Research the codebase and plan your approach:**
 
 - **Read parent issues for context**: Use `get_issue` to read the parent feature for context and requirements. Do not continue until you have claimed a task.
-- **Generate Implementation Plan**: Use the Issue Implementation Planner subagent with the task description, parent context, and project constraints.
-- **CRITICAL - If No Response From Subagent**: **STOP IMMEDIATELY** and alert the user.
-- **CRITICAL - Verify the Plan**: Spot-check before implementing:
+- **Research codebase patterns**: Search for similar implementations, conventions, and patterns in the codebase
+- **Plan your approach**: Identify the files to modify, patterns to follow, and dependencies needed
+- **CRITICAL - Verify your findings**: Spot-check before implementing:
   - Verify 2-3 key file paths actually exist
   - Confirm at least one pattern/convention identified
   - Check that referenced imports or dependencies are real
 
-**Trust but Verify:**
-
-- The plan is your guide, not gospel—it may contain inaccuracies
-- Question suspicious patterns; investigate before implementing
-- Course-correct based on reality, not the plan
-
-**Common hallucination points:** File paths, import statements, method names, config locations.
-
-**When You Find Discrepancies:**
+**When You Find Issues:**
 
 - **Minor issues** (wrong path, naming): Adapt and continue
 - **Major issues** (approach wrong, files don't exist): **STOP** and alert the user

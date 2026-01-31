@@ -187,7 +187,6 @@ After a task completes successfully, evaluate if a review is warranted.
 **Skip review for trivial tasks** (judgment call):
 - Single configuration change
 - One-line fix
-- Comment or documentation-only change
 - Simple rename or move
 
 **For non-trivial tasks**, spawn `issue-implementation-review`:
@@ -211,15 +210,18 @@ Use `TaskOutput` to wait for the review to complete.
 **Handle review outcomes:**
 
 - **No findings / empty output**: Proceed to commit
-- **Minor issues** (style, small improvements): Auto-fix the issues, then proceed to commit
-- **Major issues** (bugs, missing functionality, security concerns):
-  - **STOP** orchestration
-  - Use `AskUserQuestion` to report the issues and ask how to proceed
-  - Options: fix and re-review, skip review, stop orchestration
+- **Findings identified**: You MUST address ALL findings before proceeding:
+  1. **Review each finding** - Evaluate whether it's valid
+  2. **Fix valid findings** - Make the necessary changes, including minor ones (documentation, style, small improvements)
+  3. **Challenge incorrect findings** - If you believe a finding is wrong, explain your reasoning in the issue log. You are not required to blindly follow incorrect recommendations, but you must justify skipping any finding.
+  4. **Re-run review** after making fixes to verify they were addressed
+  5. **Proceed to commit** only when all valid findings are resolved
 - **Questions requiring answers**:
   - **STOP** orchestration
   - Use `AskUserQuestion` to get answers from the user
   - Re-run review with the answers provided
+
+**CRITICAL**: Do not categorize findings as "minor" and skip them. Every finding from a review must be either fixed or explicitly challenged with reasoning. Ignoring feedback is not acceptable.
 
 #### 6.5 Commit Task Changes
 
@@ -384,4 +386,6 @@ Throughout orchestration:
   <critical>Report ALL errors to the user, even if you think they're false positives</critical>
   <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
+  <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
+  <critical>If you skip a review finding, you MUST explain why you believe it is incorrect</critical>
 </rules>
