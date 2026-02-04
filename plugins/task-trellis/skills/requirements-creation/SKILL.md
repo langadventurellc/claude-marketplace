@@ -73,6 +73,8 @@ If you have access to search tools (such as Perplexity), knowledge bases, or oth
 
 Start by understanding what the user is asking for, then reflect back what you understood and what you found in the codebase. Fill gaps with focused questions - one at a time, not a barrage.
 
+**Use AskUserQuestion for all questions.** When you need to clarify requirements, validate assumptions, or gather more detail, use the AskUserQuestion tool rather than asking inline in your response. This provides a better user experience and ensures questions are clearly structured.
+
 Accept "I don't know" as a valid answer. Note it as an open question and move on.
 
 When you have what you need, say so: "I think I have enough to write this up. Anything else, or should I proceed?"

@@ -58,7 +58,7 @@ Do not blindly create epics based on a project description. The codebase is the 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Epic granularity (default to coarser-grained epics)
 - How many epics to create (use your judgment)
-- Whether to proceed with epic creation (just do it)
+- Whether to proceed with epic creation (just create the epics and stop)
 
 **Only ask clarifying questions when:**
 - Requirements are genuinely ambiguous with multiple valid interpretations
@@ -113,6 +113,16 @@ Created Epics:
 Epic Summary:
 - Total Epics: [N]
 ```
+
+### 8. STOP - Do Not Continue
+
+**After creating the epics, STOP.** Do not automatically create features or tasks.
+
+- Report the created epics to the user
+- Wait for the user to explicitly request the next level of decomposition
+- Do not suggest or offer to create features unless asked
+
+Creating child issues (features) requires a separate user request.
 
 ## Simplicity Principles
 

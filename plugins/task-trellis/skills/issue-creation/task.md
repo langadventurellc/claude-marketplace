@@ -65,7 +65,7 @@ Do not blindly create tasks based on a feature description. The codebase is the 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Task granularity (default to coarser-grained tasks)
 - How many tasks to create (use your judgment)
-- Whether to proceed with task creation (just do it)
+- Whether to proceed with task creation (just create the tasks and stop)
 
 **Only ask clarifying questions when:**
 - Requirements are genuinely ambiguous with multiple valid interpretations
@@ -164,6 +164,16 @@ Task Summary:
 ```
 
 Note: Tests are included within tasks only where meaningful complexity exists, per the [Testing Guidelines](testing-guidelines.md). Separate integration test tasks are created only when critical cross-component interactions need verification.
+
+### 8. STOP - Do Not Continue
+
+**After creating the tasks, STOP.** Tasks are the lowest level of the hierarchy.
+
+- Report the created tasks to the user
+- Wait for further instructions
+- Do not begin implementing any tasks unless explicitly asked
+
+Task implementation requires a separate user request.
 
 ## Task Creation Guidelines
 

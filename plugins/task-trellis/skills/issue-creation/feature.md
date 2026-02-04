@@ -66,7 +66,7 @@ Do not blindly create features based on an epic description. The codebase is the
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Feature granularity (default to coarser-grained features)
 - How many features to create (use your judgment)
-- Whether to proceed with feature creation (just do it)
+- Whether to proceed with feature creation (just create the features and stop)
 
 **Only ask clarifying questions when:**
 - Requirements are genuinely ambiguous with multiple valid interpretations
@@ -137,6 +137,16 @@ Created Features:
 Feature Summary:
 - Total Features: [N]
 ```
+
+### 8. STOP - Do Not Continue
+
+**After creating the features, STOP.** Do not automatically create tasks.
+
+- Report the created features to the user
+- Wait for the user to explicitly request the next level of decomposition
+- Do not suggest or offer to create tasks unless asked
+
+Creating child issues (tasks) requires a separate user request.
 
 ## Simplicity Principles
 

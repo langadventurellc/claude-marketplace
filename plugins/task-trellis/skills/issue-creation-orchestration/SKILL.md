@@ -23,11 +23,21 @@ Orchestrate issue creation with automatic review to ensure created issues accura
 
 Create Trellis issues using the `issue-creation` skill, then automatically verify them against the original requirements using `issue-creation-review`. Handle any questions or findings from the review before completing.
 
+## Critical Rule: Create Only Immediate Children (One Level Down)
+
+**When given a parent issue, create only its immediate children - ONE level down in the hierarchy.**
+
+- For a **Project**: Create only Epics, then STOP
+- For an **Epic**: Create only Features, then STOP
+- For a **Feature**: Create only Tasks, then STOP
+
+**Do NOT recursively decompose further.** If the user gives you a Project, create the Epics and stop. Do not continue to create Features or Tasks. The user will invoke this skill again on individual children if they want further decomposition.
+
 ## Autonomous Operation
 
-**When given a parent issue ID** (e.g., "F-feature-id", "E-epic-id"), proceed directly to creating child issues without asking for confirmation. The user has already decided they want child issues created by invoking this skill.
+**When given a parent issue ID** (e.g., "F-feature-id", "E-epic-id"), proceed directly to creating the immediate child issues (one level down) without asking for confirmation. The user has already decided they want child issues created by invoking this skill.
 
-**Do not ask about granularity.** Default to coarser-grained issues that are easier for AI agents to orchestrate during implementation. Fewer, larger issues are preferred over many small ones. Use your judgment to determine appropriate scope - the user does not need to micromanage issue structure.
+**Do not ask about granularity.** Default to coarser-grained issues - meaning fewer, larger issues at the level you're creating. This does NOT mean decomposing further down the hierarchy. Use your judgment to determine appropriate scope at the current level.
 
 **Only ask clarifying questions when:**
 - Requirements are genuinely ambiguous and could be interpreted multiple ways
@@ -70,14 +80,18 @@ This exact text will be passed to the review agent. Do not paraphrase, summarize
 
 Do not blindly create issues based on text in a parent issue. The codebase is the source of truth.
 
-### 3. Invoke Issue Creation
+### 3. Invoke Issue Creation (One Level Only)
 
-Use the `issue-creation` skill to create the requested issues:
+Use the `issue-creation` skill to create the immediate child issues:
 
-1. Determine the appropriate issue type(s) from the user's request
+1. Determine the appropriate child issue type (one level down from parent)
+   - Project parent → create Epics only
+   - Epic parent → create Features only
+   - Feature parent → create Tasks only
 2. Follow the issue-creation workflow for that type
-3. Create the issue(s) using the Trellis MCP tools - proceed autonomously when given a parent ID
+3. Create the issue(s) using the Trellis MCP tools
 4. Track all created issue IDs and their types
+5. **STOP after creating this level** - do not continue to grandchildren
 
 **Record created issues:**
 ```
@@ -212,6 +226,16 @@ Provide a summary of the creation and review process:
 [Suggestions for what the user might want to do next - implement, add more detail, etc.]
 ```
 
+## STOP After Completion
+
+**After creating and reviewing the immediate child issues, STOP.**
+
+- Report the created issues to the user
+- Wait for further instructions
+- Do NOT continue to decompose further (e.g., don't create Features after creating Epics)
+
+The user will invoke this skill again on specific children if they want further decomposition.
+
 ## Key Requirement
 
 **The original user instructions must be preserved verbatim and passed to the review agent.** This is critical for accurate verification. The orchestrator must not paraphrase or summarize in a way that could mislead the reviewer about what was actually requested.
@@ -225,6 +249,8 @@ Provide a summary of the creation and review process:
 - **Single review cycle**: Aim to resolve issues in one re-review; if still failing, escalate to user
 
 <rules>
+  <critical>Create ONLY immediate children (one level down) - do not recursively decompose</critical>
+  <critical>STOP after creating and reviewing the immediate child level</critical>
   <critical>Preserve the original user instructions VERBATIM when passing to the review agent</critical>
   <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
   <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
@@ -232,5 +258,5 @@ Provide a summary of the creation and review process:
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
   <critical>If you skip a finding, you MUST explain why you believe it is incorrect</critical>
   <important>Proceed autonomously when given a parent issue ID - do not ask for confirmation</important>
-  <important>Default to coarser-grained issues for easier AI orchestration</important>
+  <important>Default to coarser-grained issues at the current level (not deeper decomposition)</important>
 </rules>

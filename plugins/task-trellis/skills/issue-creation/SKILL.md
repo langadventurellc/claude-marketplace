@@ -54,12 +54,23 @@ Based on the user's request, determine which issue type to create:
    - For tasks: Read [task.md](task.md)
 3. **Follow the detailed process** in that file to gather requirements and create the issue(s)
 
+## Critical Rule: Create Only the Requested Issue Type
+
+**STOP after creating the identified issue type.** Do not automatically create child issues.
+
+- If the user asks to "create a project" → Create the project, then STOP
+- If the user asks to "create epics for project P-123" → Create the epics, then STOP
+- If the user asks to "create features for epic E-456" → Create the features, then STOP
+- If the user asks to "create tasks for feature F-789" → Create the tasks, then STOP
+
+**Do NOT continue to break down the hierarchy further.** Each level of decomposition requires a separate user request. After creating issues, report what was created and wait for further instructions.
+
 ## Common Principles
 
 All issue types share these principles:
 
 - **Research the codebase FIRST** - Before creating any issues, search the codebase to understand current state. Parent issues may be outdated. The codebase is the source of truth.
-- **Proceed autonomously with parent IDs** - When given a parent issue ID (P-, E-, F-), create child issues without asking for confirmation.
+- **Create only what was requested** - If asked to create a project, create the project only. Do not also create epics, features, or tasks unless explicitly asked.
 - **Default to coarser granularity** - Prefer fewer, larger issues that are easier for AI agents to orchestrate. Don't create many tiny issues.
 - **Ask questions only when necessary** - Only ask when requirements are genuinely ambiguous, critical information is missing, or decisions have significant irreversible consequences.
 - **Include acceptance criteria** - All issues should have measurable success criteria.

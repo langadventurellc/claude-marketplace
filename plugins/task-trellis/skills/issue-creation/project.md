@@ -101,6 +101,16 @@ Project Summary:
 [First paragraph of description]
 ```
 
+### 7. STOP - Do Not Continue
+
+**After creating the project, STOP.** Do not automatically create epics, features, or tasks.
+
+- Report the created project to the user
+- Wait for the user to explicitly request the next level of decomposition
+- Do not suggest or offer to create epics unless asked
+
+Creating child issues (epics) requires a separate user request.
+
 ## Simplicity Principles
 
 When creating projects, follow these guidelines:
