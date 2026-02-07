@@ -45,10 +45,10 @@ Each subagent is spawned with a specific agent type that provides behavioral gua
 
 | Role | Agent Type | Purpose |
 |------|-----------|---------|
-| Issue creation | `trellis-default-author` | Creating/updating Trellis issues |
-| Review | `trellis-default-reviewer` | Read-only issue verification |
+| Issue creation | `trellis-default-issue-writer` | Creating/updating Trellis issues |
+| Review | `trellis-default-issue-writer` | Issue verification |
 
-**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team could create a custom author agent with project-specific writing guidelines. The orchestration workflow remains the same regardless of which agent type is used.
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team could create a custom issue-writer agent with project-specific writing guidelines. The orchestration workflow remains the same regardless of which agent type is used.
 
 ### Skill Specification in Spawn Prompts
 
@@ -135,7 +135,7 @@ Spawn the `issue-creation` skill as a subagent to create the immediate child iss
 
 ```
 Task tool parameters:
-- subagent_type: "trellis-default-author"
+- subagent_type: "trellis-default-issue-writer"
 - description: "Create child issues for [PARENT_ID]"
 - run_in_background: true
 - prompt: |
@@ -175,7 +175,7 @@ For each created issue (or the top-level issue if creating a hierarchy):
 
 ```
 Task tool parameters:
-- subagent_type: "trellis-default-reviewer"
+- subagent_type: "trellis-default-issue-writer"
 - description: "Review created issue [ISSUE_ID]"
 - run_in_background: true
 - prompt: |
@@ -219,7 +219,7 @@ If the review returns with "Clarification Needed" or questions:
 
 ```
 Task tool parameters:
-- subagent_type: "trellis-default-reviewer"
+- subagent_type: "trellis-default-issue-writer"
 - description: "Re-review issue [ISSUE_ID] with clarifications"
 - run_in_background: true
 - prompt: |

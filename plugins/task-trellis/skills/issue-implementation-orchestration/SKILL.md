@@ -48,10 +48,10 @@ Each subagent is spawned with a specific agent type that provides behavioral gua
 |------|-----------|---------|
 | Task implementation | `trellis-default-developer` | Code implementation, testing, debugging |
 | Review | `trellis-default-reviewer` | Read-only code review and analysis |
-| Planning | `trellis-default-reviewer` | Read-only implementation planning |
+| Planning | `Explore` (built-in) | Read-only codebase exploration |
 | Documentation | `trellis-default-author` | Creating/updating documentation |
 
-**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `trellis-default-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change.
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `trellis-default-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change. Note that the planner uses the built-in `Explore` subagent type (not a Trellis agent), since its role is purely read-only codebase exploration and any additional tools can be provided via the skill.
 
 ### Skill Specification in Spawn Prompts
 
@@ -146,7 +146,7 @@ If judged sufficiently complex:
 1. Use the `Task` tool to spawn `issue-implementation-planner` as an async subagent:
    ```
    Task tool parameters:
-   - subagent_type: "trellis-default-reviewer"
+   - subagent_type: "Explore"
    - description: "Plan implementation for {ISSUE_ID}"
    - run_in_background: true
    - prompt: |

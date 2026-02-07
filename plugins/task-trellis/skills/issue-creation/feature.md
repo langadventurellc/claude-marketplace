@@ -91,7 +91,7 @@ For each feature, create:
   - Technical requirements
   - Dependencies on other features
   - **Implementation Guidance** - Technical approach and patterns to follow
-  - **Testing Requirements** - What meaningful tests are needed (see [Testing Guidelines](testing-guidelines.md))
+  - **Testing Requirements** - What meaningful tests are needed
   - **Security Considerations** - Input validation, authorization, data protection needs as applicable
   - **Performance Requirements** - Response times, resource usage constraints as applicable
 
