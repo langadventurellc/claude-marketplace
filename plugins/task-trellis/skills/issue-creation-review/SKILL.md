@@ -1,8 +1,6 @@
 ---
 name: issue-creation-review
 description: Verifies Trellis issues against original requirements for completeness, correctness, and appropriate scope. Use when asked to "verify issue", "validate trellis issue", "check issue completeness", or "review created issue".
-context: fork
-agent: general-purpose
 allowed-tools:
   - Glob
   - Grep

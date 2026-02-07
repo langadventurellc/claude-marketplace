@@ -1,8 +1,6 @@
 ---
 name: issue-implementation-review
 description: Reviews code changes from a completed task implementation for correctness, completeness, and simplicity. Use when asked to "review implementation", "review task code", "code review", "verify implementation", or after completing an issue implementation.
-context: fork
-agent: general-purpose
 allowed-tools:
   - Glob
   - Grep

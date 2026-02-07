@@ -1,8 +1,6 @@
 ---
 name: docs-updater
 description: Reviews completed feature work and updates documentation files (CLAUDE.md, README.md, docs/) as needed. Invoked after implementation is complete.
-context: fork
-agent: general-purpose
 allowed-tools:
   - Glob
   - Grep

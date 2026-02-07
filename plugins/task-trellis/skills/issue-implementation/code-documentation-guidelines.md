@@ -91,7 +91,7 @@ function formatBytes(bytes: number): string
 
 ## What NOT to Do
 
-- **Don't add JSDoc to every function** - Only public interfaces
+- **Don't add docs to every function** - Only public interfaces
 - **Don't list all parameters** - Types are self-documenting
 - **Don't enumerate all errors** - Code reveals error conditions
 - **Don't explain the implementation** - The code is right there

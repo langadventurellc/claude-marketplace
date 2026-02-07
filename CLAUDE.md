@@ -190,6 +190,7 @@ claude-marketplace/
 │   └── task-trellis/             # Task Trellis plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json
+│       ├── agents/               # Subagent type definitions
 │       ├── skills/               # Plugin skills
 │       ├── hooks/
 │       │   └── hooks.json
