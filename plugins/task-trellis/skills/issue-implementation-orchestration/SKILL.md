@@ -1,6 +1,6 @@
 ---
 name: issue-implementation-orchestration
-description: Orchestrates issue implementation with automatic review and commits. Use when asked to "implement feature", "implement epic", "implement project", "execute feature", "execute epic", "execute project", or when you want implementations automatically reviewed and committed.
+description: Orchestrates issue implementation with parallel execution, automatic review, and a single commit. Use when asked to "implement feature", "implement epic", "implement project", "execute feature", "execute epic", "execute project", or when you want implementations automatically reviewed and committed.
 allowed-tools:
   - mcp__task-trellis__claim_task
   - mcp__task-trellis__get_issue
@@ -24,15 +24,15 @@ allowed-tools:
 
 # Orchestrate Issue Implementation
 
-Orchestrate the implementation of a parent issue (project, epic, or feature) by executing its child issues sequentially, reviewing each implementation, and committing approved changes.
+Orchestrate the implementation of a parent issue (project, epic, or feature) by executing its child issues in parallel where dependencies allow, reviewing each implementation, and committing all approved changes in a single commit at the end.
 
 ## Goal
 
 Complete all planned child issues within a parent by:
-1. Spawning task implementations via the `issue-implementation` skill
+1. Spawning task implementations via the `issue-implementation` skill (in parallel where dependencies allow)
 2. Reviewing completed work via the `issue-implementation-review` skill
-3. Committing approved changes
-4. Updating documentation when all children are complete
+3. Updating documentation when all children are complete
+4. Committing all changes in a single commit
 
 ## Issue Hierarchy
 
@@ -143,7 +143,7 @@ git branch --show-current
 - Ask the user to complete the planning before proceeding
 - **Do NOT create primary work issues yourself** - initial planning must happen before orchestration begins
 
-**Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 6.6).
+**Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 6.5).
 
 ### 4. Evaluate Complexity and Plan (Optional)
 
@@ -198,12 +198,16 @@ Analyze the direct children to determine the correct execution order:
 **Execution Rules:**
 
 - A child can only start when ALL its prerequisite issues are `done`
-- If a child has no prerequisites, it can start immediately (after any currently running child)
-- Execute children **sequentially** - wait for each to complete before starting the next
+- Children with no unmet prerequisites can run **in parallel**
+- As each child completes and passes review, check if new children are now unblocked and launch them
+- Continue until all children are complete and reviewed
+- **Do NOT commit between tasks** — all changes are committed together at the end (see Section 9)
 
 ### 6. Execute Children
 
-For each child in the execution queue:
+Launch all ready children (those with no unmet prerequisites) in parallel. As each child completes and passes review, check if new children are now unblocked and launch them. Repeat until all children are done.
+
+For each child:
 
 #### 6.1 Verify Child is Ready
 
@@ -213,9 +217,9 @@ For each child in the execution queue:
 
 #### 6.2 Launch Child Implementation
 
-Use the `Task` tool to spawn a subagent that implements the child.
+Use the `Task` tool to spawn subagents that implement ready children. **Launch multiple ready children in parallel** using `run_in_background: true` for all of them.
 
-**CRITICAL**: Store the agent ID returned by the Task tool. You will need this ID to resume the agent if review feedback requires changes.
+**CRITICAL**: Store the agent ID returned by the Task tool for each child. You will need these IDs to resume agents if review feedback requires changes.
 
 **For Tasks** - spawn the `issue-implementation` skill:
 ```
@@ -258,15 +262,13 @@ Task tool parameters:
     If you encounter any errors or blockers, STOP and report back.
 ```
 
-**Wait for the subagent to complete** before proceeding.
-
 #### 6.3 Verify Child Completion
 
-After the subagent returns:
+As each subagent returns (use `TaskOutput` with `block: false` to poll, or `block: true` to wait):
 
 1. Use `get_issue` to check the child's status
-2. If status is `done`: Continue to review step (for tasks) or next child (for orchestrated children)
-3. If status is NOT `done`: **STOP** and handle the error (see Section 7)
+2. If status is `done`: Continue to review step (for tasks) or check for newly unblocked children (for orchestrated children)
+3. If status is NOT `done`: Handle the error (see Section 7). Other parallel children may continue running.
 
 #### 6.4 Review Task Implementation
 
@@ -297,7 +299,7 @@ Use `TaskOutput` to wait for the review to complete.
 
 **Handle review outcomes:**
 
-- **No findings / empty output**: Proceed to commit
+- **No findings / empty output**: Task is approved. Check for newly unblocked children to launch.
 - **Findings identified**: Resume the original implementation agent to address the feedback:
   1. **Resume the implementation agent** using the Task tool with the `resume` parameter:
      ```
@@ -319,78 +321,23 @@ Use `TaskOutput` to wait for the review to complete.
   2. **Wait for the agent to complete** the fixes
   3. **Re-run review** to verify the findings were addressed
   4. **Repeat** this cycle until all valid findings are resolved
-  5. **Proceed to commit** only when the review passes
+  5. **Task is approved** when the review passes. Check for newly unblocked children to launch.
 - **Questions requiring answers**:
   - **STOP** orchestration
   - Use `AskUserQuestion` to get answers from the user
   - Resume the implementation agent with the answers provided
 
 **CRITICAL - Orchestrator Role**: The orchestrator does NOT write code. It only orchestrates:
-- Spawning implementation agents
+- Spawning implementation agents (in parallel where dependencies allow)
 - Spawning review agents
 - Sending feedback to implementation agents for fixes
-- Committing approved changes
+- Committing all approved changes together at the end
 
 If fixes are needed, ALWAYS resume the original implementation agent. The original agent already has full context about what it implemented, making it far more efficient than spawning a new agent that would need to rebuild context.
 
 **CRITICAL**: Do not categorize findings as "minor" and skip them. Every finding from a review must be either fixed or explicitly challenged with reasoning. Ignoring feedback is not acceptable.
 
-#### 6.5 Commit Task Changes
-
-After implementation and review pass, commit the changes.
-
-**CRITICAL - Update Trellis BEFORE committing:**
-
-The `.trellis/` directory contains issue state that must be included in commits. Always update Trellis issues first, then commit.
-
-1. **Update Trellis state** (if not already done):
-   - Ensure task is marked complete via `complete_task`
-
-2. **Commit the changes** using the `/git:commit` skill (if available) or manually:
-
-   **Using the skill** (preferred):
-   ```
-   /git:commit [TASK_ID] Summary of changes
-   ```
-
-   **Manual fallback** (if skill unavailable):
-   ```bash
-   git add .
-   git commit -m "[TASK_ID] Summary of changes"
-   ```
-   Example: `[T-add-user-validation] Add email validation to user registration`
-
-3. **Handle commit failures** - If the commit fails (e.g., pre-commit hook, smoke test, linting):
-
-   **CRITICAL**: Do NOT debug or fix the issue yourself. Resume the original implementation agent:
-   ```
-   Task tool parameters:
-   - subagent_type: "general-purpose"
-   - description: "Fix commit failure for [TASK_ID]"
-   - resume: "[AGENT_ID_FROM_STEP_6.2]"
-   - prompt: |
-       The commit failed with the following error:
-
-       [PASTE_FULL_ERROR_OUTPUT_HERE]
-
-       Please fix the issue that caused this failure. Common causes include:
-       - Failing tests or smoke tests
-       - Linting errors
-       - Type errors
-       - Pre-commit hook violations
-
-       After fixing, verify the fix works locally, then report back.
-       Do NOT commit - leave changes uncommitted.
-   ```
-
-   After the agent fixes the issue:
-   - Re-attempt the commit
-   - If it fails again, resume the agent with the new error
-   - Repeat until the commit succeeds
-
-4. **Verify commit succeeded** and no `.trellis/` changes remain uncommitted
-
-#### 6.6 Handle Follow-up Work
+#### 6.5 Handle Follow-up Work
 
 During implementation or review, you may identify work that wasn't originally planned but should be addressed. Rather than just noting "this needs follow-up," take action to ensure follow-up actually happens.
 
@@ -540,41 +487,57 @@ Task tool parameters:
 
 Use `TaskOutput` to wait for the docs-updater to complete.
 
-#### Commit Documentation Changes
+Documentation changes will be included in the single commit in step 9.
 
-If the docs-updater made changes, commit them using the `/git:commit` skill (if available) or manually:
+### 9. Commit All Changes and Complete Parent Issue
 
-   **Using the skill** (preferred):
-   ```
-   /git:commit docs: update documentation for [ISSUE_ID]
-   ```
-
-   **Manual fallback** (if skill unavailable):
-   ```bash
-   git add .
-   git commit -m "docs: update documentation for [ISSUE_ID]"
-   ```
-
-### 9. Complete Parent Issue
-
-When all children are done and documentation is updated:
+When all children are done, reviewed, and documentation is updated:
 
 1. Verify all children have status `done` (or `wont-do` if skipped by user direction)
-2. Update the parent status to `done` using `update_issue`
-3. **If any uncommitted changes exist** (including `.trellis/`), commit them using the `/git:commit` skill (if available) or manually:
+2. **Update Trellis state**: Ensure all tasks are marked complete via `complete_task`, then update the parent status to `done` using `update_issue`
+3. **Commit ALL changes** (implementation, documentation, and `.trellis/` state) in a single commit using the `/git:commit` skill (if available) or manually:
 
    **Using the skill** (preferred):
    ```
-   /git:commit chore: complete [ISSUE_ID]
+   /git:commit feat: implement [ISSUE_ID] - [ISSUE_TITLE]
    ```
 
    **Manual fallback** (if skill unavailable):
    ```bash
    git add .
-   git commit -m "chore: complete [ISSUE_ID]"
+   git commit -m "feat: implement [ISSUE_ID] - [ISSUE_TITLE]"
    ```
-4. **Verify no uncommitted changes remain** - especially in `.trellis/`
-5. Report summary to user:
+
+4. **Handle commit failures** — If the commit fails (e.g., pre-commit hook, smoke test, linting):
+
+   **CRITICAL**: Do NOT debug or fix the issue yourself. Identify which task's code caused the failure and resume that task's implementation agent:
+   ```
+   Task tool parameters:
+   - subagent_type: "general-purpose"
+   - description: "Fix commit failure for [TASK_ID]"
+   - resume: "[AGENT_ID_FOR_FAILING_TASK]"
+   - prompt: |
+       The commit failed with the following error:
+
+       [PASTE_FULL_ERROR_OUTPUT_HERE]
+
+       Please fix the issue that caused this failure. Common causes include:
+       - Failing tests or smoke tests
+       - Linting errors
+       - Type errors
+       - Pre-commit hook violations
+
+       After fixing, verify the fix works locally, then report back.
+       Do NOT commit - leave changes uncommitted.
+   ```
+
+   After the agent fixes the issue:
+   - Re-attempt the commit
+   - If it fails again, resume the appropriate agent with the new error
+   - Repeat until the commit succeeds
+
+5. **Verify commit succeeded** and no uncommitted changes remain
+6. Report summary to user:
    - Total direct children completed
    - Total descendants completed (all levels)
    - Any issues skipped
@@ -642,13 +605,13 @@ A summary of commits and task counts is process information. The user needs **ou
 - **Orchestration only**: The orchestrator does NOT write code, debug errors, or make fixes. It only spawns agents, routes feedback/errors, and commits approved changes.
 - **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
 - **Resume for errors**: When commit hooks, tests, or other validations fail due to code issues, ALWAYS resume the original implementation agent with the error. Never debug or fix code yourself.
-- **No parallel execution**: Run only one child at a time
-- **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.6)
+- **Parallel execution**: Launch children in parallel when their prerequisites are satisfied. Do NOT wait for one child to finish before launching another independent child.
+- **Single commit**: Do NOT commit after each task. All changes (implementation, documentation, `.trellis/` state) are committed together in a single commit at the end (Section 9).
+- **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.5)
 - **Respect dependencies**: Never start a child before its prerequisites are done
 - **Stop on infrastructure failure**: Stop and ask user only for infrastructure errors (permissions, missing tools, network). Code errors go back to the implementation agent.
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
 - **Trellis before commits**: Always update Trellis issues BEFORE making git commits
-- **Commit after each task**: Ensure changes are committed before moving to the next task
 - **Update docs before completing**: Always run docs-updater before marking parent as done
 - **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
@@ -658,7 +621,8 @@ A summary of commits and task counts is process information. The user needs **ou
   <critical>ALWAYS resume the original implementation agent when commits fail due to code issues (tests, hooks, linting) - never debug yourself</critical>
   <critical>NEVER read stack traces, analyze errors, or attempt to diagnose code problems - send them to the implementation agent</critical>
   <critical>STOP only for infrastructure errors (permissions, missing tools) - code errors go back to the implementation agent</critical>
-  <critical>Do NOT proceed to next child if current child has unresolved errors</critical>
+  <critical>Do NOT commit between tasks - all changes are committed in a single commit at the end (Section 9)</critical>
+  <critical>Launch independent children in parallel - do NOT execute sequentially when dependencies allow parallelism</critical>
   <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>

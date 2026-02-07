@@ -96,7 +96,11 @@ Use `complete_task` with task ID, summary, and files changed.
 
 **STOP!** - Complete one task only. Do not implement another task.
 
-### 6. Do NOT Commit
+### 6. Final Response
+
+**Always include the resulting task status in your final message.** Report the task's current status (e.g., `done`, `in-progress`, `open`) so the caller knows the outcome. If you completed the task normally, the status will be `done`. If you had to exit early due to errors, blockers, or user direction, report whatever status the task is in (e.g., still `in-progress` or `open`).
+
+### 7. Do NOT Commit
 
 **Your changes must be reviewed before committing.**
 
