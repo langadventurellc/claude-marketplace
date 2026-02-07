@@ -2,6 +2,7 @@
 name: requirements-creation
 description: Helps users transform vague ideas into well-defined requirements documents. Use when a user has a change they want to make to the codebase but hasn't fully articulated what they need. Works conversationally to extract and clarify requirements, scaling depth to the complexity of the work.
 allowed-tools:
+  - Task
   - Glob
   - Grep
   - LS
@@ -62,6 +63,7 @@ Before and during the conversation, examine the codebase to ask better questions
 - Notice test coverage in affected areas and ask about testing expectations
 - Spot related recent changes and ask if they're connected
 - Identify multiple possible locations for the change and ask which fits
+- For broad exploration across unfamiliar or large codebases, use the `Task` tool with `subagent_type="Explore"` to delegate codebase surveys. Explore is a fast, read-only agent ideal for understanding overall structure or searching across many files. Use direct Glob/Grep for targeted lookups where you already know what to search for.
 
 Show what you found when it's helpful: "I see there's an existing pattern for this in X - should we follow that here?"
 
