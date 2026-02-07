@@ -1,7 +1,7 @@
 ---
 id: F-default-trellis-subagent-types
 title: Default Trellis Subagent Types
-status: done
+status: open
 priority: high
 parent: none
 prerequisites: []
@@ -41,10 +41,7 @@ affectedFiles:
 log:
   - "Auto-completed: All child tasks are complete"
 schema: v1.0
-childrenIds:
-  - T-create-default-trellis
-  - T-update-issue-creation
-  - T-update-issue-implementation
+childrenIds: []
 created: 2026-02-07T18:30:35.096Z
 updated: 2026-02-07T18:30:35.096Z
 ---
