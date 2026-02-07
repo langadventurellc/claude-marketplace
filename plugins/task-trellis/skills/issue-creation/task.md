@@ -163,7 +163,7 @@ Task Summary:
 - High Priority: [X]
 ```
 
-Note: Tests are included within tasks only where meaningful complexity exists, per the [Testing Guidelines](testing-guidelines.md). Separate integration test tasks are created only when critical cross-component interactions need verification.
+Note: Tests are included within tasks only where meaningful complexity exists. Separate integration test tasks are created only when critical cross-component interactions need verification.
 
 ### 8. STOP - Do Not Continue
 
@@ -191,10 +191,6 @@ Common task patterns:
 - **API Endpoint**: Implement with input validation and error handling
 - **Frontend Component**: Create with interactivity and state handling
 - **Security**: Input validation, authorization, rate limiting
-
-## Testing
-
-Before creating any testing-related tasks, read the [Testing Guidelines](testing-guidelines.md).
 
 ## Simplicity Principles
 

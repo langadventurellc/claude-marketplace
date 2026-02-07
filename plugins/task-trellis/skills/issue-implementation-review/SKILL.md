@@ -1,8 +1,6 @@
 ---
 name: issue-implementation-review
 description: Reviews code changes from a completed task implementation for correctness, completeness, and simplicity. Use when asked to "review implementation", "review task code", "code review", "verify implementation", or after completing an issue implementation.
-context: fork
-agent: general-purpose
 allowed-tools:
   - Glob
   - Grep
@@ -106,7 +104,7 @@ Verify all requirements are addressed:
 
 - **Functional requirements**: All requirements from the task are implemented
 - **Acceptance criteria**: Parent feature/epic criteria that apply are satisfied
-- **Test coverage**: Tests exist for the new functionality (see [Testing Guidelines](testing-guidelines.md))
+- **Test coverage**: Tests exist for the new functionality
 - **Quality checks**: Code passes linting, formatting, and type checks
 
 ### 5. Simplicity Review
@@ -124,7 +122,7 @@ Evaluate for over-engineering:
 
 ### 6. Documentation Review
 
-Evaluate code documentation against the [Code Documentation Guidelines](code-documentation-guidelines.md):
+Evaluate code documentation:
 
 - **Over-documentation**: JSDoc/docstrings on private or internal functions
 - **Redundant documentation**: Comments that restate what the code shows (parameter types, return types, obvious behavior)
