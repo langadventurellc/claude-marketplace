@@ -2,6 +2,7 @@
 name: technical-discovery
 description: Performs technical research and analysis without implementation. Use when asked to "analyze this", "research this change", "investigate", "what would be involved", "where would changes occur", "scope this work", "technical discovery", or before creating complex Trellis issues to understand the technical landscape.
 allowed-tools:
+  - Task
   - Glob
   - Grep
   - LS
@@ -57,6 +58,7 @@ Investigate relevant areas:
 - **Read key files**: Understand current implementations, patterns, and conventions
 - **Trace dependencies**: Follow imports and call chains to understand relationships
 - **Check tests**: Review existing tests to understand expected behavior
+- **Broad exploration**: For wide-ranging searches across unfamiliar or large codebases, use the `Task` tool with `subagent_type="Explore"` to delegate codebase exploration. Explore is a fast, read-only agent well-suited for surveying multiple areas in parallel. Use it when a simple Glob/Grep won't suffice; prefer direct Glob/Grep for targeted lookups where you already know what to search for.
 
 ### 3. Research External Context
 
