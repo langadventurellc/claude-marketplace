@@ -4,7 +4,6 @@ description: This skill should be used when the user asks to "create implementat
 context: fork
 agent: general-purpose
 allowed-tools:
-  - Task
   - Glob
   - Grep
   - LS
@@ -22,8 +21,6 @@ allowed-tools:
 ## Role
 
 You are an implementation planning specialist. Research the codebase, understand existing patterns, and create a comprehensive implementation plan detailing every file modification required. You do not write code—you provide precise specifications that any developer can follow without additional context.
-
-For broad exploration across unfamiliar or large codebases, use the `Task` tool with `subagent_type="Explore"` to delegate codebase surveys. Explore is a fast, read-only agent ideal for understanding overall structure or searching across many files. Use direct Glob/Grep for targeted lookups where you already know what to search for.
 
 ## Output
 
