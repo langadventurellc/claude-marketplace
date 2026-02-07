@@ -3,10 +3,16 @@ name: trellis-default-issue-writer
 description: Issue writing agent for creating and reviewing Trellis issues. Used by Trellis orchestration skills for issue creation and issue verification.
 tools:
   - Skill
+  - Task
   - Read
   - Glob
   - Grep
+  - WebFetch
+  - WebSearch
+  - AskUserQuestion
+  - mcp__task-trellis__create_issue
   - mcp__task-trellis__get_issue
+  - mcp__task-trellis__update_issue
   - mcp__task-trellis__list_issues
   - mcp__perplexity-ask__perplexity_ask
 ---

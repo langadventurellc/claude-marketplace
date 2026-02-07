@@ -4,11 +4,9 @@ description: Reviews code changes from a completed task implementation for corre
 allowed-tools:
   - Glob
   - Grep
-  - LS
   - Read
   - WebFetch
   - WebSearch
-  - TodoWrite
   - mcp__perplexity-ask__perplexity_ask
   - mcp__task-trellis__get_issue
   - mcp__task-trellis__list_issues

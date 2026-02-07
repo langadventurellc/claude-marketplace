@@ -54,25 +54,6 @@ Each subagent is spawned with a specific agent type that provides behavioral gua
 
 Every new subagent prompt MUST specify WHICH skill the agent should invoke. The agent's own system prompt already contains instructions on HOW to invoke skills (the Skill Invocation Mandate), so the spawn prompt only needs to name the skill.
 
-### Verify Skill Invocation
-
-Subagents sometimes ignore skill invocation instructions and attempt the task ad-hoc, producing inconsistent and unreliable results. To catch this early:
-
-1. **Launch all new subagents with `run_in_background: true`** to enable output inspection before the agent finishes
-2. **Peek at early output** shortly after launch using `TaskOutput` with `block: false`:
-   - If the output shows the Skill tool being invoked → the agent is on track. Proceed to wait for completion with `TaskOutput` (`block: true`)
-   - If the output shows the agent doing other work (reading files, searching code, calling MCP tools) WITHOUT having first invoked the Skill tool → the agent ignored the instruction
-   - If the output is empty → the agent hasn't started yet. Wait a moment and peek again
-3. **Kill non-compliant agents** immediately with `TaskStop` and spawn a replacement agent with the identical prompt
-4. **Retry limit**: If the replacement agent also fails to invoke the skill, STOP and report the issue to the user — there is likely a permission or configuration problem preventing skill invocation
-
-<rules>
-  <critical>ALWAYS specify which skill the agent must invoke in new subagent prompts</critical>
-  <critical>ALWAYS peek at early output of background subagents to verify skill invocation</critical>
-  <critical>KILL and replace any subagent that starts working without invoking its skill</critical>
-  <critical>STOP and escalate to the user if two consecutive agents fail to invoke the skill</critical>
-</rules>
-
 ## Autonomous Operation
 
 **When given a parent issue ID** (e.g., "F-feature-id", "E-epic-id"), proceed directly to creating the immediate child issues (one level down) without asking for confirmation. The user has already decided they want child issues created by invoking this skill.
@@ -139,7 +120,7 @@ Task tool parameters:
 - description: "Create child issues for [PARENT_ID]"
 - run_in_background: true
 - prompt: |
-    Invoke the `task-trellis:issue-creation` skill with the following arguments.
+    Invoke the `issue-creation` skill with the following arguments.
 
     $ARGUMENTS:
     Parent: [PARENT_ID] - [PARENT_TITLE]
@@ -179,7 +160,7 @@ Task tool parameters:
 - description: "Review created issue [ISSUE_ID]"
 - run_in_background: true
 - prompt: |
-    Invoke the `task-trellis:issue-creation-review` skill to verify this issue.
+    Invoke the `issue-creation-review` skill to verify this issue.
 
     **Original User Requirements** (verbatim):
     ```
@@ -223,7 +204,7 @@ Task tool parameters:
 - description: "Re-review issue [ISSUE_ID] with clarifications"
 - run_in_background: true
 - prompt: |
-    Invoke the `task-trellis:issue-creation-review` skill to verify this issue.
+    Invoke the `issue-creation-review` skill to verify this issue.
 
     **Original User Requirements** (verbatim):
     ```

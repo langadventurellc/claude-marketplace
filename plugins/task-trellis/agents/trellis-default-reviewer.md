@@ -6,6 +6,8 @@ tools:
   - Read
   - Glob
   - Grep
+  - WebFetch
+  - WebSearch
   - mcp__task-trellis__get_issue
   - mcp__task-trellis__list_issues
   - mcp__perplexity-ask__perplexity_ask
