@@ -13,6 +13,7 @@ allowed-tools:
   - mcp__perplexity-ask__perplexity_ask
   - Task
   - TaskOutput
+  - TaskStop
   - Skill
   - Glob
   - Grep
@@ -41,7 +42,49 @@ Complete all planned child issues within a parent by:
 | Epic        | Features   | Tasks            |
 | Feature     | Tasks      | (none)           |
 
+## Subagent Spawn Protocol
+
+All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, planner, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded from their prior execution.
+
+### Skill Invocation Preamble
+
+Prepend the following preamble to EVERY new subagent prompt, substituting `[SKILL_NAME]` with the fully-qualified skill name (e.g., `task-trellis:issue-implementation`):
+
+```
+MANDATORY FIRST ACTION: Your very first action MUST be to use the Skill tool to invoke
+the [SKILL_NAME] skill. Do NOT read files, do NOT search code, do NOT analyze anything,
+do NOT take ANY other action before invoking this skill. The skill contains your complete
+workflow and instructions.
+
+If you encounter ANY errors invoking the skill (permission denied, skill not found, tool
+not available, or any other error), STOP IMMEDIATELY and report the exact error back. Do
+NOT attempt workarounds. Do NOT try to perform the task without the skill.
+```
+
+This preamble MUST appear at the START of the prompt, BEFORE any context, task details, or other instructions. The task-specific content (issue ID, context, plan) follows after the preamble.
+
+### Verify Skill Invocation
+
+Subagents sometimes ignore skill invocation instructions and attempt the task ad-hoc, producing inconsistent and unreliable results. To catch this early:
+
+1. **Launch all new subagents with `run_in_background: true`** to enable output inspection before the agent finishes
+2. **Peek at early output** shortly after launch using `TaskOutput` with `block: false`:
+   - If the output shows the Skill tool being invoked → the agent is on track. Proceed to wait for completion with `TaskOutput` (`block: true`)
+   - If the output shows the agent doing other work (reading files, searching code, writing code, calling MCP tools) WITHOUT having first invoked the Skill tool → the agent ignored the instruction
+   - If the output is empty → the agent hasn't started yet. Wait a moment and peek again
+3. **Kill non-compliant agents** immediately with `TaskStop` and spawn a replacement agent with the identical prompt
+4. **Retry limit**: If the replacement agent also fails to invoke the skill, STOP and report the issue to the user — there is likely a permission or configuration problem preventing skill invocation
+
+<rules>
+  <critical>ALWAYS prepend the Skill Invocation Preamble to new subagent prompts — no exceptions</critical>
+  <critical>ALWAYS peek at early output of background subagents to verify skill invocation</critical>
+  <critical>KILL and replace any subagent that starts working without invoking its skill</critical>
+  <critical>STOP and escalate to the user if two consecutive agents fail to invoke the skill</critical>
+</rules>
+
 ## Process
+
+**Note**: All subagent spawns in this process must follow the Subagent Spawn Protocol above. Every prompt template below shows only the task-specific content — you must prepend the Skill Invocation Preamble to each one.
 
 ### 1. Identify Parent Issue
 
