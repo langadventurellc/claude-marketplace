@@ -1,15 +1,61 @@
 ---
 id: F-default-trellis-subagent-types
 title: Default Trellis Subagent Types
-status: open
+status: done
 priority: high
 parent: none
 prerequisites: []
-affectedFiles: {}
-log: []
+affectedFiles:
+  plugins/task-trellis/agents/trellis-default-developer.md: "Created developer
+    agent definition with full YAML frontmatter (name, description, tools
+    including Skill, Task, Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion,
+    Trellis MCP tools, Perplexity) and system prompt containing: Skill
+    Invocation Mandate, Error Abort Mandate, Security & Performance Principles,
+    Forbidden Patterns, Quality Standards, full inlined Testing Guidelines, full
+    inlined Code Documentation Guidelines, and Error and Failure Handling
+    rules."
+  plugins/task-trellis/agents/trellis-default-reviewer.md: "Created reviewer agent
+    definition with YAML frontmatter (name, description, tools including Skill,
+    Read, Glob, Grep, Trellis MCP read tools, Perplexity) and system prompt
+    containing: Skill Invocation Mandate, Error Abort Mandate, Evidence-Based
+    Analysis, Actionable Output, Concise Structured Reporting, and Read-Only
+    Constraint guidelines."
+  plugins/task-trellis/agents/trellis-default-author.md: "Created author agent
+    definition with YAML frontmatter (name, description, tools including Skill,
+    Task, Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Trellis MCP
+    write tools, Perplexity) and system prompt containing: Skill Invocation
+    Mandate, Error Abort Mandate, Research-First Approach, Codebase as Source of
+    Truth, and Concise Writing guidelines."
+  plugins/task-trellis/skills/issue-creation-orchestration/SKILL.md:
+    Added TaskStop to allowed-tools; added Agent Types section with
+    configurability documentation; added full Subagent Spawn Protocol section
+    (preamble, verification, kill, retry limit); added process note about
+    applying protocol to all spawns; converted Step 3 from direct skill
+    invocation to trellis-default-author subagent spawn; replaced
+    general-purpose with trellis-default-reviewer in review spawns (Steps 4 and
+    5); updated all spawn prompts to specify fully-qualified skill names.; Added
+    Skill to allowed-tools. Consolidated duplicate Subagent Spawn Protocol
+    sections into single clean section with Agent Types table, Skill
+    Specification, Verify Skill Invocation (peek/kill), and configurability
+    docs.
+  plugins/task-trellis/skills/issue-implementation/SKILL.md: Removed coding
+    guideline sections (Quality Standards, Testing ref, Documentation ref,
+    Security & Performance Principles, Forbidden Patterns, Critical Error and
+    Failure Handling rules block). Removed testing-guidelines.md reference from
+    implementation phase. Preserved all workflow steps, Key Constraints, Do NOT
+    Commit, and full allowed-tools frontmatter.
+  plugins/task-trellis/skills/issue-implementation-orchestration/SKILL.md:
+    Replaced all subagent_type 'general-purpose' with trellis-default-developer
+    (task impl), trellis-default-reviewer (review, planning),
+    trellis-default-author (docs). Updated Subagent Spawn Protocol with Agent
+    Types table, Skill Specification section, Resumed Agents section, and
+    configurability docs. Updated spawn prompts to use 'Invoke the
+    task-trellis:X skill' pattern. Removed subagent_type from resume templates.
+log:
+  - "Auto-completed: All child tasks are complete"
 schema: v1.0
 childrenIds:
-  - T-create-default-trellis
+  - T-create-three-default-agent
   - T-update-issue-creation
   - T-update-issue-implementation
 created: 2026-02-07T18:30:35.096Z

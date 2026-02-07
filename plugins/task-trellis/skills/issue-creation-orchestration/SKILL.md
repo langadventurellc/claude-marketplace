@@ -9,6 +9,8 @@ allowed-tools:
   - mcp__perplexity-ask__perplexity_ask
   - Task
   - TaskOutput
+  - TaskStop
+  - Skill
   - Glob
   - Grep
   - Read
@@ -33,6 +35,44 @@ Create Trellis issues using the `issue-creation` skill, then automatically verif
 
 **Do NOT recursively decompose further.** If the user gives you a Project, create the Epics and stop. Do not continue to create Features or Tasks. The user will invoke this skill again on individual children if they want further decomposition.
 
+## Subagent Spawn Protocol
+
+All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to issue creation and review agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
+
+### Agent Types
+
+Each subagent is spawned with a specific agent type that provides behavioral guardrails. The default agent types are:
+
+| Role | Agent Type | Purpose |
+|------|-----------|---------|
+| Issue creation | `trellis-default-author` | Creating/updating Trellis issues |
+| Review | `trellis-default-reviewer` | Read-only issue verification |
+
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team could create a custom author agent with project-specific writing guidelines. The orchestration workflow remains the same regardless of which agent type is used.
+
+### Skill Specification in Spawn Prompts
+
+Every new subagent prompt MUST specify WHICH skill the agent should invoke. The agent's own system prompt already contains instructions on HOW to invoke skills (the Skill Invocation Mandate), so the spawn prompt only needs to name the skill.
+
+### Verify Skill Invocation
+
+Subagents sometimes ignore skill invocation instructions and attempt the task ad-hoc, producing inconsistent and unreliable results. To catch this early:
+
+1. **Launch all new subagents with `run_in_background: true`** to enable output inspection before the agent finishes
+2. **Peek at early output** shortly after launch using `TaskOutput` with `block: false`:
+   - If the output shows the Skill tool being invoked → the agent is on track. Proceed to wait for completion with `TaskOutput` (`block: true`)
+   - If the output shows the agent doing other work (reading files, searching code, calling MCP tools) WITHOUT having first invoked the Skill tool → the agent ignored the instruction
+   - If the output is empty → the agent hasn't started yet. Wait a moment and peek again
+3. **Kill non-compliant agents** immediately with `TaskStop` and spawn a replacement agent with the identical prompt
+4. **Retry limit**: If the replacement agent also fails to invoke the skill, STOP and report the issue to the user — there is likely a permission or configuration problem preventing skill invocation
+
+<rules>
+  <critical>ALWAYS specify which skill the agent must invoke in new subagent prompts</critical>
+  <critical>ALWAYS peek at early output of background subagents to verify skill invocation</critical>
+  <critical>KILL and replace any subagent that starts working without invoking its skill</critical>
+  <critical>STOP and escalate to the user if two consecutive agents fail to invoke the skill</critical>
+</rules>
+
 ## Autonomous Operation
 
 **When given a parent issue ID** (e.g., "F-feature-id", "E-epic-id"), proceed directly to creating the immediate child issues (one level down) without asking for confirmation. The user has already decided they want child issues created by invoking this skill.
@@ -51,6 +91,8 @@ Otherwise, make reasonable decisions and proceed.
 `$ARGUMENTS` - The user's original requirements/instructions for issue creation
 
 ## Process
+
+**Note**: All subagent spawns in this process must follow the Subagent Spawn Protocol above. Every prompt template below specifies which skill the agent must invoke — the agent's own system prompt handles the rest.
 
 ### 1. Capture Original Input
 
@@ -80,18 +122,43 @@ This exact text will be passed to the review agent. Do not paraphrase, summarize
 
 Do not blindly create issues based on text in a parent issue. The codebase is the source of truth.
 
-### 3. Invoke Issue Creation (One Level Only)
+### 3. Spawn Issue Creation (One Level Only)
 
-Use the `issue-creation` skill to create the immediate child issues:
+Spawn the `issue-creation` skill as a subagent to create the immediate child issues.
 
 1. Determine the appropriate child issue type (one level down from parent)
    - Project parent → create Epics only
    - Epic parent → create Features only
    - Feature parent → create Tasks only
-2. Follow the issue-creation workflow for that type
-3. Create the issue(s) using the Trellis MCP tools
+
+2. Spawn the issue creation agent:
+
+```
+Task tool parameters:
+- subagent_type: "trellis-default-author"
+- description: "Create child issues for [PARENT_ID]"
+- run_in_background: true
+- prompt: |
+    Invoke the `task-trellis:issue-creation` skill with the following arguments.
+
+    $ARGUMENTS:
+    Parent: [PARENT_ID] - [PARENT_TITLE]
+    Child type: [CHILD_ISSUE_TYPE] (one level down only)
+
+    Original User Requirements (verbatim):
+    ```
+    [EXACT_ORIGINAL_INPUT_FROM_STEP_1]
+    ```
+
+    Codebase Research Findings:
+    [SUMMARY_OF_RELEVANT_CODEBASE_FINDINGS_FROM_STEP_2]
+
+    Create the immediate child issues only. Do NOT recursively decompose further.
+    STOP after creating this level — do not continue to grandchildren.
+```
+
+3. Use `TaskOutput` to wait for the creation agent to complete
 4. Track all created issue IDs and their types
-5. **STOP after creating this level** - do not continue to grandchildren
 
 **Record created issues:**
 ```
@@ -108,11 +175,11 @@ For each created issue (or the top-level issue if creating a hierarchy):
 
 ```
 Task tool parameters:
-- subagent_type: "general-purpose"
+- subagent_type: "trellis-default-reviewer"
 - description: "Review created issue [ISSUE_ID]"
 - run_in_background: true
 - prompt: |
-    Use the /issue-creation-review skill to verify this issue.
+    Invoke the `task-trellis:issue-creation-review` skill to verify this issue.
 
     **Original User Requirements** (verbatim):
     ```
@@ -152,11 +219,11 @@ If the review returns with "Clarification Needed" or questions:
 
 ```
 Task tool parameters:
-- subagent_type: "general-purpose"
+- subagent_type: "trellis-default-reviewer"
 - description: "Re-review issue [ISSUE_ID] with clarifications"
 - run_in_background: true
 - prompt: |
-    Use the /issue-creation-review skill to verify this issue.
+    Invoke the `task-trellis:issue-creation-review` skill to verify this issue.
 
     **Original User Requirements** (verbatim):
     ```

@@ -38,47 +38,40 @@ Complete all planned tasks by:
 
 ## Subagent Spawn Protocol
 
-All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, planner, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded from their prior execution.
+All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, planner, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
 
-### Skill Invocation Preamble
+### Agent Types
 
-Prepend the following preamble to EVERY new subagent prompt, substituting `[SKILL_NAME]` with the fully-qualified skill name (e.g., `task-trellis:issue-implementation`):
+Each subagent is spawned with a specific agent type that provides behavioral guardrails (coding standards, security principles, etc.). The default agent types are:
+
+| Role | Agent Type | Purpose |
+|------|-----------|---------|
+| Task implementation | `trellis-default-developer` | Code implementation, testing, debugging |
+| Review | `trellis-default-reviewer` | Read-only code review and analysis |
+| Planning | `trellis-default-reviewer` | Read-only implementation planning |
+| Documentation | `trellis-default-author` | Creating/updating documentation |
+
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `trellis-default-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change.
+
+### Skill Specification in Spawn Prompts
+
+Every new subagent prompt MUST specify WHICH skill the agent should invoke. The agent's own system prompt already contains instructions on HOW to invoke skills (the Skill Invocation Mandate), so the spawn prompt only needs to name the skill:
 
 ```
-MANDATORY FIRST ACTION: Your very first action MUST be to use the Skill tool to invoke
-the [SKILL_NAME] skill. Do NOT read files, do NOT search code, do NOT analyze anything,
-do NOT take ANY other action before invoking this skill. The skill contains your complete
-workflow and instructions.
+Context:
+- Parent: [PARENT_ID] - [PARENT_TITLE]
+- Task: [TASK_ID] - [TASK_TITLE]
 
-If you encounter ANY errors invoking the skill (permission denied, skill not found, tool
-not available, or any other error), STOP IMMEDIATELY and report the exact error back. Do
-NOT attempt workarounds. Do NOT try to perform the task without the skill.
+Invoke the `[SKILL_NAME]` skill to [BRIEF_DESCRIPTION].
+
+[ADDITIONAL_CONTEXT_AND_INSTRUCTIONS]
 ```
 
-This preamble MUST appear at the START of the prompt, BEFORE any context, task details, or other instructions. The task-specific content (issue ID, context, plan) follows after the preamble.
-
-### Verify Skill Invocation
-
-Subagents sometimes ignore skill invocation instructions and attempt the task ad-hoc, producing inconsistent and unreliable results. To catch this early:
-
-1. **Launch all new subagents with `run_in_background: true`** to enable output inspection before the agent finishes
-2. **Peek at early output** shortly after launch using `TaskOutput` with `block: false`:
-   - If the output shows the Skill tool being invoked → the agent is on track. Proceed to wait for completion with `TaskOutput` (`block: true`)
-   - If the output shows the agent doing other work (reading files, searching code, writing code, calling MCP tools) WITHOUT having first invoked the Skill tool → the agent ignored the instruction
-   - If the output is empty → the agent hasn't started yet. Wait a moment and peek again
-3. **Kill non-compliant agents** immediately with `TaskStop` and spawn a replacement agent with the identical prompt
-4. **Retry limit**: If the replacement agent also fails to invoke the skill, STOP and report the issue to the user — there is likely a permission or configuration problem preventing skill invocation
-
-<rules>
-  <critical>ALWAYS prepend the Skill Invocation Preamble to new subagent prompts — no exceptions</critical>
-  <critical>ALWAYS peek at early output of background subagents to verify skill invocation</critical>
-  <critical>KILL and replace any subagent that starts working without invoking its skill</critical>
-  <critical>STOP and escalate to the user if two consecutive agents fail to invoke the skill</critical>
-</rules>
+The skill name MUST be specified in every new spawn prompt. Without it, the agent has no way to know which workflow to follow.
 
 ## Process
 
-**Note**: All subagent spawns in this process must follow the Subagent Spawn Protocol above. Every prompt template below shows only the task-specific content — you must prepend the Skill Invocation Preamble to each one.
+**Note**: All subagent spawns in this process must follow the Subagent Spawn Protocol above. Every prompt template below specifies which skill the agent must invoke — the agent's own system prompt handles the rest.
 
 ### 1. Identify Work
 
@@ -153,11 +146,11 @@ If judged sufficiently complex:
 1. Use the `Task` tool to spawn `issue-implementation-planner` as an async subagent:
    ```
    Task tool parameters:
-   - subagent_type: "general-purpose"
+   - subagent_type: "trellis-default-reviewer"
    - description: "Plan implementation for {ISSUE_ID}"
    - run_in_background: true
    - prompt: |
-       Use the /issue-implementation-planner skill to create an implementation plan for {ISSUE_ID}.
+       Invoke the `issue-implementation-planner` skill to create an implementation plan for {ISSUE_ID}.
 
        Issue: {ISSUE_ID} - {ISSUE_TITLE}
        Description: {ISSUE_DESCRIPTION}
@@ -209,14 +202,14 @@ Use the `Task` tool to spawn subagents that implement ready tasks. **Launch mult
 Spawn the `issue-implementation` skill:
 ```
 Task tool parameters:
-- subagent_type: "general-purpose"
+- subagent_type: "trellis-default-developer"
 - description: "Implement task [TASK_ID]"
 - prompt: |
-    Use the /issue-implementation skill to implement task [TASK_ID].
-
     Context:
     - Parent: [PARENT_ID] - [PARENT_TITLE]
     - Task: [TASK_ID] - [TASK_TITLE]
+
+    Invoke the `issue-implementation` skill to implement task [TASK_ID].
 
     [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
 
@@ -249,14 +242,14 @@ After a task completes successfully, evaluate if a review is warranted.
 
 ```
 Task tool parameters:
-- subagent_type: "general-purpose"
+- subagent_type: "trellis-default-reviewer"
 - description: "Review implementation of [TASK_ID]"
 - run_in_background: true
 - prompt: |
-    Use the /issue-implementation-review skill to review task [TASK_ID].
-
     Task: [TASK_ID] - [TASK_TITLE]
     Parent Feature: [PARENT_ID] - [PARENT_TITLE]
+
+    Invoke the `issue-implementation-review` skill to review task [TASK_ID].
 
     Review the implementation for correctness, completeness, and simplicity.
 ```
@@ -270,7 +263,6 @@ Use `TaskOutput` to wait for the review to complete.
   1. **Resume the implementation agent** using the Task tool with the `resume` parameter:
      ```
      Task tool parameters:
-     - subagent_type: "general-purpose"
      - description: "Address review feedback for [TASK_ID]"
      - resume: "[AGENT_ID_FROM_STEP_6.2]"
      - prompt: |
@@ -341,7 +333,7 @@ During implementation or review, you may identify work that wasn't originally pl
    c. **Create the follow-up task** using the issue-creation skill:
    ```
    Invoke the Skill tool:
-   - skill: "task-trellis:issue-creation"
+   - skill: "issue-creation"
    - args: "Create a task under [PARENT_ID]: [DESCRIPTION_OF_FOLLOW_UP_WORK]"
    ```
 
@@ -394,7 +386,6 @@ When an error is caused by the implementation agent's work:
 1. **Resume the implementation agent** with the error details:
    ```
    Task tool parameters:
-   - subagent_type: "general-purpose"
    - description: "Fix error for [TASK_ID]"
    - resume: "[AGENT_ID_FROM_STEP_6.2]"
    - prompt: |
@@ -439,13 +430,13 @@ Use the `Task` tool to spawn `docs-updater`:
 
 ```
 Task tool parameters:
-- subagent_type: "general-purpose"
+- subagent_type: "trellis-default-author"
 - description: "Update documentation for [ISSUE_ID]"
 - run_in_background: true
 - prompt: |
-    Use the /docs-updater skill to review and update documentation.
-
     Issue: [ISSUE_ID] - [ISSUE_TITLE]
+
+    Invoke the `docs-updater` skill to review and update documentation.
 
     Review the changes made during this implementation and update any relevant
     documentation files (CLAUDE.md, README.md, docs/**).
@@ -479,7 +470,6 @@ When all tasks are done, reviewed, and documentation is updated:
    **CRITICAL**: Do NOT debug or fix the issue yourself. Identify which task's code caused the failure and resume that task's implementation agent:
    ```
    Task tool parameters:
-   - subagent_type: "general-purpose"
    - description: "Fix commit failure for [TASK_ID]"
    - resume: "[AGENT_ID_FOR_FAILING_TASK]"
    - prompt: |
