@@ -11,9 +11,6 @@ allowed-tools:
   - TaskOutput
   - TaskStop
   - Skill
-  - Glob
-  - Grep
-  - Read
   - AskUserQuestion
 ---
 
@@ -88,22 +85,7 @@ Original User Requirements:
 
 This exact text will be passed to the review agent. Do not paraphrase, summarize, or modify it in any way. The reviewer needs the original requirements to verify the created issues accurately.
 
-### 2. Research the Codebase
-
-**CRITICAL**: Before creating any issues, you MUST research the current state of the codebase. Parent issues may have been written before other work was completed - never assume the parent issue reflects reality.
-
-1. **Read the parent issue** to understand the intended scope
-2. **Search the codebase** using Glob and Grep to understand:
-   - What already exists that's relevant to this work
-   - Existing patterns and conventions to follow
-   - What may have already been partially implemented
-   - Current architecture and file structure
-3. **Compare parent issue against reality** - identify any gaps between what was written and what currently exists
-4. **Adjust scope accordingly** - only create issues for work that actually needs to be done
-
-Do not blindly create issues based on text in a parent issue. The codebase is the source of truth.
-
-### 3. Spawn Issue Creation (One Level Only)
+### 2. Spawn Issue Creation (One Level Only)
 
 Spawn the `issue-creation` skill as a subagent to create the immediate child issues.
 
@@ -131,9 +113,6 @@ Task tool parameters:
     [EXACT_ORIGINAL_INPUT_FROM_STEP_1]
     ```
 
-    Codebase Research Findings:
-    [SUMMARY_OF_RELEVANT_CODEBASE_FINDINGS_FROM_STEP_2]
-
     Create the immediate child issues only. Do NOT recursively decompose further.
     STOP after creating this level — do not continue to grandchildren.
 ```
@@ -148,7 +127,7 @@ Created Issues:
 - [ISSUE_ID]: [ISSUE_TYPE] - [TITLE]
 ```
 
-### 4. Spawn Review for Created Issues
+### 3. Spawn Review for Created Issues
 
 After all issues are created, spawn `issue-creation-review` as an async subagent to verify each issue.
 
@@ -179,7 +158,7 @@ Task tool parameters:
 
 Use `TaskOutput` to wait for the review to complete.
 
-### 5. Handle Review Results
+### 4. Handle Review Results
 
 Process the review output based on its content:
 
@@ -302,7 +281,6 @@ The user will invoke this skill again on specific children if they want further 
   <critical>Preserve the original user instructions VERBATIM when passing to the review agent</critical>
   <critical>If a subagent fails or returns an error, STOP and report to the user</critical>
   <critical>Do not paraphrase or summarize requirements - the reviewer needs the exact original text</critical>
-  <critical>Research the codebase before creating issues - parent issues may be outdated</critical>
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
   <critical>If you skip a finding, you MUST explain why you believe it is incorrect</critical>
   <important>Proceed autonomously when given a parent issue ID - do not ask for confirmation</important>
