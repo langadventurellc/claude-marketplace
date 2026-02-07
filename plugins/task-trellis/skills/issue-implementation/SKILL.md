@@ -1,6 +1,6 @@
 ---
 name: issue-implementation
-description: This skill should be used when the user asks to "implement task", "claim task", "work on task", or mentions implementing a single task in Trellis. For features, epics, or projects, use issue-implementation-orchestration instead.
+description: This skill should be used when the user asks to "implement task", "claim task", "work on task", or mentions implementing a single task in Trellis. For features (which orchestrate multiple tasks), use issue-implementation-orchestration instead.
 allowed-tools:
   - mcp__task-trellis__claim_task
   - mcp__task-trellis__get_issue
@@ -24,8 +24,6 @@ allowed-tools:
 # Implement Trellis Task
 
 Claim and implement a single task from the Trellis task management system using the Research and Plan → Implement workflow.
-
-**Note**: For implementing features, epics, or projects (which orchestrate multiple tasks), use the `issue-implementation-orchestration` skill instead.
 
 ## Input
 

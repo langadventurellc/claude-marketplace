@@ -1,6 +1,6 @@
 ---
 name: issue-implementation-orchestration
-description: Orchestrates issue implementation with parallel execution, automatic review, and a single commit. Use when asked to "implement feature", "implement epic", "implement project", "execute feature", "execute epic", "execute project", or when you want implementations automatically reviewed and committed.
+description: Orchestrates implementation of a feature's tasks with parallel execution, automatic review, and a single commit. Use when asked to "implement feature", "execute feature", "implement tasks", or when you want task implementations automatically reviewed and committed.
 allowed-tools:
   - mcp__task-trellis__claim_task
   - mcp__task-trellis__get_issue
@@ -22,25 +22,19 @@ allowed-tools:
   - AskUserQuestion
 ---
 
-# Orchestrate Issue Implementation
+# Orchestrate Feature Implementation
 
-Orchestrate the implementation of a parent issue (project, epic, or feature) by executing its child issues in parallel where dependencies allow, reviewing each implementation, and committing all approved changes in a single commit at the end.
+Orchestrate the implementation of a feature by executing its tasks in parallel where dependencies allow, reviewing each implementation, and committing all approved changes in a single commit at the end.
+
+When no feature is specified, this skill can also orchestrate one or more standalone tasks directly.
 
 ## Goal
 
-Complete all planned child issues within a parent by:
+Complete all planned tasks by:
 1. Spawning task implementations via the `issue-implementation` skill (in parallel where dependencies allow)
 2. Reviewing completed work via the `issue-implementation-review` skill
-3. Updating documentation when all children are complete
+3. Updating documentation when all tasks are complete
 4. Committing all changes in a single commit
-
-## Issue Hierarchy
-
-| Parent Type | Child Type | Child's Children |
-| ----------- | ---------- | ---------------- |
-| Project     | Epics      | Features → Tasks |
-| Epic        | Features   | Tasks            |
-| Feature     | Tasks      | (none)           |
 
 ## Subagent Spawn Protocol
 
@@ -86,16 +80,17 @@ Subagents sometimes ignore skill invocation instructions and attempt the task ad
 
 **Note**: All subagent spawns in this process must follow the Subagent Spawn Protocol above. Every prompt template below shows only the task-specific content — you must prepend the Skill Invocation Preamble to each one.
 
-### 1. Identify Parent Issue
+### 1. Identify Work
 
 #### Input
 
 `$ARGUMENTS` - Can specify:
 
-- **Issue ID**: Specific issue to implement (e.g., "P-xxx", "E-xxx", or "F-xxx")
+- **Feature ID**: A feature whose tasks should be implemented (e.g., "F-xxx")
+- **Task ID(s)**: One or more specific tasks to implement (e.g., "T-xxx")
 - **Scope**: Limit search to issues within a parent scope
 
-Use `get_issue` to retrieve the issue details. If no ID is specified, use `get_next_available_issue` with the appropriate `issueType` to find the next available issue.
+Use `get_issue` to retrieve the issue details. If a feature ID is given, use `list_issues` to find its child tasks. If no ID is specified, use `get_next_available_issue` with `issueType: "feature"` to find the next available feature.
 
 ### 2. Create Feature Branch
 
@@ -115,43 +110,33 @@ git branch --show-current
   ```bash
   git checkout -b feature/{ISSUE_ID}
   ```
-  Example: `feature/F-add-user-auth` or `feature/E-auth-system`
+  Example: `feature/F-add-user-auth`
 
 - **If already on a non-main branch**: Continue without branching
 
-### 3. Verify Planned Work Exists
+### 3. Verify Tasks Exist
 
-**CRITICAL**: Before starting, verify all work is planned.
+**CRITICAL**: Before starting, verify tasks are planned.
 
-1. Use `list_issues` to get all direct children of this issue
-2. For each child, recursively verify its children exist (down to tasks)
-3. Review the complete work breakdown for completeness
+1. If working from a **feature**: Use `list_issues` to get all tasks under the feature
+2. If working from **standalone tasks**: Use `get_issue` to verify each task exists and is actionable
 
-**Verification depth by parent type:**
-
-- **Feature**: Verify tasks exist
-- **Epic**: Verify features exist, and each feature has tasks
-- **Project**: Verify epics exist, each epic has features, and each feature has tasks
-
-**If children are missing:**
+**If tasks are missing or the feature has no tasks:**
 
 - **STOP immediately**
-- Inform the user that the issue has unplanned work
-- List what appears to be missing:
-  - Children that have no sub-children
-  - Functionality from the description not covered
+- Inform the user that the work has no planned tasks
 - Ask the user to complete the planning before proceeding
-- **Do NOT create primary work issues yourself** - initial planning must happen before orchestration begins
+- **Do NOT create tasks yourself** — planning must happen before orchestration begins
 
 **Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 6.5).
 
 ### 4. Evaluate Complexity and Plan (Optional)
 
-Before executing children, evaluate whether the work would benefit from upfront planning.
+Before executing tasks, evaluate whether the work would benefit from upfront planning.
 
 #### Complexity Signals
 
-Consider spawning a planner for issues with:
+Consider spawning a planner for work with:
 
 - **Multiple tasks** (more than 3-4 tasks)
 - **Refactoring or migration** language in task descriptions
@@ -177,51 +162,51 @@ If judged sufficiently complex:
        Issue: {ISSUE_ID} - {ISSUE_TITLE}
        Description: {ISSUE_DESCRIPTION}
 
-       Children to implement:
-       {LIST_OF_CHILDREN_WITH_DESCRIPTIONS}
+       Tasks to implement:
+       {LIST_OF_TASKS_WITH_DESCRIPTIONS}
 
        Create a comprehensive plan that identifies key files, patterns, and implementation approach.
    ```
 
 2. Use `TaskOutput` to wait for the planner to complete
 3. Store the planner's output as context for implementation agents
-4. Include relevant plan context when spawning child implementations
+4. Include relevant plan context when spawning task implementations
 
 ### 5. Determine Execution Order
 
-Analyze the direct children to determine the correct execution order:
+Analyze the tasks to determine the correct execution order:
 
-1. **Check prerequisites**: Each child may have `prerequisites` listing IDs that must complete first
-2. **Check status**: Skip children that are already `done` or `wont-do`
-3. **Build execution queue**: Order children so all prerequisites are satisfied before each runs
+1. **Check prerequisites**: Each task may have `prerequisites` listing IDs that must complete first
+2. **Check status**: Skip tasks that are already `done` or `wont-do`
+3. **Build execution queue**: Order tasks so all prerequisites are satisfied before each runs
 
 **Execution Rules:**
 
-- A child can only start when ALL its prerequisite issues are `done`
-- Children with no unmet prerequisites can run **in parallel**
-- As each child completes and passes review, check if new children are now unblocked and launch them
-- Continue until all children are complete and reviewed
+- A task can only start when ALL its prerequisite issues are `done`
+- Tasks with no unmet prerequisites can run **in parallel**
+- As each task completes and passes review, check if new tasks are now unblocked and launch them
+- Continue until all tasks are complete and reviewed
 - **Do NOT commit between tasks** — all changes are committed together at the end (see Section 9)
 
-### 6. Execute Children
+### 6. Execute Tasks
 
-Launch all ready children (those with no unmet prerequisites) in parallel. As each child completes and passes review, check if new children are now unblocked and launch them. Repeat until all children are done.
+Launch all ready tasks (those with no unmet prerequisites) in parallel. As each task completes and passes review, check if new tasks are now unblocked and launch them. Repeat until all tasks are done.
 
-For each child:
+For each task:
 
-#### 6.1 Verify Child is Ready
+#### 6.1 Verify Task is Ready
 
 - Check all prerequisites are `done`
-- Check child status is `open` or `draft` (not already `in-progress` or `done`)
-- If not ready, skip and check next child
+- Check task status is `open` or `draft` (not already `in-progress` or `done`)
+- If not ready, skip and check next task
 
-#### 6.2 Launch Child Implementation
+#### 6.2 Launch Task Implementation
 
-Use the `Task` tool to spawn subagents that implement ready children. **Launch multiple ready children in parallel** using `run_in_background: true` for all of them.
+Use the `Task` tool to spawn subagents that implement ready tasks. **Launch multiple ready tasks in parallel** using `run_in_background: true` for all of them.
 
-**CRITICAL**: Store the agent ID returned by the Task tool for each child. You will need these IDs to resume agents if review feedback requires changes.
+**CRITICAL**: Store the agent ID returned by the Task tool for each task. You will need these IDs to resume agents if review feedback requires changes.
 
-**For Tasks** - spawn the `issue-implementation` skill:
+Spawn the `issue-implementation` skill:
 ```
 Task tool parameters:
 - subagent_type: "general-purpose"
@@ -243,32 +228,13 @@ Task tool parameters:
 
 After the Task tool returns, note the agent ID from the response (e.g., `agent_id: "abc123"`). You will use this with the `resume` parameter if the review identifies issues.
 
-**For Features/Epics/Projects** - spawn the `issue-implementation-orchestration` skill (recursive):
-```
-Task tool parameters:
-- subagent_type: "general-purpose"
-- description: "Orchestrate [CHILD_TYPE] [CHILD_ID]"
-- prompt: |
-    Use the /issue-implementation-orchestration skill to implement [CHILD_TYPE] [CHILD_ID].
-
-    Context:
-    - Parent: [PARENT_ID] - [PARENT_TITLE]
-    - [CHILD_TYPE]: [CHILD_ID] - [CHILD_TITLE]
-
-    [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
-
-    Orchestrate the implementation of this issue and its children.
-
-    If you encounter any errors or blockers, STOP and report back.
-```
-
-#### 6.3 Verify Child Completion
+#### 6.3 Verify Task Completion
 
 As each subagent returns (use `TaskOutput` with `block: false` to poll, or `block: true` to wait):
 
-1. Use `get_issue` to check the child's status
-2. If status is `done`: Continue to review step (for tasks) or check for newly unblocked children (for orchestrated children)
-3. If status is NOT `done`: Handle the error (see Section 7). Other parallel children may continue running.
+1. Use `get_issue` to check the task's status
+2. If status is `done`: Continue to review step
+3. If status is NOT `done`: Handle the error (see Section 7). Other parallel tasks may continue running.
 
 #### 6.4 Review Task Implementation
 
@@ -299,7 +265,7 @@ Use `TaskOutput` to wait for the review to complete.
 
 **Handle review outcomes:**
 
-- **No findings / empty output**: Task is approved. Check for newly unblocked children to launch.
+- **No findings / empty output**: Task is approved. Check for newly unblocked tasks to launch.
 - **Findings identified**: Resume the original implementation agent to address the feedback:
   1. **Resume the implementation agent** using the Task tool with the `resume` parameter:
      ```
@@ -321,7 +287,7 @@ Use `TaskOutput` to wait for the review to complete.
   2. **Wait for the agent to complete** the fixes
   3. **Re-run review** to verify the findings were addressed
   4. **Repeat** this cycle until all valid findings are resolved
-  5. **Task is approved** when the review passes. Check for newly unblocked children to launch.
+  5. **Task is approved** when the review passes. Check for newly unblocked tasks to launch.
 - **Questions requiring answers**:
   - **STOP** orchestration
   - Use `AskUserQuestion` to get answers from the user
@@ -452,10 +418,10 @@ When an error is caused by the implementation agent's work:
 
 For errors NOT caused by the implementation:
 
-1. **Stop execution** - Do not proceed to other children
+1. **Stop execution** - Do not proceed to other tasks
 2. **Ask the user** - Use AskUserQuestion to report the failure and ask how to proceed:
    - Fix the infrastructure issue and retry
-   - Skip the failed child and continue
+   - Skip the failed task and continue
    - Stop orchestration entirely
 3. **Follow user direction** - Do what the user decides
 
@@ -465,7 +431,7 @@ For errors NOT caused by the implementation:
 
 ### 8. Update Documentation
 
-When all children are done (before marking the parent as complete):
+When all tasks are done (before committing):
 
 #### Spawn Documentation Updater
 
@@ -489,12 +455,12 @@ Use `TaskOutput` to wait for the docs-updater to complete.
 
 Documentation changes will be included in the single commit in step 9.
 
-### 9. Commit All Changes and Complete Parent Issue
+### 9. Commit All Changes and Complete
 
-When all children are done, reviewed, and documentation is updated:
+When all tasks are done, reviewed, and documentation is updated:
 
-1. Verify all children have status `done` (or `wont-do` if skipped by user direction)
-2. **Update Trellis state**: Ensure all tasks are marked complete via `complete_task`, then update the parent status to `done` using `update_issue`
+1. Verify all tasks have status `done` (or `wont-do` if skipped by user direction)
+2. **Update Trellis state**: Ensure all tasks are marked complete via `complete_task`, then update the feature status (if applicable) to `done` using `update_issue`
 3. **Commit ALL changes** (implementation, documentation, and `.trellis/` state) in a single commit using the `/git:commit` skill (if available) or manually:
 
    **Using the skill** (preferred):
@@ -538,16 +504,15 @@ When all children are done, reviewed, and documentation is updated:
 
 5. **Verify commit succeeded** and no uncommitted changes remain
 6. Report summary to user:
-   - Total direct children completed
-   - Total descendants completed (all levels)
-   - Any issues skipped
+   - Total tasks completed
+   - Any tasks skipped
    - Commits created
    - Documentation updates made
    - Overall outcome
 
 ### 10. Summarize Expected Changes for User
 
-After completing the parent issue, provide a clear summary of what the user should expect to see now that this work is complete. This is the most important output for the user.
+After completing the work, provide a clear summary of what the user should expect to see now that this work is complete. This is the most important output for the user.
 
 #### What Changed Summary
 
@@ -605,14 +570,14 @@ A summary of commits and task counts is process information. The user needs **ou
 - **Orchestration only**: The orchestrator does NOT write code, debug errors, or make fixes. It only spawns agents, routes feedback/errors, and commits approved changes.
 - **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
 - **Resume for errors**: When commit hooks, tests, or other validations fail due to code issues, ALWAYS resume the original implementation agent with the error. Never debug or fix code yourself.
-- **Parallel execution**: Launch children in parallel when their prerequisites are satisfied. Do NOT wait for one child to finish before launching another independent child.
+- **Parallel execution**: Launch tasks in parallel when their prerequisites are satisfied. Do NOT wait for one task to finish before launching another independent task.
 - **Single commit**: Do NOT commit after each task. All changes (implementation, documentation, `.trellis/` state) are committed together in a single commit at the end (Section 9).
 - **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.5)
-- **Respect dependencies**: Never start a child before its prerequisites are done
+- **Respect dependencies**: Never start a task before its prerequisites are done
 - **Stop on infrastructure failure**: Stop and ask user only for infrastructure errors (permissions, missing tools, network). Code errors go back to the implementation agent.
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
 - **Trellis before commits**: Always update Trellis issues BEFORE making git commits
-- **Update docs before completing**: Always run docs-updater before marking parent as done
+- **Update docs before completing**: Always run docs-updater before marking the feature as done
 - **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
 <rules>
@@ -622,7 +587,7 @@ A summary of commits and task counts is process information. The user needs **ou
   <critical>NEVER read stack traces, analyze errors, or attempt to diagnose code problems - send them to the implementation agent</critical>
   <critical>STOP only for infrastructure errors (permissions, missing tools) - code errors go back to the implementation agent</critical>
   <critical>Do NOT commit between tasks - all changes are committed in a single commit at the end (Section 9)</critical>
-  <critical>Launch independent children in parallel - do NOT execute sequentially when dependencies allow parallelism</critical>
+  <critical>Launch independent tasks in parallel - do NOT execute sequentially when dependencies allow parallelism</critical>
   <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
   <critical>Address ALL review findings - do not ignore feedback because it seems minor</critical>
