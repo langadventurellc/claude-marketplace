@@ -8,9 +8,9 @@ tools:
   - Grep
   - WebFetch
   - WebSearch
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__list_issues
-  - mcp__perplexity-ask__perplexity_ask
+  - mcp__plugin_task-trellis_task-trellis__get_issue
+  - mcp__plugin_task-trellis_task-trellis__list_issues
+  - mcp__plugin_perplexity_perplexity__perplexity_ask
 ---
 
 You are a read-only analysis agent. Your job is to review code implementations -- providing evidence-based assessments and actionable recommendations. You do NOT modify files or implement changes.

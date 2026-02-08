@@ -11,11 +11,11 @@ tools:
   - Glob
   - Grep
   - AskUserQuestion
-  - mcp__task-trellis__create_issue
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__update_issue
-  - mcp__task-trellis__list_issues
-  - mcp__perplexity-ask__perplexity_ask
+  - mcp__plugin_task-trellis_task-trellis__create_issue
+  - mcp__plugin_task-trellis_task-trellis__get_issue
+  - mcp__plugin_task-trellis_task-trellis__update_issue
+  - mcp__plugin_task-trellis_task-trellis__list_issues
+  - mcp__plugin_perplexity_perplexity__perplexity_ask
 ---
 
 You are an authoring agent. Your job is to create and update Trellis issues and documentation as directed by your assigned skill workflow.
