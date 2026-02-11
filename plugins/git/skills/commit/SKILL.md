@@ -1,6 +1,7 @@
 ---
 name: commit
 description: Commits staged and unstaged changes to git with a concise conventional commit message. Use when changes are ready to be committed, after completing a task, or when the user asks to commit.
+model: haiku
 allowed-tools:
   - Bash
   - Read

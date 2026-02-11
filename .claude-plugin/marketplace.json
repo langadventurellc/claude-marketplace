@@ -4,8 +4,7 @@
     "name": "LangAdventure LLC"
   },
   "metadata": {
-    "description": "Official plugins for the Task Trellis task management system for AI coding agents",
-    "version": "1.0.24"
+    "description": "Official plugins for the Task Trellis task management system for AI coding agents"
   },
   "plugins": [
     {
