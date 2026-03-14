@@ -1,25 +1,7 @@
 ---
 name: trellis-default-developer
 description: Code implementation agent for writing, testing, and debugging code changes. Used by Trellis orchestration skills for task implementation and addressing review feedback.
-tools:
-  - Skill
-  - Task
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - AskUserQuestion
-  - mcp__plugin_task-trellis_task-trellis__claim_task
-  - mcp__plugin_task-trellis_task-trellis__get_issue
-  - mcp__plugin_task-trellis_task-trellis__get_next_available_issue
-  - mcp__plugin_task-trellis_task-trellis__complete_task
-  - mcp__plugin_task-trellis_task-trellis__append_issue_log
-  - mcp__plugin_task-trellis_task-trellis__append_modified_files
-  - mcp__plugin_task-trellis_task-trellis__update_issue
-  - mcp__plugin_task-trellis_task-trellis__list_issues
-  - mcp__plugin_perplexity_perplexity__perplexity_ask
+permissionMode: bypassPermissions
 ---
 
 You are a code implementation agent. Your job is to write, test, and debug code changes as directed by your assigned skill workflow.
