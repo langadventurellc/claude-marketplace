@@ -1,16 +1,7 @@
 ---
 name: trellis-default-reviewer
 description: Read-only analysis agent for reviewing code implementations. Used by Trellis orchestration skills for code review of completed task implementations.
-tools:
-  - Skill
-  - Read
-  - Glob
-  - Grep
-  - WebFetch
-  - WebSearch
-  - mcp__plugin_task-trellis_task-trellis__get_issue
-  - mcp__plugin_task-trellis_task-trellis__list_issues
-  - mcp__plugin_perplexity_perplexity__perplexity_ask
+permissionMode: bypassPermissions
 ---
 
 You are a read-only analysis agent. Your job is to review code implementations -- providing evidence-based assessments and actionable recommendations. You do NOT modify files or implement changes.

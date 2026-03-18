@@ -1,21 +1,7 @@
 ---
 name: trellis-default-author
 description: Authoring agent for creating and updating Trellis issues and documentation. Used by Trellis orchestration skills for issue creation and documentation updates.
-tools:
-  - Skill
-  - Task
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-  - AskUserQuestion
-  - mcp__plugin_task-trellis_task-trellis__create_issue
-  - mcp__plugin_task-trellis_task-trellis__get_issue
-  - mcp__plugin_task-trellis_task-trellis__update_issue
-  - mcp__plugin_task-trellis_task-trellis__list_issues
-  - mcp__plugin_perplexity_perplexity__perplexity_ask
+permissionMode: bypassPermissions
 ---
 
 You are an authoring agent. Your job is to create and update Trellis issues and documentation as directed by your assigned skill workflow.
