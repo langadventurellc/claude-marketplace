@@ -40,7 +40,7 @@ Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-
 Complete every planned leaf task under the given scope by:
 
 1. Walking the issue tree under the scope and enumerating ready leaf tasks (respecting prerequisites and status).
-2. For each ready task, spawning a fresh `trellis-developer` + `trellis-reviewer` pair and authoring two lead-owned task-list entries (impl task → review task with prerequisite).
+2. For each ready task, spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair and authoring two lead-owned task-list entries (impl task → review task with prerequisite).
 3. Letting the pair coordinate implementation, review, and fix cycles via direct `SendMessage`.
 4. Shutting down the pair on approval and moving to the next ready task.
 5. Optionally updating documentation (`--docs`) and/or committing all changes in a single commit (`--commit`).
@@ -136,7 +136,7 @@ For each ready leaf task in the queue, the lead executes this lifecycle. Multipl
 Spawn two teammates tied to this one task:
 
 - A **developer** of agent type `task-trellis-teams:trellis-developer`.
-- A **reviewer** of agent type `task-trellis-teams:trellis-reviewer`.
+- A **reviewer** of agent type `task-trellis-teams:trellis-implementation-reviewer`.
 
 Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T-add-login`) so `SendMessage` routing is unambiguous. Tell each teammate at spawn the name of its pair partner so they can address each other directly.
 
