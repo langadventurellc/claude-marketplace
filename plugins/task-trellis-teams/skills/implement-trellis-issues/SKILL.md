@@ -140,6 +140,20 @@ Spawn two teammates tied to this one task:
 
 Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T-add-login`) so `SendMessage` routing is unambiguous. Tell each teammate at spawn the name of its pair partner so they can address each other directly.
 
+#### Model selection
+
+The `Task` tool accepts an optional `model` parameter at spawn time that takes precedence over the agent definition's frontmatter `model`. Use it as follows:
+
+- **Developer (`trellis-developer`):** Default is `sonnet` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
+  - The task involves non-trivial architectural decisions, cross-cutting refactors, or subtle concurrency/state logic.
+  - The task body, parent feature, or technical-discovery output flags it as complex, high-risk, or security-sensitive (auth, crypto, data migration, permissions).
+  - The task has failed a prior implementation attempt and is being retried.
+  - The task body is long or vague in a way that suggests the implementer will need significant reasoning to fill in gaps.
+
+  Otherwise, omit `model` at spawn and let the Sonnet default apply. Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
+
+- **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus"`. Do NOT rely on frontmatter alone — pass `model: "opus"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
+
 ### 2. Author the two task-list entries (lead only)
 
 The lead owns both entries. Initial instructions MUST come from the lead — never from another teammate. This preserves the bias guarantee (reviewer is not framed by developer's perspective, and vice versa).
@@ -388,4 +402,6 @@ Produce a concise final message covering:
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>
+  <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
+  <important>Spawn the developer (`trellis-developer`) with the default `sonnet` model unless the task warrants Opus (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating to Opus, log the reason via `append_issue_log`.</important>
 </rules>
