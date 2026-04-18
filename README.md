@@ -40,6 +40,34 @@ Integrates [mise](https://mise.jdx.dev/) task runner with Task Trellis for autom
 /plugin install mise@task-trellis-marketplace
 ```
 
+### task-trellis-teams
+
+Agent Teams-based variant of Task Trellis issue creation and implementation. Uses Claude Code's experimental Agent Teams so a writer and reviewer (or developer and reviewer) coordinate directly via `SendMessage` instead of routing through the lead session.
+
+**Features:**
+- `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops
+- `/implement-trellis-issues` — fresh developer/reviewer pair per leaf task, with optional `--commit` and `--docs` flags
+
+Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+```
+/plugin install task-trellis-teams@task-trellis-marketplace
+```
+
+### planning
+
+Planning skills for scoping work, capturing requirements, and keeping documentation in sync with the code. Useful on its own, and a dependency of `task-trellis` / `task-trellis-teams` for their docs-update step.
+
+**Features:**
+- `requirements-creation` — turns vague change requests into structured What / Where / Why / Done requirements through focused conversation
+- `technical-discovery` — read-only investigation of a problem or proposed change, producing an impact and recommendations report without writing code
+- `docs-updater` — reviews a body of work (git ref range, ticket, or description) and updates README, CLAUDE.md, AGENTS.md, and `docs/` to prevent drift
+- `planning-author` agent that runs docs authoring as a subagent or Agent Teams teammate
+
+```
+/plugin install planning@task-trellis-marketplace
+```
+
 ## License
 
 GNU General Public License v3.0
