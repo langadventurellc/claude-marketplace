@@ -37,7 +37,7 @@ Complete all planned tasks by:
 
 ## Subagent Spawn Protocol
 
-All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
+All subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to every spawn in this workflow — implementation, review, and documentation agents.
 
 ### Agent Types
 
@@ -153,8 +153,6 @@ For each task:
 
 Use the `Task` tool to spawn subagents that implement ready tasks. **Launch multiple ready tasks in parallel** using `run_in_background: true` for all of them.
 
-**CRITICAL**: Store the agent ID returned by the Task tool for each task. You will need these IDs to resume agents if review feedback requires changes.
-
 Spawn the `issue-implementation` skill:
 ```
 Task tool parameters:
@@ -172,8 +170,6 @@ Task tool parameters:
 
     If you encounter any errors or blockers, STOP and report back.
 ```
-
-After the Task tool returns, note the agent ID from the response (e.g., `agent_id: "abc123"`). You will use this with the `resume` parameter if the review identifies issues.
 
 #### 5.3 Verify Task Completion
 
@@ -213,18 +209,30 @@ Use `TaskOutput` to wait for the review to complete.
 **Handle review outcomes:**
 
 - **No findings / empty output**: Task is approved. Check for newly unblocked tasks to launch.
-- **Findings identified**: Resume the original implementation agent to address the feedback:
-  1. **Resume the implementation agent** using the Task tool with the `resume` parameter:
+- **Findings identified**: Spawn a fresh implementation agent to address the feedback:
+  1. **Spawn a fresh implementation agent** using the Task tool:
      ```
      Task tool parameters:
+     - subagent_type: "task-trellis:trellis-developer"
      - description: "Address review feedback for [TASK_ID]"
-     - resume: "[AGENT_ID_FROM_STEP_5.2]"
+     - run_in_background: true
      - prompt: |
-         The review identified the following issues that need to be addressed:
+         Context:
+         - Parent: [PARENT_ID] - [PARENT_TITLE]
+         - Task: [TASK_ID] - [TASK_TITLE]
+
+         The task is already `in-progress` from a prior agent's work. Prior
+         changes are uncommitted in the working tree — inspect them with
+         `git status` and `git diff` before making further changes.
+
+         Invoke the `issue-implementation` skill to continue task [TASK_ID].
+         Re-claim the task with the force flag since it is already in-progress.
+
+         A reviewer identified the following findings that must be addressed:
 
          [PASTE_REVIEW_FINDINGS_HERE]
 
-         Please address ALL findings:
+         Address ALL findings:
          - Fix valid findings, including minor ones (documentation, style, small improvements)
          - If you believe a finding is incorrect, explain your reasoning. You must justify skipping any finding.
 
@@ -232,20 +240,20 @@ Use `TaskOutput` to wait for the review to complete.
      ```
   2. **Wait for the agent to complete** the fixes
   3. **Re-run review** to verify the findings were addressed
-  4. **Repeat** this cycle until all valid findings are resolved
+  4. **Repeat** this cycle until all valid findings are resolved. Each iteration spawns a fresh developer agent with the latest findings.
   5. **Task is approved** when the review passes. Check for newly unblocked tasks to launch.
 - **Questions requiring answers**:
   - **STOP** orchestration
   - Use `AskUserQuestion` to get answers from the user
-  - Resume the implementation agent with the answers provided
+  - Spawn a fresh implementation agent with the user's answers included verbatim in the prompt (same template as above, substituting answers for review findings)
 
 **CRITICAL - Orchestrator Role**: The orchestrator does NOT write code. It only orchestrates:
 - Spawning implementation agents (in parallel where dependencies allow)
 - Spawning review agents
-- Sending feedback to implementation agents for fixes
+- Spawning fresh implementation agents to address feedback or errors
 - Committing all approved changes together at the end
 
-If fixes are needed, ALWAYS resume the original implementation agent. The original agent already has full context about what it implemented, making it far more efficient than spawning a new agent that would need to rebuild context.
+Fresh fix-spawn agents do not inherit prior session memory, so their prompts MUST carry enough context to continue the task: the task ID, the review findings or error output verbatim, a pointer to the uncommitted changes (`git status` / `git diff`), and the no-commit directive. The `issue-implementation` skill handles picking up an in-progress task.
 
 **CRITICAL**: Do not categorize findings as "minor" and skip them. Every finding from a review must be either fixed or explicitly challenged with reasoning. Ignoring feedback is not acceptable.
 
@@ -337,27 +345,37 @@ During implementation or review, you may identify work that wasn't originally pl
 
 When an error is caused by the implementation agent's work:
 
-1. **Resume the implementation agent** with the error details:
+1. **Spawn a fresh implementation agent** with the error details:
    ```
    Task tool parameters:
+   - subagent_type: "task-trellis:trellis-developer"
    - description: "Fix error for [TASK_ID]"
-   - resume: "[AGENT_ID_FROM_STEP_5.2]"
+   - run_in_background: true
    - prompt: |
-       An error occurred that needs to be fixed:
+       Context:
+       - Parent: [PARENT_ID] - [PARENT_TITLE]
+       - Task: [TASK_ID] - [TASK_TITLE]
+
+       The task is already `in-progress`. Prior changes are uncommitted in the
+       working tree — inspect them with `git status` and `git diff` before making
+       further changes.
+
+       Invoke the `issue-implementation` skill to continue task [TASK_ID].
+       Re-claim the task with the force flag since it is already in-progress.
+
+       An error occurred in the prior agent's work that needs to be fixed:
 
        [PASTE_FULL_ERROR_OUTPUT_HERE]
 
-       Please diagnose and fix this issue. The error is related to code you implemented.
-
-       After fixing, verify the fix works, then report back.
-       Do NOT commit - leave changes uncommitted.
+       Diagnose and fix this issue. After fixing, verify the fix works, then
+       report back. Do NOT commit - leave changes uncommitted.
    ```
 
 2. **Wait for the fix** and re-attempt the failed operation
 
-3. **Repeat if needed** - If new errors occur, send them back to the agent
+3. **Repeat if needed** - If new errors occur, spawn another fresh agent with the new error
 
-4. **Escalate to user** only if the agent cannot resolve the issue after reasonable attempts
+4. **Escalate to user** only if successive agents cannot resolve the issue after reasonable attempts
 
 #### Handling Infrastructure Errors
 
@@ -370,7 +388,7 @@ For errors NOT caused by the implementation:
    - Stop orchestration entirely
 3. **Follow user direction** - Do what the user decides
 
-**CRITICAL - Orchestrator Role**: The orchestrator NEVER debugs code, reads stack traces to diagnose issues, or attempts fixes. When something fails due to code, the orchestrator's only job is to send the error back to the implementation agent that wrote the code.
+**CRITICAL - Orchestrator Role**: The orchestrator NEVER debugs code, reads stack traces to diagnose issues, or attempts fixes. When something fails due to code, the orchestrator's only job is to spawn a fresh implementation agent with the error and let that agent diagnose.
 
 **Why this matters**: Hooks are configured to enforce quality checks and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken code being committed.
 
@@ -421,17 +439,29 @@ When all tasks are done, reviewed, and documentation is updated:
 
 4. **Handle commit failures** — If the commit fails (e.g., pre-commit hook, smoke test, linting):
 
-   **CRITICAL**: Do NOT debug or fix the issue yourself. Identify which task's code caused the failure and resume that task's implementation agent:
+   **CRITICAL**: Do NOT debug or fix the issue yourself. Identify which task's code caused the failure and spawn a fresh implementation agent to fix it:
    ```
    Task tool parameters:
+   - subagent_type: "task-trellis:trellis-developer"
    - description: "Fix commit failure for [TASK_ID]"
-   - resume: "[AGENT_ID_FOR_FAILING_TASK]"
+   - run_in_background: true
    - prompt: |
+       Context:
+       - Parent: [PARENT_ID] - [PARENT_TITLE]
+       - Task: [TASK_ID] - [TASK_TITLE]
+
+       All task work is complete but a commit attempt failed. Prior changes
+       are still uncommitted in the working tree — inspect them with
+       `git status` and `git diff` before making further changes.
+
+       Invoke the `issue-implementation` skill to continue task [TASK_ID].
+       Re-claim the task with the force flag since it is already in-progress.
+
        The commit failed with the following error:
 
        [PASTE_FULL_ERROR_OUTPUT_HERE]
 
-       Please fix the issue that caused this failure. Common causes include:
+       Fix the issue that caused this failure. Common causes include:
        - Failing tests or smoke tests
        - Linting errors
        - Type errors
@@ -443,7 +473,7 @@ When all tasks are done, reviewed, and documentation is updated:
 
    After the agent fixes the issue:
    - Re-attempt the commit
-   - If it fails again, resume the appropriate agent with the new error
+   - If it fails again, spawn another fresh agent with the new error
    - Repeat until the commit succeeds
 
 5. **Verify commit succeeded** and no uncommitted changes remain
@@ -512,8 +542,8 @@ A summary of commits and task counts is process information. The user needs **ou
 ## Important Constraints
 
 - **Orchestration only**: The orchestrator does NOT write code, debug errors, or make fixes. It only spawns agents, routes feedback/errors, and commits approved changes.
-- **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
-- **Resume for errors**: When commit hooks, tests, or other validations fail due to code issues, ALWAYS resume the original implementation agent with the error. Never debug or fix code yourself.
+- **Fresh spawn for feedback**: When review identifies issues, spawn a fresh implementation agent with the findings, task ID, and a pointer to the uncommitted changes. Never debug or fix code yourself.
+- **Fresh spawn for errors**: When commit hooks, tests, or other validations fail due to code issues, spawn a fresh implementation agent with the error. Never debug or fix code yourself.
 - **Parallel execution**: Launch tasks in parallel when their prerequisites are satisfied. Do NOT wait for one task to finish before launching another independent task.
 - **Single commit**: Do NOT commit after each task. All changes (implementation, documentation, `.trellis/` state) are committed together in a single commit at the end (Section 8).
 - **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 5.5)
@@ -526,8 +556,8 @@ A summary of commits and task counts is process information. The user needs **ou
 
 <rules>
   <critical>The orchestrator does NOT write code or debug errors - it only orchestrates agents and commits</critical>
-  <critical>ALWAYS resume the original implementation agent when review finds issues - never spawn a new agent or fix code yourself</critical>
-  <critical>ALWAYS resume the original implementation agent when commits fail due to code issues (tests, hooks, linting) - never debug yourself</critical>
+  <critical>When review finds issues, spawn a fresh implementation agent with the findings and a pointer to the uncommitted changes - never fix code yourself</critical>
+  <critical>When commits fail due to code issues (tests, hooks, linting), spawn a fresh implementation agent with the error - never debug yourself</critical>
   <critical>NEVER read stack traces, analyze errors, or attempt to diagnose code problems - send them to the implementation agent</critical>
   <critical>STOP only for infrastructure errors (permissions, missing tools) - code errors go back to the implementation agent</critical>
   <critical>Do NOT commit between tasks - all changes are committed in a single commit at the end (Section 8)</critical>

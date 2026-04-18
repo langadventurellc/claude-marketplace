@@ -33,7 +33,7 @@ Create Trellis issues using the `issue-creation` skill, then automatically verif
 
 ## Subagent Spawn Protocol
 
-All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to issue creation and review agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
+All subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to every spawn in this workflow — issue creation and review agents.
 
 ### Agent Types
 
