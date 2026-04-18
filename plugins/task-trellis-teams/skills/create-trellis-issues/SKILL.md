@@ -134,7 +134,7 @@ Name the writer distinctly per level (e.g., `writer-epics`, `writer-features`, `
 
 ### 7. Author Per-Child Tasks on the Shared Task List
 
-Decide on the set of children to create based on the original requirements plus research of the codebase. You may use `Read`, `Grep`, `Bash`, or `mcp__perplexity-ask__perplexity_ask` to scope the level before authoring tasks. Default to **coarser-grained** issues — fewer, larger children at the current level — not deeper decomposition.
+Decide on the set of children to create based on the original requirements plus research of the codebase. You may use `Read`, `Grep`, `Bash`, or any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch) to scope the level before authoring tasks. Default to **coarser-grained** issues — fewer, larger children at the current level — not deeper decomposition.
 
 For EACH planned child, author **two** dependent tasks via `TaskCreate`:
 

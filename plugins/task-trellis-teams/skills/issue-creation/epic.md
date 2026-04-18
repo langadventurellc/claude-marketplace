@@ -44,7 +44,7 @@ Do not blindly create epics based on a project description. The codebase is the 
 
 **After researching the codebase**, analyze the project description to identify remaining epics:
 
-- **Use context7 MCP tool** to research architectural patterns and best practices
+- **Research architectural patterns and best practices** using any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch)
 - Extract functional requirements from the project description that don't already exist
 - Identify major technical components and systems that need to be built
 - Consider cross-cutting concerns (security, testing, deployment, monitoring)
