@@ -26,25 +26,10 @@ The project ID may be:
 
 Retrieve the project using MCP `get_issue` to access its comprehensive description and requirements.
 
-### 2. Research the Codebase
+### 2. Analyze Project Specification
 
-**CRITICAL**: Before creating epics, you MUST research the current codebase state. Parent issues may have been written before other work was completed.
+Analyze the project description to identify remaining epics:
 
-1. **Search the codebase** using Glob and Grep to understand:
-   - What already exists that's relevant to this project
-   - Existing patterns, conventions, and architecture
-   - What may have already been partially implemented
-   - Current file structure and dependencies
-2. **Compare project description against reality** - the project may reference work that's already done or assume a state that no longer exists
-3. **Identify actual gaps** - only create epics for work that genuinely needs to be done
-
-Do not blindly create epics based on a project description. The codebase is the source of truth.
-
-### 3. Analyze Project Specification
-
-**After researching the codebase**, analyze the project description to identify remaining epics:
-
-- **Research architectural patterns and best practices** using any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch)
 - Extract functional requirements from the project description that don't already exist
 - Identify major technical components and systems that need to be built
 - Consider cross-cutting concerns (security, testing, deployment, monitoring)
@@ -53,7 +38,7 @@ Do not blindly create epics based on a project description. The codebase is the 
 - Consider development phases and prerequisites
 - Note any specific instructions provided in `input`
 
-### 4. Gather Additional Information (Only When Necessary)
+### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Epic granularity (default to coarser-grained epics)
@@ -72,7 +57,7 @@ Continue until the epic structure:
 - Enables parallel development where possible
 - Supports logical feature breakdown
 
-### 5. Generate Epic Structure
+### 4. Generate Epic Structure
 
 For each epic, create:
 
@@ -87,13 +72,13 @@ For each epic, create:
   - **User Stories** - Key user scenarios this epic addresses
   - **Non-functional Requirements** - Performance, security, scalability considerations as applicable
 
-### 6. Create Epics Using MCP
+### 5. Create Epics Using MCP
 
 For each epic, use `create_issue` with type `"epic"`, the generated title and description, and set `parent` to the project ID. Include `prerequisites` for any epic dependencies. Set status to `"open"` or `"draft"` based on user preference.
 
 **For standalone epics**: Omit the `parent` parameter.
 
-### 7. Output Format
+### 6. Output Format
 
 After successful creation:
 
@@ -114,7 +99,7 @@ Epic Summary:
 - Total Epics: [N]
 ```
 
-### 8. STOP - Do Not Continue
+### 7. STOP - Do Not Continue
 
 **After creating the epics, STOP.** Do not automatically create features or tasks.
 

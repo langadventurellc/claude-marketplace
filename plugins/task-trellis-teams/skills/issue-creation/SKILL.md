@@ -46,12 +46,30 @@ Based on the user's request, determine which issue type to create:
 ## Instructions
 
 1. **Identify the issue type** the user wants to create based on their request
-2. **Read the appropriate type-specific file** for detailed creation instructions:
+2. **Validate the provided inputs** against the current codebase (see below)
+3. **Read the appropriate type-specific file** for detailed creation instructions:
    - For projects: Read [project.md](project.md)
    - For epics: Read [epic.md](epic.md)
    - For features: Read [feature.md](feature.md)
    - For tasks: Read [task.md](task.md)
-3. **Follow the detailed process** in that file to gather requirements and create the issue(s)
+4. **Follow the detailed process** in that file to create the issue(s)
+
+## Validate Inputs
+
+You will be given a plan, parent issue, or specification describing what to create. Research has been done before you were invoked — your job is to verify that input against the current codebase, not to re-research from scratch.
+
+Spot-check before creating issues:
+
+- **Verify key references**: Confirm 2-3 file paths, components, or patterns named in the input actually exist
+- **Compare against reality**: The input may have been written before other work was completed — check whether assumed state still holds
+- **Identify actual gaps**: Only create issues for work that genuinely needs to be done
+
+**When you find discrepancies:**
+
+- **Minor** (wrong path, renamed symbol): Adapt and continue
+- **Major** (plan assumes missing state, work already done): **STOP** and alert the user
+
+The codebase is the source of truth.
 
 ## Critical Rule: Create Only the Requested Issue Type
 
@@ -68,7 +86,6 @@ Based on the user's request, determine which issue type to create:
 
 All issue types share these principles:
 
-- **Research the codebase FIRST** - Before creating any issues, search the codebase to understand current state. Parent issues may be outdated. The codebase is the source of truth.
 - **Create only what was requested** - If asked to create a project, create the project only. Do not also create epics, features, or tasks unless explicitly asked.
 - **Default to coarser granularity** - Prefer fewer, larger issues that are easier for AI agents to orchestrate. Don't create many tiny issues.
 - **Ask questions only when necessary** - Only ask when requirements are genuinely ambiguous, critical information is missing, or decisions have significant irreversible consequences.

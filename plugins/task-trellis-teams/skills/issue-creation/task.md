@@ -33,23 +33,9 @@ The input may contain:
 - Analyze the provided requirements directly
 - No parent context needed, focus on the specific work described
 
-### 2. Research the Codebase
+### 2. Analyze Requirements
 
-**CRITICAL**: Before creating tasks, you MUST research the current codebase state. Parent issues may have been written before other work was completed.
-
-1. **Search the codebase** using Glob and Grep to understand:
-   - What already exists that's relevant to this feature
-   - Existing patterns, conventions, and architecture
-   - What may have already been partially implemented
-   - Current file structure and dependencies
-2. **Compare parent issue against reality** - the feature description may reference work that's already done or assume a state that no longer exists
-3. **Identify actual gaps** - only create tasks for work that genuinely needs to be done
-
-Do not blindly create tasks based on a feature description. The codebase is the source of truth.
-
-### 3. Analyze Requirements
-
-**After researching the codebase**, analyze requirements to identify remaining tasks:
+Analyze requirements to identify remaining tasks:
 
 - Extract components and deliverables from the feature description that don't already exist
 - Review implementation guidance and adjust based on current codebase state
@@ -60,7 +46,7 @@ Do not blindly create tasks based on a feature description. The codebase is the 
 - Identify task dependencies and sequencing
 - Note any specific instructions provided in `input`
 
-### 4. Gather Additional Information (Only When Necessary)
+### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Task granularity (default to coarser-grained tasks)
@@ -78,7 +64,7 @@ Continue until the task structure:
 - Has clear implementation boundaries
 - Addresses security considerations appropriately
 
-### 5. Generate Task Structure
+### 4. Generate Task Structure
 
 For each task, create:
 
@@ -130,13 +116,13 @@ Group tasks logically:
 - **Core Implementation**: Main functionality (includes unit tests and documentation)
 - **Security**: Validation and protection (includes related tests and docs)
 
-### 6. Create Tasks Using MCP
+### 5. Create Tasks Using MCP
 
 For each task, use `create_issue` with type `"task"`, the generated title and description, and set `parent` to the feature ID if applicable. Include `prerequisites` for task dependencies. Set `priority` based on criticality (high for blockers/security-critical, medium for standard work, low for enhancements). Set status to `"open"` or `"draft"` based on user preference.
 
 **For standalone tasks**: Omit the `parent` parameter.
 
-### 7. Output Format
+### 6. Output Format
 
 After successful creation:
 
@@ -165,7 +151,7 @@ Task Summary:
 
 Note: Tests are included within tasks only where meaningful complexity exists. Separate integration test tasks are created only when critical cross-component interactions need verification.
 
-### 8. STOP - Do Not Continue
+### 7. STOP - Do Not Continue
 
 **After creating the tasks, STOP.** Tasks are the lowest level of the hierarchy.
 

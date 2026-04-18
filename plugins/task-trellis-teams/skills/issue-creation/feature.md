@@ -35,23 +35,9 @@ The input may contain:
 - Analyze the provided requirements directly
 - No parent context needed, focus on the specific functionality described
 
-### 2. Research the Codebase
+### 2. Analyze Requirements
 
-**CRITICAL**: Before creating features, you MUST research the current codebase state. Parent issues may have been written before other work was completed.
-
-1. **Search the codebase** using Glob and Grep to understand:
-   - What already exists that's relevant to this epic
-   - Existing patterns, conventions, and architecture
-   - What may have already been partially implemented
-   - Current file structure and dependencies
-2. **Compare parent issue against reality** - the epic description may reference work that's already done or assume a state that no longer exists
-3. **Identify actual gaps** - only create features for work that genuinely needs to be done
-
-Do not blindly create features based on an epic description. The codebase is the source of truth.
-
-### 3. Analyze Requirements
-
-**After researching the codebase**, analyze requirements to identify remaining features:
+Analyze requirements to identify remaining features:
 
 - Extract deliverables and components from the epic description that don't already exist
 - Review architecture and adjust based on current codebase state
@@ -61,7 +47,7 @@ Do not blindly create features based on an epic description. The codebase is the
 - Identify dependencies between features
 - Note any specific instructions provided in `input`
 
-### 4. Gather Additional Information (Only When Necessary)
+### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
 - Feature granularity (default to coarser-grained features)
@@ -79,7 +65,7 @@ Continue until the feature structure:
 - Has clear implementation boundaries
 - Enables independent development and testing
 
-### 5. Generate Feature Structure
+### 4. Generate Feature Structure
 
 For each feature, create:
 
@@ -111,13 +97,13 @@ For each feature, create:
 - Fewer dependencies between features
 - More cohesive implementation per feature
 
-### 6. Create Features Using MCP
+### 5. Create Features Using MCP
 
 For each feature, use `create_issue` with type `"feature"`, the generated title and description, and set `parent` to the epic ID if applicable. Include `prerequisites` for any feature dependencies. Set status to `"open"` or `"draft"` based on user preference.
 
 **For standalone features**: Omit the `parent` parameter.
 
-### 7. Output Format
+### 6. Output Format
 
 After successful creation:
 
@@ -138,7 +124,7 @@ Feature Summary:
 - Total Features: [N]
 ```
 
-### 8. STOP - Do Not Continue
+### 7. STOP - Do Not Continue
 
 **After creating the features, STOP.** Do not automatically create tasks.
 
