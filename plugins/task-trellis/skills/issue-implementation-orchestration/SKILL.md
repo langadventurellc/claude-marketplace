@@ -38,7 +38,7 @@ Complete all planned tasks by:
 
 ## Subagent Spawn Protocol
 
-All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, planner, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
+All new subagent spawns (via the Task tool) that must invoke a skill MUST follow this protocol. This applies to implementation, review, and documentation agents. It does NOT apply to resumed agents (via the `resume` parameter), which already have the skill loaded and their behavioral guardrails from their agent type.
 
 ### Agent Types
 
@@ -48,10 +48,9 @@ Each subagent is spawned with a specific agent type that provides behavioral gua
 |------|-----------|---------|
 | Task implementation | `task-trellis:trellis-developer` | Code implementation, testing, debugging |
 | Review | `task-trellis:trellis-reviewer` | Read-only code review and analysis |
-| Planning | `Explore` (built-in) | Read-only codebase exploration |
 | Documentation | `planning:planning-author` | Creating/updating documentation |
 
-**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `task-trellis:trellis-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change. Note that the planner uses the built-in `Explore` subagent type (not a Trellis agent), since its role is purely read-only codebase exploration and any additional tools can be provided via the skill.
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `task-trellis:trellis-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change.
 
 ### Skill Specification in Spawn Prompts
 
@@ -121,51 +120,9 @@ git branch --show-current
 - Ask the user to complete the planning before proceeding
 - **Do NOT create tasks yourself** — planning must happen before orchestration begins
 
-**Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 6.5).
+**Note**: This restriction is about primary work planning. Follow-up work discovered *during* implementation can and should be tracked (see section 5.5).
 
-### 4. Evaluate Complexity and Plan (Optional)
-
-Before executing tasks, evaluate whether the work would benefit from upfront planning.
-
-#### Complexity Signals
-
-Consider spawning a planner for work with:
-
-- **Multiple tasks** (more than 3-4 tasks)
-- **Refactoring or migration** language in task descriptions
-- **Architectural changes** mentioned
-- **Multiple integration points** or subsystems involved
-- **Cross-cutting concerns** that affect multiple areas
-
-This is a judgment call—no hard threshold required.
-
-#### Spawn Implementation Planner
-
-If judged sufficiently complex:
-
-1. Use the `Task` tool to spawn `issue-implementation-planner` as an async subagent:
-   ```
-   Task tool parameters:
-   - subagent_type: "Explore"
-   - description: "Plan implementation for {ISSUE_ID}"
-   - run_in_background: true
-   - prompt: |
-       Invoke the `issue-implementation-planner` skill to create an implementation plan for {ISSUE_ID}.
-
-       Issue: {ISSUE_ID} - {ISSUE_TITLE}
-       Description: {ISSUE_DESCRIPTION}
-
-       Tasks to implement:
-       {LIST_OF_TASKS_WITH_DESCRIPTIONS}
-
-       Create a comprehensive plan that identifies key files, patterns, and implementation approach.
-   ```
-
-2. Use `TaskOutput` to wait for the planner to complete
-3. Store the planner's output as context for implementation agents
-4. Include relevant plan context when spawning task implementations
-
-### 5. Determine Execution Order
+### 4. Determine Execution Order
 
 Analyze the tasks to determine the correct execution order:
 
@@ -179,21 +136,21 @@ Analyze the tasks to determine the correct execution order:
 - Tasks with no unmet prerequisites can run **in parallel**
 - As each task completes and passes review, check if new tasks are now unblocked and launch them
 - Continue until all tasks are complete and reviewed
-- **Do NOT commit between tasks** — all changes are committed together at the end (see Section 9)
+- **Do NOT commit between tasks** — all changes are committed together at the end (see Section 8)
 
-### 6. Execute Tasks
+### 5. Execute Tasks
 
 Launch all ready tasks (those with no unmet prerequisites) in parallel. As each task completes and passes review, check if new tasks are now unblocked and launch them. Repeat until all tasks are done.
 
 For each task:
 
-#### 6.1 Verify Task is Ready
+#### 5.1 Verify Task is Ready
 
 - Check all prerequisites are `done`
 - Check task status is `open` or `draft` (not already `in-progress` or `done`)
 - If not ready, skip and check next task
 
-#### 6.2 Launch Task Implementation
+#### 5.2 Launch Task Implementation
 
 Use the `Task` tool to spawn subagents that implement ready tasks. **Launch multiple ready tasks in parallel** using `run_in_background: true` for all of them.
 
@@ -211,8 +168,6 @@ Task tool parameters:
 
     Invoke the `issue-implementation` skill to implement task [TASK_ID].
 
-    [INCLUDE_PLAN_CONTEXT_IF_AVAILABLE]
-
     Implement this task following the task implementation workflow.
     Do NOT commit your changes - leave them uncommitted for review.
 
@@ -221,15 +176,15 @@ Task tool parameters:
 
 After the Task tool returns, note the agent ID from the response (e.g., `agent_id: "abc123"`). You will use this with the `resume` parameter if the review identifies issues.
 
-#### 6.3 Verify Task Completion
+#### 5.3 Verify Task Completion
 
 As each subagent returns (use `TaskOutput` with `block: false` to poll, or `block: true` to wait):
 
 1. Use `get_issue` to check the task's status
 2. If status is `done`: Continue to review step
-3. If status is NOT `done`: Handle the error (see Section 7). Other parallel tasks may continue running.
+3. If status is NOT `done`: Handle the error (see Section 6). Other parallel tasks may continue running.
 
-#### 6.4 Review Task Implementation
+#### 5.4 Review Task Implementation
 
 After a task completes successfully, evaluate if a review is warranted.
 
@@ -264,7 +219,7 @@ Use `TaskOutput` to wait for the review to complete.
      ```
      Task tool parameters:
      - description: "Address review feedback for [TASK_ID]"
-     - resume: "[AGENT_ID_FROM_STEP_6.2]"
+     - resume: "[AGENT_ID_FROM_STEP_5.2]"
      - prompt: |
          The review identified the following issues that need to be addressed:
 
@@ -295,7 +250,7 @@ If fixes are needed, ALWAYS resume the original implementation agent. The origin
 
 **CRITICAL**: Do not categorize findings as "minor" and skip them. Every finding from a review must be either fixed or explicitly challenged with reasoning. Ignoring feedback is not acceptable.
 
-#### 6.5 Handle Follow-up Work
+#### 5.5 Handle Follow-up Work
 
 During implementation or review, you may identify work that wasn't originally planned but should be addressed. Rather than just noting "this needs follow-up," take action to ensure follow-up actually happens.
 
@@ -353,7 +308,7 @@ During implementation or review, you may identify work that wasn't originally pl
 
 **CRITICAL**: The goal is ensuring follow-up work actually gets tracked—not just mentioned. If you identify something that genuinely needs to be done later, create the issue. But always search first to avoid duplicates.
 
-### 7. Handle Errors
+### 6. Handle Errors
 
 <rules>
   <critical>If you encounter a permission error, STOP IMMEDIATELY and report to the user. Do NOT attempt workarounds.</critical>
@@ -387,7 +342,7 @@ When an error is caused by the implementation agent's work:
    ```
    Task tool parameters:
    - description: "Fix error for [TASK_ID]"
-   - resume: "[AGENT_ID_FROM_STEP_6.2]"
+   - resume: "[AGENT_ID_FROM_STEP_5.2]"
    - prompt: |
        An error occurred that needs to be fixed:
 
@@ -420,7 +375,7 @@ For errors NOT caused by the implementation:
 
 **Why this matters**: Hooks are configured to enforce quality checks and validation rules. When they fail, it usually means something is misconfigured or you lack necessary permissions. Working around these errors masks important problems and can lead to broken code being committed.
 
-### 8. Update Documentation
+### 7. Update Documentation
 
 When all tasks are done (before committing):
 
@@ -444,9 +399,9 @@ Task tool parameters:
 
 Use `TaskOutput` to wait for the docs-updater to complete.
 
-Documentation changes will be included in the single commit in step 9.
+Documentation changes will be included in the single commit in step 8.
 
-### 9. Commit All Changes and Complete
+### 8. Commit All Changes and Complete
 
 When all tasks are done, reviewed, and documentation is updated:
 
@@ -500,7 +455,7 @@ When all tasks are done, reviewed, and documentation is updated:
    - Documentation updates made
    - Overall outcome
 
-### 10. Summarize Expected Changes for User
+### 9. Summarize Expected Changes for User
 
 After completing the work, provide a clear summary of what the user should expect to see now that this work is complete. This is the most important output for the user.
 
@@ -561,8 +516,8 @@ A summary of commits and task counts is process information. The user needs **ou
 - **Resume for feedback**: When review identifies issues, ALWAYS resume the original implementation agent rather than spawning a new one. The original agent has context and can address feedback efficiently.
 - **Resume for errors**: When commit hooks, tests, or other validations fail due to code issues, ALWAYS resume the original implementation agent with the error. Never debug or fix code yourself.
 - **Parallel execution**: Launch tasks in parallel when their prerequisites are satisfied. Do NOT wait for one task to finish before launching another independent task.
-- **Single commit**: Do NOT commit after each task. All changes (implementation, documentation, `.trellis/` state) are committed together in a single commit at the end (Section 9).
-- **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 6.5)
+- **Single commit**: Do NOT commit after each task. All changes (implementation, documentation, `.trellis/` state) are committed together in a single commit at the end (Section 8).
+- **Follow-up work only**: Create new issues only for follow-up work discovered during implementation—never for the primary work (see section 5.5)
 - **Respect dependencies**: Never start a task before its prerequisites are done
 - **Stop on infrastructure failure**: Stop and ask user only for infrastructure errors (permissions, missing tools, network). Code errors go back to the implementation agent.
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
@@ -576,7 +531,7 @@ A summary of commits and task counts is process information. The user needs **ou
   <critical>ALWAYS resume the original implementation agent when commits fail due to code issues (tests, hooks, linting) - never debug yourself</critical>
   <critical>NEVER read stack traces, analyze errors, or attempt to diagnose code problems - send them to the implementation agent</critical>
   <critical>STOP only for infrastructure errors (permissions, missing tools) - code errors go back to the implementation agent</critical>
-  <critical>Do NOT commit between tasks - all changes are committed in a single commit at the end (Section 9)</critical>
+  <critical>Do NOT commit between tasks - all changes are committed in a single commit at the end (Section 8)</critical>
   <critical>Launch independent tasks in parallel - do NOT execute sequentially when dependencies allow parallelism</critical>
   <critical>Update Trellis issues BEFORE git commits so .trellis/ changes are included</critical>
   <critical>Never leave .trellis/ changes uncommitted when finishing work</critical>
