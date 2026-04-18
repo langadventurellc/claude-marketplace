@@ -2,14 +2,14 @@
 name: issue-implementation
 description: This skill should be used when the user asks to "implement task", "claim task", "work on task", or mentions implementing a single task in Trellis. For features (which orchestrate multiple tasks), use issue-implementation-orchestration instead.
 allowed-tools:
-  - mcp__task-trellis__claim_task
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__get_next_available_issue
-  - mcp__task-trellis__complete_task
-  - mcp__task-trellis__append_issue_log
-  - mcp__task-trellis__append_modified_files
-  - mcp__task-trellis__update_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__claim_task
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__get_next_available_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__complete_task
+  - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
+  - mcp__plugin_task-trellis-teams_task-trellis__append_modified_files
+  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - Task
   - Glob
   - Grep

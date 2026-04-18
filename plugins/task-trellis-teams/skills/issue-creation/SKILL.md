@@ -2,10 +2,10 @@
 name: issue-creation
 description: This skill should be used when the user asks to create Trellis issues including "create a project", "create epics", "create features", "create tasks", "new project", "new epic", "new feature", "new task", "break down project into epics", "break down epic into features", "break down feature into tasks", "decompose project", "decompose epic", "decompose feature", or mentions creating any type of issue in Trellis.
 allowed-tools:
-  - mcp__task-trellis__create_issue
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__update_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__create_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - Task
   - Glob
   - Grep

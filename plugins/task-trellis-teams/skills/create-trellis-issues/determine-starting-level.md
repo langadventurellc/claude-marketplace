@@ -12,7 +12,7 @@ If either condition is false, skip this doc — the level is already known. Do n
 Before applying the heuristics below, you should have:
 
 - The verbatim user requirements captured in step 2.
-- Any relevant codebase or scope context already gathered (existing Trellis state via `list_issues`, the relevant plugin/feature directories, prior-conversation history).
+- Any relevant codebase or scope context already gathered, such as requirements documents or prior-conversation history.
 
 ## Trellis hierarchy at a glance
 
@@ -39,7 +39,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a new Project via `mcp__task-trellis__create_issue` (type `"project"`), using `issue-creation/project.md` as the authoring guide.
+- Lead creates a new Project via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"project"`), using `issue-creation/project.md` as the authoring guide.
 - Team then creates Epics under that project.
 - Strongly consider `--recursive` so the run continues down to features and tasks.
 
@@ -53,7 +53,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a standalone Epic via `mcp__task-trellis__create_issue` (type `"epic"`, no parent), using `issue-creation/epic.md` as the authoring guide.
+- Lead creates a standalone Epic via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"epic"`, no parent), using `issue-creation/epic.md` as the authoring guide.
 - Team then creates Features under that epic.
 - Consider `--recursive` if the user expects leaf-level work produced in one pass.
 
@@ -67,7 +67,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a standalone Feature via `mcp__task-trellis__create_issue` (type `"feature"`, no parent), using `issue-creation/feature.md` as the authoring guide.
+- Lead creates a standalone Feature via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"feature"`, no parent), using `issue-creation/feature.md` as the authoring guide.
 - Team then creates Tasks under that feature.
 - Do NOT set `--recursive` — tasks are already the leaf level.
 
@@ -81,14 +81,14 @@ Strong signals:
 
 Action if matched:
 
-- Running the writer/reviewer team for a single task is not worth the orchestration overhead. Stop the team-based flow and hand the request off to the sibling `task-trellis-teams:issue-creation` skill (or create the task directly via `mcp__task-trellis__create_issue`), then report back to the user.
+- Running the writer/reviewer team for a single task is not worth the orchestration overhead. Stop the team-based flow and hand the request off to the sibling `task-trellis-teams:issue-creation` skill (or create the task directly via `mcp__plugin_task-trellis-teams_task-trellis__create_issue`), then report back to the user.
 - If there are a few clearly independent tasks and the user wants team-reviewed authoring, only create a standalone Feature umbrella when it adds real organizational value; otherwise prefer the direct path above.
 
 ## Applying the result
 
 Once the root level is determined (for Project / Epic / Feature cases):
 
-1. **Create the root issue yourself** with `mcp__task-trellis__create_issue` before creating the team. Use the matching type-specific file in the sibling `issue-creation` skill as the authoring guide for the root.
+1. **Create the root issue yourself** with `mcp__plugin_task-trellis-teams_task-trellis__create_issue` before creating the team. Use the matching type-specific file in the sibling `issue-creation` skill as the authoring guide for the root.
 2. **Use the just-created issue's ID as the parent** and return to `SKILL.md` step 3's parent-type table to determine the child type for the team run.
 3. **Continue with the rest of `SKILL.md`** (team creation, spawning teammates, authoring child creation/review task pairs, etc.).
 
