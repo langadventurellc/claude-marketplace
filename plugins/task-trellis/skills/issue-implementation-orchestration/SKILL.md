@@ -46,12 +46,12 @@ Each subagent is spawned with a specific agent type that provides behavioral gua
 
 | Role | Agent Type | Purpose |
 |------|-----------|---------|
-| Task implementation | `task-trellis:developer` | Code implementation, testing, debugging |
-| Review | `task-trellis:reviewer` | Read-only code review and analysis |
+| Task implementation | `task-trellis:trellis-developer` | Code implementation, testing, debugging |
+| Review | `task-trellis:trellis-reviewer` | Read-only code review and analysis |
 | Planning | `Explore` (built-in) | Read-only codebase exploration |
-| Documentation | `task-trellis:author` | Creating/updating documentation |
+| Documentation | `planning:planning-author` | Creating/updating documentation |
 
-**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `task-trellis:developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change. Note that the planner uses the built-in `Explore` subagent type (not a Trellis agent), since its role is purely read-only codebase exploration and any additional tools can be provided via the skill.
+**Agent type configurability**: Users can override these defaults by specifying a different agent type in the spawn parameters. For example, a team with project-specific coding standards could create a `my-project-developer` agent type and use it instead of `task-trellis:trellis-developer`. The orchestration workflow remains the same regardless of which agent type is used — only the behavioral guardrails change. Note that the planner uses the built-in `Explore` subagent type (not a Trellis agent), since its role is purely read-only codebase exploration and any additional tools can be provided via the skill.
 
 ### Skill Specification in Spawn Prompts
 
@@ -202,7 +202,7 @@ Use the `Task` tool to spawn subagents that implement ready tasks. **Launch mult
 Spawn the `issue-implementation` skill:
 ```
 Task tool parameters:
-- subagent_type: "task-trellis:developer"
+- subagent_type: "task-trellis:trellis-developer"
 - description: "Implement task [TASK_ID]"
 - prompt: |
     Context:
@@ -242,7 +242,7 @@ After a task completes successfully, evaluate if a review is warranted.
 
 ```
 Task tool parameters:
-- subagent_type: "task-trellis:reviewer"
+- subagent_type: "task-trellis:trellis-reviewer"
 - description: "Review implementation of [TASK_ID]"
 - run_in_background: true
 - prompt: |
@@ -430,7 +430,7 @@ Use the `Task` tool to spawn the `planning:docs-updater` skill:
 
 ```
 Task tool parameters:
-- subagent_type: "task-trellis:author"
+- subagent_type: "planning:planning-author"
 - description: "Update documentation for [ISSUE_ID]"
 - run_in_background: true
 - prompt: |
