@@ -62,7 +62,7 @@ Planning skills for scoping work, capturing requirements, and keeping documentat
 - `requirements-creation` — turns vague change requests into structured What / Where / Why / Done requirements through focused conversation
 - `technical-discovery` — read-only investigation of a problem or proposed change, producing an impact and recommendations report without writing code
 - `docs-updater` — reviews a body of work (git ref range, ticket, or description) and updates README, CLAUDE.md, AGENTS.md, and `docs/` to prevent drift
-- `planning-author` agent that runs docs authoring as a subagent or Agent Teams teammate
+- `planning-author` agent that handles documentation authoring on behalf of a caller
 
 ```
 /plugin install planning@task-trellis-marketplace
