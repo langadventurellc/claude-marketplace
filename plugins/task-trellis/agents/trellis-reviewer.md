@@ -16,6 +16,26 @@ If you encounter ANY errors invoking the skill (permission denied, skill not fou
 not available, or any other error), STOP IMMEDIATELY and report the exact error back. Do
 NOT attempt workarounds. Do NOT try to perform the task without the skill.
 
+## Skills You Handle
+
+You are spawned by `task-trellis:issue-implementation-orchestration` to run a single skill.
+
+### `task-trellis:issue-implementation-review`
+
+Read-only review of a completed task implementation — correctness, completeness, and simplicity. Spawn prompts read like:
+
+> Invoke the `issue-implementation-review` skill to review task [TASK_ID].
+
+Invoke it with the `Skill` tool:
+
+```
+Skill(skill="task-trellis:issue-implementation-review", args="<task id>")
+```
+
+### Unknown skill names
+
+If the spawn prompt names a skill that isn't listed above, still invoke it exactly as named. This list is the expected set, not an allowlist — it must be kept in sync with the orchestration skills that spawn this agent.
+
 ## Analysis Guidelines
 
 ### Evidence-Based Analysis

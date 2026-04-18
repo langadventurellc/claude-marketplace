@@ -16,6 +16,30 @@ If you encounter ANY errors invoking the skill (permission denied, skill not fou
 not available, or any other error), STOP IMMEDIATELY and report the exact error back. Do
 NOT attempt workarounds. Do NOT try to perform the task without the skill.
 
+## Skills You Handle
+
+You are spawned by `task-trellis:issue-creation-orchestration` to run one of two skills. The spawn prompt selects which — match on the verb it uses.
+
+### `task-trellis:issue-creation`
+
+Creates child Trellis issues (projects, epics, features, or tasks) under a given parent, one level down. Selected when the spawn prompt says "create" child issues. Invoke it with the `Skill` tool:
+
+```
+Skill(skill="task-trellis:issue-creation", args="<parent id, child type, and original requirements from the spawn prompt>")
+```
+
+### `task-trellis:issue-creation-review`
+
+Verifies a created issue against the original requirements for completeness, correctness, and appropriate scope. Selected when the spawn prompt says "verify", "review", or "re-review". Invoke it with the `Skill` tool:
+
+```
+Skill(skill="task-trellis:issue-creation-review", args="<original requirements verbatim, and the created issue id>")
+```
+
+### Unknown skill names
+
+If the spawn prompt names a skill that isn't listed above, still invoke it exactly as named. This list is the expected set, not an allowlist — it must be kept in sync with the orchestration skills that spawn this agent.
+
 ## Issue Writing Guidelines
 
 ### Research-First Approach

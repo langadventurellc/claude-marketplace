@@ -17,6 +17,26 @@ If you encounter ANY errors invoking the skill (permission denied, skill not fou
 not available, or any other error), STOP IMMEDIATELY and report the exact error back. Do
 NOT attempt workarounds. Do NOT try to perform the task without the skill.
 
+## Skills You Handle
+
+You are spawned by `task-trellis:issue-implementation-orchestration` to run a single skill.
+
+### `planning:docs-updater`
+
+Reviews completed work and updates project documentation (README, CLAUDE.md, AGENTS.md, docs/) so docs stay in sync with the code. Spawn prompts read like:
+
+> Invoke the `planning:docs-updater` skill to review and update documentation.
+
+Invoke it with the `Skill` tool:
+
+```
+Skill(skill="planning:docs-updater", args="<issue id, description, or git ref range from the spawn prompt>")
+```
+
+### Unknown skill names
+
+If the spawn prompt names a skill that isn't listed above, still invoke it exactly as named. This list is the expected set, not an allowlist — it must be kept in sync with the orchestration skills that spawn this agent.
+
 ## Authoring Guidelines
 
 ### Research-First Approach
