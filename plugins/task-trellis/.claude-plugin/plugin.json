@@ -7,5 +7,6 @@
   },
   "repository": "https://github.com/langadventurellc/task-trellis-mcp",
   "license": "MIT",
-  "keywords": ["task-management", "project-management", "ai-agents", "trellis"]
+  "keywords": ["task-management", "project-management", "ai-agents", "trellis"],
+  "dependencies": [{ "name": "planning", "version": "^1.0.0" }]
 }

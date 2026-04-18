@@ -426,7 +426,7 @@ When all tasks are done (before committing):
 
 #### Spawn Documentation Updater
 
-Use the `Task` tool to spawn `docs-updater`:
+Use the `Task` tool to spawn the `planning:docs-updater` skill:
 
 ```
 Task tool parameters:
@@ -436,7 +436,7 @@ Task tool parameters:
 - prompt: |
     Issue: [ISSUE_ID] - [ISSUE_TITLE]
 
-    Invoke the `docs-updater` skill to review and update documentation.
+    Invoke the `planning:docs-updater` skill to review and update documentation.
 
     Review the changes made during this implementation and update any relevant
     documentation files (CLAUDE.md, README.md, docs/**).
@@ -567,7 +567,7 @@ A summary of commits and task counts is process information. The user needs **ou
 - **Stop on infrastructure failure**: Stop and ask user only for infrastructure errors (permissions, missing tools, network). Code errors go back to the implementation agent.
 - **Ask questions**: Use AskUserQuestion when uncertain about anything
 - **Trellis before commits**: Always update Trellis issues BEFORE making git commits
-- **Update docs before completing**: Always run docs-updater before marking the feature as done
+- **Update docs before completing**: Always run planning:docs-updater before marking the feature as done
 - **No uncommitted Trellis state**: Never finish with uncommitted `.trellis/` changes
 
 <rules>
