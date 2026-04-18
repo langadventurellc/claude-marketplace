@@ -7,8 +7,8 @@ allowed-tools:
   - Read
   - WebFetch
   - WebSearch
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
 ---
 
 # Issue Implementation Review

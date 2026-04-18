@@ -7,8 +7,8 @@ allowed-tools:
   - Read
   - WebFetch
   - WebSearch
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
 ---
 
 # Issue Creation Review
@@ -94,6 +94,20 @@ Evaluate for over-engineering:
 - Ensure abstractions are justified by actual requirements
 
 **Exception**: Expanded scope is acceptable if explicitly requested (e.g., "comprehensive" or "future-proofed" solution).
+
+## Cross-Sibling Review (when invoked for a sibling set)
+
+When your task is a cross-sibling review (not a single-issue review), the input is a list of sibling issue IDs rather than one issue ID. Apply this rubric instead of the standard single-issue verification process.
+
+**Step 1 — Fetch all siblings.** Call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each sibling ID. Also fetch the parent issue to understand the intended scope boundary.
+
+**Step 2 — Scope overlap scan.** For each pair of siblings, compare their descriptions and acceptance criteria. Flag overlap when two siblings describe responsibility for the same functional area, file, or subsystem. Cite the exact language from each sibling that creates the conflict.
+
+**Step 3 — Coverage gap scan.** Map each requirement from the verbatim product requirements to at least one sibling. List any requirement with no owning sibling.
+
+**Step 4 — Prerequisite coherence check.** For each sibling, read its `prerequisites` field. Identify: (a) logical dependencies implied by the sibling descriptions that are not expressed as prerequisites, and (b) listed prerequisites that do not correspond to logical dependencies.
+
+**Step 5 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (overlap, gaps, prerequisite issues). If no issues, mark the cross-sibling review task done.
 
 ## Output
 

@@ -2,14 +2,14 @@
 name: implement-trellis-issues
 description: Orchestrates implementation of Trellis issues using Claude Code Agent Teams. The lead session resolves a scope, walks the issue tree, and spawns a fresh developer/reviewer pair per leaf task. Teammates communicate directly via SendMessage for review/fix cycles. Supports --commit and --docs flags. Recursive by default; unplanned non-leaf issues are skipped, never expanded. Use when asked to "implement feature", "implement trellis issues", "execute feature with teams", "implement tasks via agent teams", or whenever an agent-teams-based implementation run is desired.
 allowed-tools:
-  - mcp__task-trellis__claim_task
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__get_next_available_issue
-  - mcp__task-trellis__complete_task
-  - mcp__task-trellis__append_issue_log
-  - mcp__task-trellis__append_modified_files
-  - mcp__task-trellis__update_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__claim_task
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__get_next_available_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__complete_task
+  - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
+  - mcp__plugin_task-trellis-teams_task-trellis__append_modified_files
+  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - TeamCreate
   - TeamDelete
   - Task
@@ -153,7 +153,7 @@ Implement Trellis task T-<task-id> (<task title>).
 Parent feature: F-<feature-id> (<feature title>)
 
 Workflow:
-1. Read the task body via `mcp__task-trellis__get_issue` for full requirements.
+1. Read the task body via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for full requirements.
 2. Follow the research-and-plan → clarify → implement → test workflow described in
    `task-trellis-teams:issue-implementation` (the SKILL.md file inside this plugin).
    If the `Skill` tool is unavailable to you as a teammate, open
@@ -216,7 +216,12 @@ This dependency blocks the review task-list entry until the impl entry is marked
 
 The lead does not intervene once the pair is running. Expected flow:
 
-1. Developer claims the impl task-list entry and the Trellis task (`mcp__task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a content-free `SendMessage` nudge to the reviewer.
+0. **Lead sends start nudge.** After authoring the two task-list entries for this pair (impl + review), the lead MUST send a content-free `SendMessage` to the developer:
+   ```
+   SendMessage({ to: "<developer-name>", summary: "begin assigned work", message: "begin assigned work" })
+   ```
+   The reviewer does not need a nudge — its task is blocked until the developer completes.
+1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a content-free `SendMessage` nudge to the reviewer.
 2. Reviewer's task-list entry unblocks. Reviewer claims it, reviews the changes, and either:
    - **Approves:** Marks the review task-list entry done.
    - **Has findings:** `SendMessage` directly to the developer with findings. Does NOT mark the review task done.
@@ -385,5 +390,6 @@ Produce a concise final message covering:
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>
   <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
+  <critical>After authoring a pair's task-list entries, the lead MUST send "begin assigned work" to the developer via SendMessage before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
   <important>Spawn the developer (`trellis-developer`) with the default `sonnet` model unless the task warrants Opus (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating to Opus, log the reason via `append_issue_log`.</important>
 </rules>

@@ -2,10 +2,10 @@
 name: create-trellis-issues
 description: Orchestrates Trellis issue creation using Claude Code Agent Teams. Use when asked to "create trellis issues", "create and review issues", "create verified issues", or when you want issues created by a writer teammate and automatically reviewed by a reviewer teammate with direct-message fix loops. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
 allowed-tools:
-  - mcp__task-trellis__create_issue
-  - mcp__task-trellis__get_issue
-  - mcp__task-trellis__update_issue
-  - mcp__task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__create_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__get_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
+  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - TeamCreate
   - TeamDelete
   - Task
@@ -48,7 +48,7 @@ All remaining text in `$ARGUMENTS` is the **original user requirements** and MUS
 
 ### 1. Preflight
 
-Before doing anything else, **fetch the parent issue** via `mcp__task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
+Before doing anything else, **fetch the parent issue** via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
 
 If the preflight check fails, STOP and report to the user. Do NOT attempt workarounds.
 
@@ -63,7 +63,32 @@ Original User Requirements:
 ---
 ```
 
-This exact text will be embedded in every creation task and every review task you author. Do NOT paraphrase, summarize, or modify it in any way. This is the bias-prevention guarantee — the writer and reviewer must both receive identical, unfiltered requirements.
+Do NOT paraphrase, summarize, or modify it in any way. Then create a single dedicated task on the shared list as the canonical source of truth:
+
+```
+TaskCreate({
+  subject: "requirements",
+  description: "<EXACT_ORIGINAL_INPUT>\n\ndo not claim or complete this task",
+  owner: "team-lead"
+})
+```
+
+Capture the returned task ID as `requirementsTaskId`. This task is a read-only reference — never claimed, never completed by any teammate. The bias-prevention guarantee holds because writer and reviewer both read identical, unmodified bytes from this single source.
+
+**2b. Classify lead-meta vs. product requirements.**
+
+Before embedding requirements in tasks, scan the original input for sentences or clauses that are *addressed to the lead* rather than specifying what issues should contain. Lead-meta directives typically match patterns such as:
+- "Before you shut down…" / "at the end of the run…"
+- "Ask [teammates / agents] for…"
+- "Pay attention to how…" / "observe whether…"
+- "Produce a report / summary for me"
+- Any instruction whose actor is the lead, not the issue content
+
+Write lead-meta to `~/.claude/teams/<team-name>/lead-meta.md` (where `<team-name>` is the name used in `TeamCreate`) using the `Write` tool. Read it back with the `Read` tool whenever you need it later in the run. Do NOT include it in any task description or `SendMessage` to a teammate.
+
+The **product requirements** are everything that is NOT lead-meta: the scope, constraints, and acceptance criteria that define what child issues should contain. Only this portion is embedded verbatim in creation and review task descriptions.
+
+If the entire user input is product requirements (no lead-meta), no classification is needed — embed the full input as before.
 
 ### 3. Determine Target Level
 
@@ -79,7 +104,7 @@ Resolve the level in this order:
 
    Nothing else to decide; proceed to step 4.
 
-2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), create the root yourself first via `mcp__task-trellis__create_issue` using the matching file in the sibling `issue-creation` skill as the authoring guide, then use the created issue as the parent. Proceed to step 4.
+2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), create the root yourself first via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` using the matching file in the sibling `issue-creation` skill as the authoring guide, then use the created issue as the parent. Proceed to step 4.
 
 3. **No parent and no level guidance** — read [`determine-starting-level.md`](determine-starting-level.md) in this skill directory and follow its decision procedure. That doc covers:
    - Picking the correct root level from scope signals.
@@ -129,7 +154,7 @@ Task({
   "subagent_type": "task-trellis-teams:trellis-issue-writer",
   "name": "writer-<level>",
   "description": "Writer creating <child-type> under <parent-id>",
-  "prompt": "You are the writer teammate for this issue-creation run. Read your initial instructions from the shared task list only — specifically the creation tasks the lead authors. Follow the task-trellis-teams:trellis-issue-writer agent guardrails (stay within the assigned parent and level, send activation nudges via SendMessage to the reviewer named 'issue-reviewer' after each creation task, fix review findings sent back by the reviewer)."
+  "prompt": "You are the writer teammate for this issue-creation run. Read your initial instructions from the shared task list only — specifically the creation tasks the lead authors. Follow the task-trellis-teams:trellis-issue-writer agent guardrails (stay within the assigned parent and level, send activation nudges via SendMessage to the reviewer named 'issue-reviewer' after each creation task, fix review findings sent back by the reviewer). Begin work as soon as tasks appear on the list — do not wait for a separate start signal."
 })
 ```
 
@@ -159,15 +184,14 @@ Create a child issue of type <CHILD_TYPE> under parent <PARENT_ID>.
 
 Target scope for this child: <brief, lead-authored scope for this specific child — e.g., "authentication system" or "API rate limiting">.
 
-Original User Requirements (verbatim):
----
-<EXACT_ORIGINAL_INPUT_FROM_STEP_2>
----
+Original User Requirements: read the lead-authored `requirements` task on the shared task list (`TaskGet taskId="<requirementsTaskId>"`) before creating this issue. It is the single source of truth; do not paraphrase or reinterpret it.
 
-Create ONLY this one child issue via the mcp__task-trellis__create_issue tool. Use `task-trellis-teams:issue-creation` as your authoring guide (read the sibling skill file via the Read tool if the Skill tool is unavailable in teammate mode).
+Create ONLY this one child issue via the mcp__plugin_task-trellis-teams_task-trellis__create_issue tool. Use `task-trellis-teams:issue-creation` as your authoring guide (read the sibling skill file via the Read tool if the Skill tool is unavailable in teammate mode).
 
 After creating the issue:
-1. Record the created child's issue ID in your response/log so it is visible to the reviewer task.
+1. Store the created child's issue ID in this task's metadata before marking the task done:
+   TaskUpdate({ taskId: <THIS_TASK_ID>, metadata: { createdIssueId: "<T-xxx>" } })
+   Where `<THIS_TASK_ID>` is the shared task-list ID for the creation task (passed to the writer in the task description by the lead).
 2. Mark this task done via TaskUpdate.
 3. Send a content-free SendMessage activation nudge: `SendMessage({ to: "issue-reviewer", summary: "review ready", message: "review ready" })`. Do NOT include review instructions in the nudge — the reviewer reads its own lead-authored task.
 
@@ -193,14 +217,12 @@ TaskUpdate({
 Description template:
 
 ```
-Review the child issue created by task "create-<short-child-descriptor>". The writer recorded the created issue ID when it marked that task done.
+Review the child issue created by task "create-<short-child-descriptor>" (task ID: <CREATE_TASK_ID>).
+To find the issue ID: call TaskGet(<CREATE_TASK_ID>) and read metadata.createdIssueId.
 
-Verify the child issue against the original user requirements below for completeness, correctness, and appropriate scope.
+Verify the child issue against the product requirements for completeness, correctness, and appropriate scope.
 
-Original User Requirements (verbatim):
----
-<EXACT_ORIGINAL_INPUT_FROM_STEP_2>
----
+Original User Requirements: read the lead-authored `requirements` task on the shared task list (`TaskGet taskId="<requirementsTaskId>"`) before reviewing. It is the single source of truth; do not paraphrase or reinterpret it.
 
 Use `task-trellis-teams:issue-creation-review` as your review guide (read the sibling skill file via the Read tool if the Skill tool is unavailable in teammate mode).
 
@@ -220,13 +242,18 @@ If the review stalls (same finding returning, disagreement with the writer, or u
 
 Once the creation/review task pairs are on the shared task list, the writer and reviewer coordinate directly:
 
-1. Writer claims a creation task via `TaskUpdate` (via its normal claim mechanism).
-2. Writer creates the child issue, marks the creation task done.
-3. Writer sends a content-free activation nudge to `reviewer` via `SendMessage`.
-4. Reviewer picks up the now-unblocked review task.
-5. Reviewer either:
+0. **Lead sends start nudge.** After authoring all creation/review task pairs for this level (step 7 complete), the lead MUST send a `SendMessage` to the writer:
+   ```
+   SendMessage({ to: "<writer-name>", summary: "begin assigned work", message: "begin assigned work" })
+   ```
+   Do NOT embed instructions in this nudge — the writer reads its own task-list entries. This nudge exists solely to wake the writer from its initial idle state.
+2. Writer claims a creation task via `TaskUpdate` (via its normal claim mechanism).
+3. Writer creates the child issue, marks the creation task done.
+4. Writer sends a content-free activation nudge to `reviewer` via `SendMessage`.
+5. Reviewer picks up the now-unblocked review task.
+6. Reviewer either:
    - **Approves** → marks review task done via `TaskUpdate`.
-   - **Finds issues** → sends `SendMessage` directly to the writer with findings. Writer fixes via `mcp__task-trellis__update_issue`, sends activation nudge back, reviewer re-reviews. Repeat.
+   - **Finds issues** → sends `SendMessage` directly to the writer with findings. Writer fixes via `mcp__plugin_task-trellis-teams_task-trellis__update_issue`, sends activation nudge back, reviewer re-reviews. Repeat.
 
 As the lead, you **do not drive this loop** task-by-task. You watch (via `TaskList` polling or the UI) and intervene only when:
 
@@ -236,9 +263,44 @@ As the lead, you **do not drive this loop** task-by-task. You watch (via `TaskLi
 
 When a teammate escalates, use `AskUserQuestion` to get a decision from the user, then respond to the teammate via `SendMessage` with the guidance. Do NOT add new work items to the task list based on user answers unless the answer genuinely reveals a new needed child issue within scope.
 
-### 9. Level Completion
+### 9a. Cross-Sibling Review (required for 3+ siblings; optional for ≤2)
 
-The current level is complete when all creation and review tasks for the level are marked done and there are no open blocking messages. Confirm via `TaskList` filtered on the current level's task names.
+When the number of children created at this level is **3 or more**, the lead MUST author one additional cross-sibling review task on the shared task list, assigned to the persistent reviewer:
+
+```
+TaskCreate({
+  "subject": "cross-sibling-review-<parent-id>",
+  "description": "<see template below>"
+})
+```
+
+When the number of children is **2 or fewer**, this step is optional. The lead may skip it and proceed to step 9b.
+
+**Cross-sibling review task description template:**
+
+```
+Perform a cross-sibling consistency review of all child issues created under <parent-id> at the <child-type> level.
+
+Child issues to review: <comma-separated list of child issue IDs>
+
+Check the following, in order:
+1. **Scope overlap**: Do any two siblings claim responsibility for the same functionality, file area, or subsystem? Flag any overlap with the sibling pair involved and the conflicting scope language.
+2. **Coverage gaps**: Do the siblings together cover all requirements from the product requirements below? List any requirement that no sibling addresses.
+3. **Prerequisite coherence**: Are the prerequisite links between siblings correct? Flag any missing prerequisite (A must complete before B but B does not list A as a prerequisite) or spurious prerequisite (A lists B as a prerequisite but there is no logical dependency).
+
+Product Requirements (verbatim):
+---
+<PRODUCT_REQUIREMENTS_FROM_STEP_2>
+---
+
+Use `task-trellis-teams:issue-creation-review` as your review guide and the cross-sibling rubric in that skill's SKILL.md. Send findings directly to the writer (<writer-name>) via SendMessage if changes to child issues are needed. Approve (mark this task done) when no blocking cross-sibling issues remain.
+```
+
+Persist this task's ID in your name→ID map so you can track it to completion.
+
+### 9b. Level Completion
+
+Once all per-child tasks **and the cross-sibling review task (if authored)** are marked done and there are no open blocking messages, the level is complete. Confirm via `TaskList` filtered on the current level's task names.
 
 - **If `--recursive` is NOT set:** Stop after this level. Proceed to step 10 (cleanup and summary).
 - **If `--recursive` IS set:** For each newly-created child that itself needs children (e.g., each epic created under a project needs features; each feature needs tasks), loop back:
@@ -286,13 +348,11 @@ Produce a summary in the format:
 
 ## Verbatim Requirements Preservation
 
-The **Original User Requirements** block from step 2 MUST be embedded verbatim in:
+The lead MUST create exactly **one** `requirements` task per run (step 2) containing the verbatim input. All creation task descriptions (step 7a) and review task descriptions (step 7b) MUST reference it by ID via `TaskGet` — no inline embedding.
 
-- Every creation task description (step 7a).
-- Every review task description (step 7b).
-- Any direct `SendMessage` to a teammate that re-states or clarifies requirements.
+Lead-meta instructions (classified in step 2b) are NEVER placed in the `requirements` task or any teammate-visible task descriptions. They apply only to the lead's own run behavior (e.g., gathering observations before shutdown).
 
-Do NOT paraphrase. Do NOT summarize. The writer and reviewer must see the exact same requirements, unmodified, so that reviewer framing cannot bias toward what the writer thinks the user meant.
+The bias guarantee holds: writer and reviewer both read identical, unmodified bytes from the same single `requirements` task. For N children, this produces one copy of the requirements instead of 2N inline copies.
 
 This is the same guarantee as `plugins/task-trellis/skills/issue-creation-orchestration/SKILL.md` — preserved here via the shared task list mechanism.
 
@@ -341,7 +401,7 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   - `task-trellis-teams:trellis-issue-reviewer`
 
 <rules>
-  <critical>Preserve the original user requirements VERBATIM in every task description authored for writer and reviewer. Do NOT paraphrase or summarize.</critical>
+  <critical>The lead MUST create exactly one `requirements` task (step 2) containing the verbatim input. All creation and review task descriptions MUST reference it by ID via TaskGet. Do NOT embed verbatim requirements inline in 7a/7b templates. Lead-meta instructions (classified in step 2b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
   <critical>Without `--recursive`, stop after creating only the immediate child level. Do NOT recursively decompose.</critical>
   <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
@@ -351,4 +411,6 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   <important>Default to coarser-grained issues at the current level — fewer, larger children. Do NOT ask about granularity.</important>
   <important>Use unique, stable teammate names (e.g., `writer-epics`, `writer-features`, `reviewer`) so SendMessage routing is unambiguous.</important>
   <important>Author review tasks with an explicit dependency on their paired creation task so the reviewer only unblocks after the writer completes.</important>
+  <critical>After authoring per-child task pairs in step 7, the lead MUST send a "begin assigned work" SendMessage to the writer before stepping back to watch. Do NOT rely on the writer polling for work autonomously.</critical>
+  <critical>When 3 or more children are created at a level, the lead MUST author and wait for a cross-sibling review task before declaring level completion. Do NOT skip cross-sibling review for large decompositions.</critical>
 </rules>
