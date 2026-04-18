@@ -48,17 +48,9 @@ All remaining text in `$ARGUMENTS` is the **original user requirements** and MUS
 
 ### 1. Preflight
 
-Before doing anything else:
+Before doing anything else, **fetch the parent issue** via `mcp__task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
 
-1. **Verify Agent Teams is enabled.** Run `echo "$CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"` via `Bash`. If the value is not `1`, STOP and report to the user:
-
-   > Agent Teams is not enabled. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your environment and restart Claude Code. See https://code.claude.com/docs/en/agent-teams for details.
-
-2. **Note Claude Code version requirement.** Agent Teams requires Claude Code 2.1.32 or later. If you can verify the version easily, do so; otherwise note the requirement in your preflight summary.
-
-3. **Fetch the parent issue** via `mcp__task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
-
-If any preflight check fails, STOP and report to the user. Do NOT attempt workarounds.
+If the preflight check fails, STOP and report to the user. Do NOT attempt workarounds.
 
 ### 2. Capture Original Input Verbatim
 
@@ -329,7 +321,6 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
 
 | Situation | Action |
 |-----------|--------|
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` not set | STOP, report to user, do NOT attempt workarounds |
 | `TeamCreate` fails | STOP, report the exact error to user |
 | Teammate spawn fails | STOP, clean up any created team, report to user |
 | Teammate reports permission / MCP error | Surface to user via `AskUserQuestion`, do NOT retry automatically |
@@ -350,7 +341,6 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   - `task-trellis-teams:trellis-issue-reviewer`
 
 <rules>
-  <critical>Verify CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 before any other action. STOP if not set.</critical>
   <critical>Preserve the original user requirements VERBATIM in every task description authored for writer and reviewer. Do NOT paraphrase or summarize.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
   <critical>Without `--recursive`, stop after creating only the immediate child level. Do NOT recursively decompose.</critical>

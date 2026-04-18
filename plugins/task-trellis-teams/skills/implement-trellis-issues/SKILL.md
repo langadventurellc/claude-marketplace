@@ -66,22 +66,6 @@ If neither flag is passed, the run leaves uncommitted changes for the user.
 
 ## Preflight
 
-### 1. Verify Agent Teams is enabled
-
-Run:
-
-```bash
-echo "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-unset}"
-```
-
-If the value is not `1`, STOP immediately and tell the user:
-
-> Agent Teams is not enabled. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your environment and restart Claude Code (requires v2.1.32+) before invoking this skill.
-
-Do NOT attempt to proceed without teams enabled.
-
-### 2. Parse flags
-
 Scan `$ARGUMENTS` for `--commit` and `--docs` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
 
 ## Scope Resolution and Tree Walk
@@ -376,7 +360,6 @@ Produce a concise final message covering:
 
 ## Important Constraints
 
-- **Agent-teams only.** This skill requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Verify in preflight and refuse to run otherwise.
 - **Orchestration only.** The lead does NOT write or debug code. The lead spawns teammates, authors task-list entries, routes errors back to teammates, and commits approved changes. That is all.
 - **Bias guarantee — initial instructions come from the lead only.** Every teammate receives its initial instructions from a lead-authored task-list entry. Teammates never pass initial instructions to each other. Direct `SendMessage` is only for (a) content-free activation nudges and (b) fix-cycle iteration after the initial unbiased instructions.
 - **Fresh pair per issue.** Each leaf task gets its own developer and reviewer pair. Both teammates are shut down on approval. Nothing carries over to the next task.
@@ -391,7 +374,6 @@ Produce a concise final message covering:
 - **Stop for infrastructure errors.** Permission denied, missing tools, network issues → `AskUserQuestion` and follow user direction. Do not work around.
 
 <rules>
-  <critical>Preflight MUST verify `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. If not set, STOP and report.</critical>
   <critical>The lead NEVER writes or debugs code. Code errors go to the responsible developer teammate.</critical>
   <critical>The lead, developer, and reviewer NEVER create new Trellis issues during an implementation run.</critical>
   <critical>Non-leaf issues with no children are SKIPPED (logged), never expanded into new issues.</critical>
