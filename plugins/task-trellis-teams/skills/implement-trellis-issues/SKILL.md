@@ -71,17 +71,15 @@ Complete every planned leaf task under the given scope by:
   - **Project ID** (`P-xxx`) — recursively implements all tasks under all epics and features.
   - **Task ID** (`T-xxx`) — implements a single task.
   - **Empty** — lead calls `get_next_available_issue` (preferring `feature` type) to pick the next scope.
-- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and coherence review (§0) and docs-updater (§1) finish, the lead produces a final end-of-run commit for those changes. Prefers `/git:commit` skill; falls back to a conventional-commit message including the wave ordinal and task IDs (e.g., `feat: wave 1 — T-foo, T-bar`).
+- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and the final-wave phases (coherence review §0, docs-updater §1, version bump §1.5) finish, the lead produces a final end-of-run commit for those changes. Prefers `/git:commit` skill; falls back to a conventional-commit message including the wave ordinal and task IDs (e.g., `feat: wave 1 — T-foo, T-bar`).
 - `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after the final wave drains, before the final end-of-run commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the final end-of-run commit.
-- `--version [major|minor|patch]` (optional flag): When set, passes `--version` to the `planning:docs-updater` invocation in Completion Phase §1. If present without a value, docs-updater infers the bump level from the diff. Ignored (with a warning in the final summary) if `--no-docs` is also set.
+- `--version [major|minor|patch]` (optional flag): When set, the lead invokes the `planning:versioning` skill in Completion Phase §1.5 (after docs, before the final commit). If present without a value, the versioning skill infers the bump level from the diff. This flag is independent of `--no-docs` — version bumping runs whether or not docs were updated.
 
-If `--commit` is not set, the run leaves uncommitted changes for the user (docs-updater still runs unless `--no-docs` is passed).
+If `--commit` is not set, the run leaves uncommitted changes for the user (docs-updater still runs unless `--no-docs` is passed; `planning:versioning` still runs if `--version` is passed).
 
 ## Preflight
 
 Scan `$ARGUMENTS` for `--commit`, `--no-docs`, and `--version` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
-
-If both `--version` and `--no-docs` are present, record the conflict: docs-updater will be skipped, so `--version` is silently ignored. Emit a warning line in the final Completion Phase §4 summary: "⚠ --version was ignored because --no-docs was set."
 
 ## Scope Resolution and Tree Walk
 
@@ -193,15 +191,15 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 The `Task` tool accepts an optional `model` parameter at spawn time that takes precedence over the agent definition's frontmatter `model`. Use it as follows:
 
-- **Developer (`trellis-developer`):** Default is `sonnet` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
+- **Developer (`trellis-developer`):** Default is `sonnet[1m]` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus[1m]"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
   - The task involves non-trivial architectural decisions, cross-cutting refactors, or subtle concurrency/state logic.
   - The task body, parent feature, or technical-discovery output flags it as complex, high-risk, or security-sensitive (auth, crypto, data migration, permissions).
   - The task has failed a prior implementation attempt and is being retried.
   - The task body is long or vague in a way that suggests the implementer will need significant reasoning to fill in gaps.
 
-  Otherwise, omit `model` at spawn and let the Sonnet default apply. Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
+  Otherwise, pass `model: "sonnet[1m]"` explicitly at spawn time — do NOT omit `model`, because omitting it would strip the `[1m]` suffix from the frontmatter value, silently losing the 1M context window. Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
 
-- **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus"`. Do NOT rely on frontmatter alone — pass `model: "opus"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
+- **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus[1m]"`. Do NOT rely on frontmatter alone — pass `model: "opus[1m]"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
 
 ### 3. Pair executes autonomously
 
@@ -326,7 +324,7 @@ If a developer sends a direct message to the lead saying "I can't complete T-xxx
 
 When every task in the implementation queue is either `done`, `wont-do`, or skipped by user direction, and all pairs have been shut down:
 
-> **Ordering note:** When `--commit` is set, per-wave commits occur during the queue loop (before this phase). Coherence Review (§0) placement is **unchanged** — it always runs after the final wave drains, before docs-updater (§1) and before the final end-of-run commit (§2). Per-wave commits do not affect this ordering.
+> **Ordering note:** When `--commit` is set, per-wave commits occur during the queue loop (before this phase). The final-wave ordering is: Coherence Review (§0) → docs-updater (§1) → version bump (§1.5, only if `--version`) → final end-of-run commit (§2). Per-wave commits do not affect this ordering.
 
 ### 0. Cross-Task Coherence Review
 
@@ -353,7 +351,7 @@ Follow the "Cross-Task Coherence Review" section of that skill. Read each implem
 Mark this task-list entry `completed` when the coherence review is complete (the lead will decide how to act on any findings).
 ```
 
-Spawn this reviewer with `model: "opus"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
+Spawn this reviewer with `model: "opus[1m]"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
 
 If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
 
@@ -413,14 +411,34 @@ If the `Skill` tool is unavailable to you as a teammate, open
 
 Do NOT commit. The lead owns the commit step.
 
-If the lead was invoked with `--version`, pass `--version [value-or-blank]` to the docs-updater invocation.
+Do NOT bump any version files. The lead invokes `planning:versioning`
+separately in §1.5 if `--version` was passed.
 ```
 
 Wait for that teammate to mark the task-list entry done, then shut it down.
 
+### 1.5. Version bump (only if `--version`)
+
+If the lead was invoked with `--version`, invoke the `planning:versioning` skill **directly from the lead** (do NOT spawn a teammate):
+
+```
+Skill(skill="planning:versioning", args="<bump-spec>")
+```
+
+Where `<bump-spec>` is:
+
+- `--version <level>` if `--version` was passed with an explicit level (`major`, `minor`, or `patch`).
+- `--version` if `--version` was passed without a value (the skill will infer from the diff).
+
+Capture the skill's `## Version Bumps` output for the final-summary §4. If the skill returns a usage message or a "no version files bumped" report despite `--version` having been requested, surface that as a loud warning in the final summary — do NOT silently drop it.
+
+This step runs **independently of `--no-docs`**. Version bumping happens whenever `--version` was passed, regardless of whether docs were updated.
+
+If `--commit` is set, any version-file edits produced here are included in the final end-of-run commit in §2. If `--commit` is not set, the edits are left uncommitted alongside other changes.
+
 ### 2. Commit (only if `--commit`)
 
-Commit behavior under `--commit` has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review and §1 docs-updater complete).
+Commit behavior under `--commit` has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review, §1 docs-updater, and §1.5 version bump complete).
 
 #### Per-wave commit procedure (performed in the queue loop)
 
@@ -448,18 +466,18 @@ After all pairs in a wave are approved and shut down:
 
 **Do NOT debug hook failures from the lead.** Route the error to a developer teammate.
 
-#### Final end-of-run commit (performed here, after §0 and §1)
+#### Final end-of-run commit (performed here, after §0, §1, and §1.5)
 
-After §0 (coherence review) and §1 (docs-updater) complete, produce a final commit capturing those changes:
+After §0 (coherence review), §1 (docs-updater), and §1.5 (version bump, if `--version` was passed) complete, produce a final commit capturing those changes:
 
 - **If `/git:commit` is available:** Invoke via the `Skill` tool.
 - **If not available:**
   ```bash
   git add .
-  git commit -m "feat: post-implementation — coherence review and docs for <scope-id>"
+  git commit -m "feat: post-implementation — coherence review, docs, and version for <scope-id>"
   ```
 
-If `--commit` is NOT set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`).
+If `--commit` is NOT set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`; `planning:versioning` still runs if `--version` was passed).
 
 ### 3. Team cleanup
 
@@ -479,6 +497,7 @@ Produce a concise final message covering:
 - **Skipped unplanned non-leaf issues** (list of IDs, one line each) — so the user can plan them if they choose.
 - **Files affected at a high level** (areas of the codebase, not exhaustive file lists).
 - **Docs updated** (yes/no).
+- **Version bumps** (one `path: old → new` line per bumped file, when `--version` was passed). If `--version` was passed but no files were bumped, emit a loud warning line: `⚠ --version was requested but no version files were bumped — check the planning:versioning output above.`
 - **Reconciliation pass** (yes/no, and count of findings resolved if yes) — so the user has post-hoc visibility into any auto-remediation the lead performed after the coherence review.
 - **Commit SHA** (if `--commit` ran) or a clear note that uncommitted changes remain.
 - **How to verify** the changes (e.g., run the test suite, try the new CLI command, visit the endpoint).
@@ -494,7 +513,7 @@ Produce a concise final message covering:
 - **Informed-judgment parallelism.** Read ready task bodies; serialize tasks that might touch the same files. Do not rely on post-hoc metadata.
 - **Team cleanup is the lead's responsibility.** Teammates never tear down the team.
 - **Respect prerequisites.** Never spawn a pair for a task whose prerequisites are not `done`.
-- **Per-wave commits (only if `--commit`).** Under `--commit`, one commit is produced per wave after all pairs in the wave are approved and Trellis state is flushed. A final end-of-run commit captures coherence-review changes and docs-updater output after the final wave drains.
+- **Per-wave commits (only if `--commit`).** Under `--commit`, one commit is produced per wave after all pairs in the wave are approved and Trellis state is flushed. A final end-of-run commit captures coherence-review changes, docs-updater output, and version-bump output after the final wave drains.
 - **No hook bypass.** When committing, do not use `--no-verify` or skip hooks. Fix the underlying issue via a developer teammate instead.
 - **Stop for infrastructure errors.** Permission denied, missing tools, network issues → `AskUserQuestion` and follow user direction. Do not work around.
 
@@ -510,7 +529,7 @@ Produce a concise final message covering:
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
-  <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
+  <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus[1m]"` passed explicitly to `Task`, regardless of task complexity.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
-  <important>Spawn the developer (`trellis-developer`) with the default `sonnet` model unless the task warrants Opus (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating to Opus, log the reason via `append_issue_log`.</important>
+  <important>Spawn the developer (`trellis-developer`) with `model: "sonnet[1m]"` by default — always pass this explicitly at spawn time, never omit it. Escalate to `model: "opus[1m]"` only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the reason via `append_issue_log`.</important>
 </rules>
