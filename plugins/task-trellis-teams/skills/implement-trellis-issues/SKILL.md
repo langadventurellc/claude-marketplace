@@ -55,7 +55,7 @@ Complete every planned leaf task under the given scope by:
 2. For each ready task, authoring two lead-owned task-list entries (impl task → review task with prerequisite), then spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair.
 3. Letting the pair coordinate implementation, review, and fix cycles via direct `SendMessage`.
 4. Shutting down the pair on approval and moving to the next ready task.
-5. Updating documentation by default (unless `--no-docs` is passed) and/or committing all changes in a single commit (`--commit`).
+5. Updating documentation by default (unless `--no-docs` is passed) and/or committing changes per wave plus a final end-of-run commit capturing coherence-review and docs changes (`--commit`).
 
 ## Input
 
@@ -71,8 +71,8 @@ Complete every planned leaf task under the given scope by:
   - **Project ID** (`P-xxx`) — recursively implements all tasks under all epics and features.
   - **Task ID** (`T-xxx`) — implements a single task.
   - **Empty** — lead calls `get_next_available_issue` (preferring `feature` type) to pick the next scope.
-- `--commit` (optional flag): After all pairs finish (docs-updater runs first unless `--no-docs`), the lead makes a single commit of all changes. Uses `/git:commit` skill if available, else falls back to `git add . && git commit -m "<message>"`.
-- `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after all pairs finish, before any commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the commit.
+- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and coherence review (§0) and docs-updater (§1) finish, the lead produces a final end-of-run commit for those changes. Prefers `/git:commit` skill; falls back to a conventional-commit message including the wave ordinal and task IDs (e.g., `feat: wave 1 — T-foo, T-bar`).
+- `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after the final wave drains, before the final end-of-run commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the final end-of-run commit.
 - `--version [major|minor|patch]` (optional flag): When set, passes `--version` to the `planning:docs-updater` invocation in Completion Phase §1. If present without a value, docs-updater infers the bump level from the diff. Ignored (with a warning in the final summary) if `--no-docs` is also set.
 
 If `--commit` is not set, the run leaves uncommitted changes for the user (docs-updater still runs unless `--no-docs` is passed).
@@ -235,11 +235,13 @@ When the review task-list entry is marked done (approval), the lead shuts down *
 
 ### 5. Unblock next tasks
 
-After a task's review is approved, re-evaluate the implementation queue: any task whose prerequisites are now all `done` becomes ready. Spawn fresh pairs for the newly-ready tasks (applying the parallelism rule below).
+When a pair within the current wave is approved, wait for all remaining pairs in the wave to finish. After the **current wave fully drains** (all pairs approved and shut down), re-evaluate the implementation queue: any task whose prerequisites are now all `done` becomes a candidate for the next wave. Spawn the next wave per the Running Queue rules below.
 
 ## Running Queue (informed-judgment parallelism)
 
-Pair spawning is **event-driven**, not batch ("wave") based. Whenever a pair's review entry is marked `done` (approval signal), the lead immediately evaluates the candidate queue and spawns the next ready pair — it does not wait for other running pairs to finish first.
+Pair spawning is **wave-based**. A **wave** is the complete set of pairs the lead spawns together after a single queue evaluation. All ready candidates at evaluation time are spawned together (applying the overlap heuristic and concurrency cap within the wave); the queue is re-evaluated only after the **current wave fully drains** — meaning all pairs in the wave are approved and shut down.
+
+> **Per-wave commit (under `--commit`):** After each wave drains, flush Trellis state for all tasks in the wave and commit immediately before evaluating the next wave. See Completion Phase §2 for the full per-wave commit procedure. Coherence Review (§0) is **not** performed between waves — it runs once after the final wave drains.
 
 ### Candidate queue
 
@@ -247,7 +249,7 @@ The candidate queue contains every leaf task whose:
 - Status is not `done` or `wont-do`, AND
 - All prerequisite tasks are `done`.
 
-The queue is re-evaluated after every pair approval (and after the initial tree walk in Scope Resolution step 2).
+The queue is re-evaluated after the entire current wave drains (and after the initial tree walk in Scope Resolution step 2).
 
 ### Spawning decision
 
@@ -262,11 +264,11 @@ When evaluating which candidate(s) to spawn next:
 
 ### Concurrency cap
 
-Do not run more than **three or four pairs** concurrently. Exceeding this creates coordination overhead, clutters `SendMessage` routing, and may exhaust teammate slots. When the cap is reached, buffer additional ready candidates in the queue and spawn them as running pairs complete.
+Do not run more than **three or four pairs** concurrently. Exceeding this creates coordination overhead, clutters `SendMessage` routing, and may exhaust teammate slots. When the cap is reached, buffer the overflow candidates in the queue; they are not spawned mid-wave. They are evaluated as part of the next wave, after the current wave fully drains.
 
 ### Prerequisite unblocking
 
-After each pair approval, re-check the full candidate queue: any task whose last blocking prerequisite just moved to `done` is now a new candidate. Evaluate it for immediate spawning per the steps above.
+After the current wave drains, re-check the full candidate queue: any task whose last blocking prerequisite just moved to `done` is now a new candidate for the next wave. Evaluate it per the steps above.
 
 ### Example event flow
 
@@ -274,13 +276,15 @@ After each pair approval, re-check the full candidate queue: any task whose last
 Queue: [A(ready), B(ready), C(blocked on A), D(ready)]
 Cap: 3
 
-t=0  Evaluate: A and D are non-overlapping → spawn pair-A and pair-D.
-              B is non-overlapping with both → spawn pair-B. (cap reached)
-t=5  pair-D approved → queue now: [C(still blocked on A)]
-     Evaluate: no new ready candidates (C blocked). Wait.
-t=8  pair-A approved → C unblocks → queue: [C(ready)]
-     Evaluate: C is non-overlapping with pair-B → spawn pair-C.
-t=12 pair-B approved → queue empty. Continue to Completion Phase.
+Wave 1 (t=0):   A, B, D non-overlapping → spawn pair-A, pair-B, pair-D. (cap reached)
+                C blocked on A — held for next wave.
+Wave 1 drains (t=12): pair-A, pair-B, pair-D all approved and shut down.
+                [--commit] Flush Trellis state → commit wave 1 (T-A, T-B, T-D).
+                A done → C unblocks → candidates: [C(ready)]
+Wave 2 (t=12):  C ready, non-overlapping → spawn pair-C.
+Wave 2 drains (t=15): pair-C approved and shut down.
+                [--commit] Flush Trellis state → commit wave 2 (T-C).
+Queue empty. Continue to Completion Phase (§0 coherence review, §1 docs, §2 final commit).
 ```
 
 ## Error Handling (lead-side)
@@ -321,6 +325,8 @@ If a developer sends a direct message to the lead saying "I can't complete T-xxx
 ## Completion Phase
 
 When every task in the implementation queue is either `done`, `wont-do`, or skipped by user direction, and all pairs have been shut down:
+
+> **Ordering note:** When `--commit` is set, per-wave commits occur during the queue loop (before this phase). Coherence Review (§0) placement is **unchanged** — it always runs after the final wave drains, before docs-updater (§1) and before the final end-of-run commit (§2). Per-wave commits do not affect this ordering.
 
 ### 0. Cross-Task Coherence Review
 
@@ -414,33 +420,46 @@ Wait for that teammate to mark the task-list entry done, then shut it down.
 
 ### 2. Commit (only if `--commit`)
 
-Before invoking the commit, verify that all `complete_task`, `append_issue_log`, and `append_modified_files` calls from the run have already completed so the `.trellis/` state changes are staged alongside the code changes and included in the single commit.
+Commit behavior under `--commit` has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review and §1 docs-updater complete).
 
-Check whether `/git:commit` skill is available:
+#### Per-wave commit procedure (performed in the queue loop)
 
-- **If available:** Invoke it via the `Skill` tool and let the skill author its own conventional-commit message:
-  ```
-  Skill(skill="git:commit")
-  ```
-- **If not available:** Fall back to manual commit:
-  ```bash
-  git add .
-  git commit -m "feat: implement <scope-id> - <scope-title>"
-  ```
-  Do NOT pass `--no-verify` and do NOT skip hooks. Do NOT force-push or touch remotes.
+After all pairs in a wave are approved and shut down:
 
-**Handling commit-hook failures:** If the commit fails due to a pre-commit or commit-msg hook complaining about code the developer wrote (tests, lint, type checks, format):
+1. **Flush Trellis state:** Verify that all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks have completed so `.trellis/` changes are staged alongside code.
+2. **Commit the wave:**
+   - **If `/git:commit` is available:** Invoke via the `Skill` tool (the skill authors its own message).
+   - **If not available:** Fall back to:
+     ```bash
+     git add .
+     git commit -m "feat: wave <N> — T-<id1>, T-<id2>"
+     ```
+   Do NOT pass `--no-verify` and do NOT skip hooks. Do NOT force-push or touch remotes.
+3. **Evaluate the next wave** (see Running Queue section).
+
+**Handling commit-hook failures (per wave):** If a wave commit fails due to a pre-commit or commit-msg hook:
 
 1. Identify which Trellis task's code caused the failure (inspect the hook output).
-2. Spawn a fresh `trellis-developer` teammate for that task with a lead-authored task-list entry asking them to fix the hook error. (The original developer has already been shut down per the fresh-pair-per-issue rule.) Include the full hook output in the task body.
+2. Spawn a fresh `trellis-developer` teammate for that task with a lead-authored task-list entry asking them to fix the hook error. Include the full hook output in the task body.
 
-   **Intentional exception to the fresh-pair-per-issue rule:** spawn a lone developer here, NOT a new developer/reviewer pair. Rationale: the original review already approved the code on correctness/completeness/simplicity grounds; the fix is narrowly scoped to satisfying the commit hook (format/lint/type checks the hook surfaces) and does not warrant re-reviewing the full implementation. If the hook fix expands beyond that narrow scope, stop and `AskUserQuestion`.
-3. Wait for the fix, shut that developer down, and re-attempt the commit.
+   **Intentional exception to the fresh-pair-per-issue rule:** spawn a lone developer here, NOT a new developer/reviewer pair. The fix is narrowly scoped to satisfying the commit hook; if it expands beyond that scope, stop and `AskUserQuestion`.
+3. Wait for the fix, shut that developer down, and re-attempt the wave commit.
 4. Repeat until the commit succeeds.
 
-**Do NOT debug hook failures from the lead.** The lead's role is to route the error back to a developer teammate.
+**Do NOT debug hook failures from the lead.** Route the error to a developer teammate.
 
-If `--commit` is NOT set, leave all uncommitted changes for the user.
+#### Final end-of-run commit (performed here, after §0 and §1)
+
+After §0 (coherence review) and §1 (docs-updater) complete, produce a final commit capturing those changes:
+
+- **If `/git:commit` is available:** Invoke via the `Skill` tool.
+- **If not available:**
+  ```bash
+  git add .
+  git commit -m "feat: post-implementation — coherence review and docs for <scope-id>"
+  ```
+
+If `--commit` is NOT set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`).
 
 ### 3. Team cleanup
 
@@ -475,7 +494,7 @@ Produce a concise final message covering:
 - **Informed-judgment parallelism.** Read ready task bodies; serialize tasks that might touch the same files. Do not rely on post-hoc metadata.
 - **Team cleanup is the lead's responsibility.** Teammates never tear down the team.
 - **Respect prerequisites.** Never spawn a pair for a task whose prerequisites are not `done`.
-- **Single commit (only if `--commit`).** All implementation and docs changes (including docs-updater output unless `--no-docs`) go into one commit at the end. No commits between tasks.
+- **Per-wave commits (only if `--commit`).** Under `--commit`, one commit is produced per wave after all pairs in the wave are approved and Trellis state is flushed. A final end-of-run commit captures coherence-review changes and docs-updater output after the final wave drains.
 - **No hook bypass.** When committing, do not use `--no-verify` or skip hooks. Fix the underlying issue via a developer teammate instead.
 - **Stop for infrastructure errors.** Permission denied, missing tools, network issues → `AskUserQuestion` and follow user direction. Do not work around.
 
@@ -486,11 +505,11 @@ Produce a concise final message covering:
   <critical>Every teammate's initial instructions come from a lead-authored task-list entry. SendMessage is only for activation nudges and fix-cycle iteration.</critical>
   <critical>Spawn a FRESH pair per leaf task. Shut down BOTH teammates on approval before moving on.</critical>
   <critical>The lead owns team cleanup at the end of the run. Teammates never tear down the team.</critical>
-  <critical>Pair spawning is event-driven, not wave-based: on each pair approval, immediately re-evaluate the candidate queue and spawn the next ready pair. For overlap judgment, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
+  <critical>Pair spawning is wave-based: spawn all ready candidates together as a wave after each queue evaluation. Evaluate the queue for the next wave only after the current wave fully drains (all pairs approved and shut down). For overlap judgment within a wave, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
-  <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>
+  <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
   <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
   <important>Spawn the developer (`trellis-developer`) with the default `sonnet` model unless the task warrants Opus (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating to Opus, log the reason via `append_issue_log`.</important>
