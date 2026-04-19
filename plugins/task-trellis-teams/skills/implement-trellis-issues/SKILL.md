@@ -1,6 +1,6 @@
 ---
 name: implement-trellis-issues
-description: Orchestrates implementation of Trellis issues using Claude Code Agent Teams. The lead session resolves a scope, walks the issue tree, and spawns a fresh developer/reviewer pair per leaf task. Teammates communicate directly via SendMessage for review/fix cycles. Supports --commit and --docs flags. Recursive by default; unplanned non-leaf issues are skipped, never expanded. Use when asked to "implement feature", "implement trellis issues", "execute feature with teams", "implement tasks via agent teams", or whenever an agent-teams-based implementation run is desired.
+description: Orchestrates implementation of Trellis issues using Claude Code Agent Teams. The lead session resolves a scope, walks the issue tree, and spawns a fresh developer/reviewer pair per leaf task. Teammates communicate directly via SendMessage for review/fix cycles. Supports --commit, --no-docs, and --version flags. Recursive by default; unplanned non-leaf issues are skipped, never expanded. Use when asked to "implement feature", "implement trellis issues", "execute feature with teams", "implement tasks via agent teams", or whenever an agent-teams-based implementation run is desired.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__claim_task
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
@@ -8,7 +8,6 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__complete_task
   - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
   - mcp__plugin_task-trellis-teams_task-trellis__append_modified_files
-  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - TeamCreate
   - TeamDelete
@@ -27,6 +26,19 @@ allowed-tools:
 
 # Orchestrate Trellis Implementation via Agent Teams
 
+<critical>
+**Lead Orchestration Rule — Read This First**
+
+The lead DOES NOT write, edit, or debug code. The lead DOES NOT fix issues in Trellis child bodies during a run. Every prohibited action below must be routed to the appropriate teammate.
+
+Prohibited lead actions:
+- Calling `Edit` or `Write` on any file under `src/`, `plugins/`, or any repo code path (developer's job).
+- Running tests, lint checks, or builds to validate or fix a teammate's code (developer's job).
+- Calling `mcp__plugin_task-trellis-teams_task-trellis__update_issue` on a child Trellis issue to patch its body or description mid-run (developer's job via update_issue if truly needed; reviewer's job to request it).
+
+Enforcement heuristic: If you find yourself about to call `Edit`, `Write`, or `update_issue` on a child — STOP and ask: is this a teammate's job? It almost certainly is.
+</critical>
+
 Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's experimental **Agent Teams** feature. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
 
 **This skill replaces the subagent-based `task-trellis:issue-implementation-orchestration` workflow with an agent-teams variant.** Key differences from the existing plugin:
@@ -43,14 +55,14 @@ Complete every planned leaf task under the given scope by:
 2. For each ready task, authoring two lead-owned task-list entries (impl task → review task with prerequisite), then spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair.
 3. Letting the pair coordinate implementation, review, and fix cycles via direct `SendMessage`.
 4. Shutting down the pair on approval and moving to the next ready task.
-5. Optionally updating documentation (`--docs`) and/or committing all changes in a single commit (`--commit`).
+5. Updating documentation by default (unless `--no-docs` is passed) and/or committing all changes in a single commit (`--commit`).
 
 ## Input
 
 `$ARGUMENTS` format:
 
 ```
-<scope> [--commit] [--docs]
+<scope> [--commit] [--no-docs] [--version [major|minor|patch]]
 ```
 
 - `<scope>` (optional): A Trellis issue ID. Accepts:
@@ -59,14 +71,17 @@ Complete every planned leaf task under the given scope by:
   - **Project ID** (`P-xxx`) — recursively implements all tasks under all epics and features.
   - **Task ID** (`T-xxx`) — implements a single task.
   - **Empty** — lead calls `get_next_available_issue` (preferring `feature` type) to pick the next scope.
-- `--commit` (optional flag): After all pairs finish (and `--docs` runs if set), the lead makes a single commit of all changes. Uses `/git:commit` skill if available, else falls back to `git add . && git commit -m "<message>"`.
-- `--docs` (optional flag): After all pairs finish but **before** any commit, the lead spawns a `planning:planning-author` teammate to invoke `planning:docs-updater`. Docs updates are included in the commit when `--commit` is also set.
+- `--commit` (optional flag): After all pairs finish (docs-updater runs first unless `--no-docs`), the lead makes a single commit of all changes. Uses `/git:commit` skill if available, else falls back to `git add . && git commit -m "<message>"`.
+- `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after all pairs finish, before any commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the commit.
+- `--version [major|minor|patch]` (optional flag): When set, passes `--version` to the `planning:docs-updater` invocation in Completion Phase §1. If present without a value, docs-updater infers the bump level from the diff. Ignored (with a warning in the final summary) if `--no-docs` is also set.
 
-If neither flag is passed, the run leaves uncommitted changes for the user.
+If `--commit` is not set, the run leaves uncommitted changes for the user (docs-updater still runs unless `--no-docs` is passed).
 
 ## Preflight
 
-Scan `$ARGUMENTS` for `--commit` and `--docs` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
+Scan `$ARGUMENTS` for `--commit`, `--no-docs`, and `--version` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
+
+If both `--version` and `--no-docs` are present, record the conflict: docs-updater will be skipped, so `--version` is silently ignored. Emit a warning line in the final Completion Phase §4 summary: "⚠ --version was ignored because --no-docs was set."
 
 ## Scope Resolution and Tree Walk
 
@@ -197,6 +212,8 @@ The lead does not intervene once the pair is running. Expected flow:
    SendMessage({ to: "<developer-name>", summary: "T-<task-id> begin assigned work", message: "begin assigned work" })
    ```
    Substitute the actual Trellis task ID for `T-<task-id>`. The reviewer does not need a nudge — its task is blocked until the developer completes.
+
+   > **Authoritative start signal**: This `SendMessage` nudge is the single authoritative activation trigger for the developer. When the lead sets `owner` on a task-list entry via `TaskUpdate`, the runtime automatically emits a `task_assignment` DM to that teammate as an invisible side-effect. That DM is **informational only** — developers MUST NOT begin work on receipt of a `task_assignment` DM. Work begins only when the explicit `SendMessage` nudge above arrives.
 1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a `SendMessage` nudge to the reviewer:
    ```
    SendMessage({ to: "<reviewer-name>", summary: "T-<task-id> review ready", message: "review ready" })
@@ -204,6 +221,7 @@ The lead does not intervene once the pair is running. Expected flow:
 2. Reviewer's task-list entry unblocks. Reviewer claims it, reviews the changes, and either:
    - **Approves:** Marks the review task-list entry done.
    - **Has findings:** `SendMessage` directly to the developer with findings. Does NOT mark the review task done.
+   See `PROTOCOL.md` §Reviewer activation gate for the two-condition trigger the reviewer enforces.
 3. Developer receives findings, fixes, then `SendMessage`s the reviewer when fixes are ready. Reviewer re-reviews. Repeat until approved.
 4. Once the review task-list entry is marked done, the pair's work is complete.
 
@@ -219,18 +237,51 @@ When the review task-list entry is marked done (approval), the lead shuts down *
 
 After a task's review is approved, re-evaluate the implementation queue: any task whose prerequisites are now all `done` becomes ready. Spawn fresh pairs for the newly-ready tasks (applying the parallelism rule below).
 
-## Parallelism (informed judgment)
+## Running Queue (informed-judgment parallelism)
 
-For every set of currently-ready tasks, decide whether to run them in parallel or serialize them based on an **informed judgment** about likely file overlap:
+Pair spawning is **event-driven**, not batch ("wave") based. Whenever a pair's review entry is marked `done` (approval signal), the lead immediately evaluates the candidate queue and spawns the next ready pair — it does not wait for other running pairs to finish first.
 
-1. Read each ready task's body (`get_issue`) — specifically the description, technical approach, and acceptance criteria sections.
-2. Ask yourself: **could these tasks plausibly modify the same files, or the same narrow area of the codebase?**
-   - If yes, **serialize them** — run them one pair at a time, shutting the first down before spawning the next.
-   - If no, or if you cannot tell, **run them in parallel** — spawn all their pairs concurrently.
-3. Do NOT rely on `affectedFiles` / `modifiedFiles` metadata from Trellis issues for this decision. That metadata is populated **after** implementation and cannot inform pre-spawn scheduling.
-4. Bias toward parallelism. Serial execution is the safe fallback when overlap is plausible, not the default.
+### Candidate queue
 
-Practical upper bound: do not run more than three or four pairs concurrently. Team size and teammate slots are finite; excessive concurrency creates coordination overhead and muddies `SendMessage` routing.
+The candidate queue contains every leaf task whose:
+- Status is not `done` or `wont-do`, AND
+- All prerequisite tasks are `done`.
+
+The queue is re-evaluated after every pair approval (and after the initial tree walk in Scope Resolution step 2).
+
+### Spawning decision
+
+When evaluating which candidate(s) to spawn next:
+
+1. **Read each ready candidate's body** via `get_issue` — specifically the description, technical approach, and acceptance criteria.
+2. **Ask: could these tasks plausibly modify the same files, or the same narrow area of the codebase?**
+   - If yes → serialize: spawn only the highest-priority candidate and wait for it to complete before spawning the next.
+   - If no → run in parallel: spawn all non-overlapping candidates concurrently.
+3. Do NOT use `affectedFiles` / `modifiedFiles` metadata from Trellis for this decision — that is populated after implementation and is not available pre-spawn.
+4. **Bias toward parallelism.** Serial is the safe fallback when overlap is plausible, not the default.
+
+### Concurrency cap
+
+Do not run more than **three or four pairs** concurrently. Exceeding this creates coordination overhead, clutters `SendMessage` routing, and may exhaust teammate slots. When the cap is reached, buffer additional ready candidates in the queue and spawn them as running pairs complete.
+
+### Prerequisite unblocking
+
+After each pair approval, re-check the full candidate queue: any task whose last blocking prerequisite just moved to `done` is now a new candidate. Evaluate it for immediate spawning per the steps above.
+
+### Example event flow
+
+```
+Queue: [A(ready), B(ready), C(blocked on A), D(ready)]
+Cap: 3
+
+t=0  Evaluate: A and D are non-overlapping → spawn pair-A and pair-D.
+              B is non-overlapping with both → spawn pair-B. (cap reached)
+t=5  pair-D approved → queue now: [C(still blocked on A)]
+     Evaluate: no new ready candidates (C blocked). Wait.
+t=8  pair-A approved → C unblocks → queue: [C(ready)]
+     Evaluate: C is non-overlapping with pair-B → spawn pair-C.
+t=12 pair-B approved → queue empty. Continue to Completion Phase.
+```
 
 ## Error Handling (lead-side)
 
@@ -293,16 +344,47 @@ Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-t
 
 Follow the "Cross-Task Coherence Review" section of that skill. Read each implemented task via `get_issue`, examine all modified files across the sibling set, and produce findings in `## Review Findings` format.
 
-Mark this task-list entry `done` when the coherence review is complete.
+Mark this task-list entry `completed` when the coherence review is complete (the lead will decide how to act on any findings).
 ```
 
 Spawn this reviewer with `model: "opus"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
 
 If the coherence review surfaces Critical findings, present them to the user via `AskUserQuestion`. Do NOT fix them from the lead — spawn a fresh developer teammate per affected task, following the same hook-failure recovery pattern in step 2 below.
 
-### 1. Documentation (only if `--docs`)
+### §0a. Reconciliation Pass (when coherence review returns cross-task Critical findings)
 
-Spawn a **single** `planning:planning-author` teammate with a lead-authored task-list entry:
+**Triggering condition:** The cross-task coherence reviewer (§0) returns Critical findings that span multiple already-closed sibling tasks, OR the user directs a cross-cutting terminology or consistency fix after implementation is otherwise complete.
+
+**What the reconciliation pass is:**
+- A named exception to the fresh-pair-per-issue rule.
+- The lead authors ONE developer task-list entry and ONE reviewer task-list entry (with the reviewer blocked on the developer, per the standard two-step pattern).
+- These entries do NOT correspond to any single Trellis issue — no `claim_task` or `complete_task` is called. The developer applies fixes directly to the working tree; the reviewer verifies via `git diff`. The Trellis task-list entries are the only tracking mechanism for this pass.
+
+**Lead steps:**
+1. Author the developer task-list entry with the full list of findings to fix and the files to touch. Make clear this is a reconciliation pass (not a new Trellis task) so the developer does not attempt `claim_task` or `complete_task`. The body MUST instruct the developer to (a) apply fixes directly to the working tree, (b) mark this task-list entry `completed` when done, and (c) send an instruction-free `SendMessage` activation nudge to the paired reviewer (`rev-reconcile-<scope>`) immediately after marking the entry `completed` — this mirrors the standard Per-Issue Pair Lifecycle §3 step 1 handoff and is required for the reviewer's activation gate to fire.
+2. Author the reviewer task-list entry blocked on the developer entry. The body MUST include:
+   - The paired developer teammate name (e.g., `dev-reconcile-<scope>`).
+   - The coherence review findings being resolved (copy the findings inline or reference the coherence review task entry).
+   - The list of files expected to be touched (same list as the developer entry), plus the base branch to diff against.
+   - **Review procedure (reconciliation carve-out):** Review the changes by running `git diff <base-branch>...HEAD -- <file1> <file2> ...` against the findings enumerated in the developer entry. Read each changed file for context. Verify each finding is resolved in the diff. Do NOT call `get_issue`, `claim_task`, `complete_task`, or `append_modified_files` — there is no corresponding Trellis task for this pass. Do NOT rely on `modifiedFiles` metadata.
+   - **Carve-out note (named exception to the standard reviewer blocking-guard):** For a reconciliation-pass review, an empty/absent `modifiedFiles` list and a non-`done` Trellis task status are NOT blocking findings — the standard blocking-guard from `task-trellis-teams:issue-implementation-review` §2 (which blocks review when `modifiedFiles` is empty or the Trellis task is not `done`) does NOT apply here. This carve-out is analogous to the cross-sibling / cross-task coherence review carve-out for the `task_assignment`/activation-gate exception: both are named exceptions triggered by task-list entries that explicitly describe a cross-cutting or reconciliation pass.
+   - **Approval / findings flow:** If there are no blocking findings, mark this task-list entry `completed` via `TaskUpdate`. On findings, send a single `SendMessage` to the paired developer with findings grouped by severity (standard fix-cycle pattern) and wait for the developer's fix-ready nudge before re-reviewing.
+3. Spawn a fresh developer and reviewer pair (same model selection rules as per-issue pairs). Name them clearly (e.g., `dev-reconcile-<scope>`, `rev-reconcile-<scope>`).
+4. Send the developer an activation nudge: `SendMessage({ to: "dev-reconcile-<scope>", summary: "reconciliation pass begin", message: "begin assigned work" })`. The reviewer does NOT need a lead nudge — it will be activated by the developer's handoff nudge (step 1.c) once the developer's task-list entry is marked `completed`.
+5. Wait for the reviewer to mark the review entry done, then shut both teammates down.
+
+**After the pass:**
+- If the cross-task coherence reviewer (§0) is still active, the lead must request a re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to re-approve or surface further findings before proceeding.
+- If the coherence reviewer has already been shut down, the lead verifies there are no residual issues by inspecting the change set directly or re-running the coherence review step (§0) with a fresh reviewer.
+
+**Constraints:**
+- The lead NEVER creates new Trellis issues during a reconciliation pass. If the reconciliation scope grows beyond the original findings, STOP and surface the expansion to the user via `AskUserQuestion`.
+- The developer in the reconciliation pass MUST NOT call `claim_task` or `complete_task` — there is no corresponding Trellis task. They implement and mark the task-list entry done only.
+- The reconciliation pass is limited to the changes needed to resolve the coherence findings. Do not use it to opportunistically add features or refactor unrelated code.
+
+### 1. Documentation (unless `--no-docs`)
+
+Unless `--no-docs` was passed, spawn a **single** `planning:planning-author` teammate with a lead-authored task-list entry:
 
 ```
 Title: Update docs for <scope>
@@ -316,6 +398,8 @@ If the `Skill` tool is unavailable to you as a teammate, open
 `plugins/planning/skills/docs-updater/SKILL.md` directly and follow it.
 
 Do NOT commit. The lead owns the commit step.
+
+If the lead was invoked with `--version`, pass `--version [value-or-blank]` to the docs-updater invocation.
 ```
 
 Wait for that teammate to mark the task-list entry done, then shut it down.
@@ -382,7 +466,7 @@ Produce a concise final message covering:
 - **Informed-judgment parallelism.** Read ready task bodies; serialize tasks that might touch the same files. Do not rely on post-hoc metadata.
 - **Team cleanup is the lead's responsibility.** Teammates never tear down the team.
 - **Respect prerequisites.** Never spawn a pair for a task whose prerequisites are not `done`.
-- **Single commit (only if `--commit`).** All implementation and docs changes go into one commit at the end. No commits between tasks.
+- **Single commit (only if `--commit`).** All implementation and docs changes (including docs-updater output unless `--no-docs`) go into one commit at the end. No commits between tasks.
 - **No hook bypass.** When committing, do not use `--no-verify` or skip hooks. Fix the underlying issue via a developer teammate instead.
 - **Stop for infrastructure errors.** Permission denied, missing tools, network issues → `AskUserQuestion` and follow user direction. Do not work around.
 
@@ -393,7 +477,7 @@ Produce a concise final message covering:
   <critical>Every teammate's initial instructions come from a lead-authored task-list entry. SendMessage is only for activation nudges and fix-cycle iteration.</critical>
   <critical>Spawn a FRESH pair per leaf task. Shut down BOTH teammates on approval before moving on.</critical>
   <critical>The lead owns team cleanup at the end of the run. Teammates never tear down the team.</critical>
-  <critical>For parallelism, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
+  <critical>Pair spawning is event-driven, not wave-based: on each pair approval, immediately re-evaluate the candidate queue and spawn the next ready pair. For overlap judgment, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>

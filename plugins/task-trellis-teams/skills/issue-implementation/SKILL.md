@@ -40,7 +40,9 @@ Claim and implement a single task from the Trellis task management system using 
 
 Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 
-### 2. Research and Planning Phase (MANDATORY)
+`claim_task` returns the full task body; do NOT call `get_issue` on the claimed task ID again — that is a redundant round-trip.
+
+### 2. Research and Planning Phase (default — see fast-path exception below)
 
 **Research the codebase and plan your approach:**
 
@@ -58,6 +60,18 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 - **Major issues** (approach wrong, files don't exist): **STOP** and alert the user
 - **Pattern mismatches**: Follow actual codebase patterns
 - **Missing dependencies**: Check if installation needed or find alternatives
+
+#### Fast-path exception (opt-in, not default)
+
+When the task body **fully specifies** the edit, you may skip the broad research phase and proceed directly to §4 Implementation. Fast-path applies only when ALL of the following are true:
+
+1. The task body names every file to modify (exact paths, no ambiguity).
+2. The task body specifies each change at the level of "replace X with Y", "insert paragraph at line N", or equivalent find/replace or diff-style directives.
+3. The acceptance criteria are unambiguous and do not name any cross-file invariants that would require investigation to verify.
+
+**When in doubt, use the full research phase.** Fast-path is an opt-in optimization — apply it only when you are confident all three criteria are met. If you discover during implementation that an assumption was wrong (a file doesn't exist, a referenced line has shifted, a cross-file invariant is named that you missed), fall back to the full research phase for that file.
+
+**Do not skip the spot-check.** Even on fast-path, verify that the named file paths exist and the referenced line numbers / strings are present before editing. A one-minute spot-check is not the research phase; it is the minimum due-diligence to avoid editing the wrong location.
 
 ### 3. Clarify Before Implementing
 
@@ -80,18 +94,26 @@ Ask questions when:
 - **Write purposeful tests**: Only test logic with meaningful complexity
 - **Handle errors gracefully**: Include proper error handling
 
-### 5. Complete Task
+### 5. Finalize (run steps in this exact order)
 
-**Verify and document completion:**
+**Verify all requirements are met and quality checks pass before starting these steps.**
 
-- **Verify all requirements met**: Check implementation satisfies task description
-- **Confirm quality checks pass**: All tests, linting, and formatting clean
-- **Write meaningful summary**: Describe what was implemented and key decisions
-- **List all changed files**: Document what was created or modified
+1. Call `append_modified_files` with the list of every file created or modified.
+2. Call `complete_task` with the task ID, a one-paragraph summary of what was implemented and key decisions made, and the same file list.
+3. Call `TaskUpdate({ taskId: <impl-task-list-id>, status: "completed" })` to mark the shared task-list impl entry done.
+4. Send an instruction-free `SendMessage` activation nudge to the paired reviewer.
 
-Use `complete_task` with task ID, summary, and files changed.
+**Why this order matters:** Each step unblocks the next and protects a downstream gate:
+- `complete_task` must precede the task-list `TaskUpdate` — marking the task-list entry done first triggers a downstream lookup that fails with "ID undefined" because the Trellis task is not yet in `done` state.
+- The task-list `TaskUpdate` must precede the reviewer activation nudge — the reviewer's activation gate requires BOTH that the paired impl task-list entry has status `completed` AND that the reviewer has received the instruction-free `SendMessage` nudge. If the nudge lands while the impl entry is still `in_progress`, the reviewer silently dismisses it and goes idle, leaving the pair stalled.
 
-**Teammate mode — Notify reviewer**: After `complete_task`, send an instruction-free `SendMessage` activation nudge to your paired reviewer. The reviewer's name is in your task-list entry. Mark your task-list entry `done` only after the nudge is sent.
+Note: `append_issue_log` is optional and is not part of the required finalize sequence; you may call it at any point during implementation to record progress notes.
+
+**Reviewer will block if any of the following are true at review time:**
+- The Trellis task status is not `done` (i.e., `complete_task` was not called or failed).
+- `modifiedFiles` on the Trellis task is absent or empty (i.e., `append_modified_files` was not called).
+
+Fix these before sending the reviewer nudge — re-calling `complete_task` and `append_modified_files` with corrected data is always allowed.
 
 **STOP!** - Complete one task only. Do not implement another task.
 

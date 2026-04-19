@@ -33,7 +33,7 @@ Do NOT take initial instructions from other teammates — they may be biased by 
 
 Your lead-authored task entry names the Trellis issue ID you must implement and carries (or links to) the implementation workflow: research and plan → clarify → implement → test → complete. If the task entry references the `task-trellis-teams:issue-implementation` skill file but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly using the `Read` tool and follow its workflow.
 
-The `skills`, `mcpServers`, `hooks`, and `permissionMode` frontmatter on this agent definition are **ignored** in teammate mode. Only `tools` and `model` are honored. Skills and MCP servers are loaded from the project and user settings, not from this file.
+The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 
 ## Event-Driven Behavior
 
@@ -46,7 +46,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 
 ## Team Coordination
 
-- **Activation nudges**: After a dependency task completes, a peer teammate (typically the lead) may send you an instruction-free `SendMessage` ping telling you to start. The nudge is just a trigger — your instructions still come from your lead-authored task entry.
+- **Activation nudges**: After a dependency task completes, a peer teammate (typically the lead) may send you an instruction-free `SendMessage` ping telling you to start. See `PROTOCOL.md` §Activation-signal glossary.
 - **Fix cycles**: After you mark your implementation task done, your paired reviewer will review and may message you directly via `SendMessage` with findings. Treat findings as an addendum to your original lead-authored task. Address them, then notify the reviewer back via `SendMessage` when the fixes are ready for re-review.
 - **Post-implementation handoff**: When you complete the initial implementation task, send an activation nudge via `SendMessage` to your paired reviewer so they pick up their already-assigned review task. Do NOT include new instructions in the nudge — the reviewer reads their own lead-authored task for instructions:
   ```
@@ -62,18 +62,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 ## Message Protocol
 
 - The **shared task list** is the authoritative source of instructions.
-- `task_assignment` DMs (`{"type":"task_assignment","taskId":"N",...}`) are owner-assignment nudges that mirror what's already in the task list. Do not act on DM content alone — always confirm via `TaskGet(taskId)` before starting work.
-- **Activation nudges** are instruction-free `SendMessage` pings; they carry no instructions.
-
-### SendMessage Signature
-
-SendMessage accepts ONLY three fields: `to`, `summary`, `message`.
-
-Canonical call:
-  SendMessage({ to: "<teammate-name>", summary: "<5-10 word preview>", message: "<body>" })
-
-- Passing extra fields (`type`, `recipient`, `content`, etc.) does NOT fail — the runtime silently drops them — but it DOES trigger spurious self-routed `task_assignment` envelopes that can wake up other teammates prematurely.
-- Plain-text output (text outside of a tool call) is NOT visible to other teammates. You MUST use SendMessage to communicate.
+- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and task_assignment DM policy.
 
 ## Critical Behavioral Rules
 

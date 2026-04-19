@@ -2,9 +2,7 @@
 name: create-trellis-issues
 description: Orchestrates Trellis issue creation using Claude Code Agent Teams. Use when asked to "create trellis issues", "create and review issues", "create verified issues", or when you want issues created by a writer teammate and automatically reviewed by a reviewer teammate with direct-message fix loops. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
 allowed-tools:
-  - mcp__plugin_task-trellis-teams_task-trellis__create_issue
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - TeamCreate
   - TeamDelete
@@ -21,6 +19,19 @@ allowed-tools:
 ---
 
 # Create Trellis Issues (Agent Teams)
+
+<critical>
+**Lead Orchestration Rule — Read This First**
+
+The lead DOES NOT write issues, review issues, or call issue-management tools directly on child issues. Every prohibited action below must be routed to the appropriate teammate instead.
+
+Prohibited lead actions:
+- Calling `mcp__plugin_task-trellis-teams_task-trellis__create_issue` to create a child issue (writer's job).
+- Calling `mcp__plugin_task-trellis-teams_task-trellis__update_issue` on a child issue to apply review findings or fix content (writer's job after reviewer findings).
+- Writing or editing any Trellis issue body directly from the lead session for a child issue.
+
+Enforcement heuristic: If you find yourself about to call `create_issue` or `update_issue` on a child, STOP and ask: is this a teammate's job? It almost certainly is.
+</critical>
 
 Orchestrate issue creation using Claude Code's Agent Teams feature. The lead session (you) creates a team, authors per-child creation/review task pairs on the shared task list, spawns a persistent reviewer teammate plus a writer teammate for the current level, and lets the writer and reviewer coordinate directly via `SendMessage` for fix loops.
 
@@ -110,14 +121,20 @@ Resolve the level in this order:
 
    Nothing else to decide; proceed to step 4.
 
-2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), create the root yourself first via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` using the matching file in the sibling `issue-creation` skill as the authoring guide, then use the created issue as the parent. Proceed to step 4.
+2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), the lead authors a root creation task + review task pair on the shared task list using the step 5a/5b templates verbatim (omit the parent field from the creation task description; the authoring guide for the root comes from the matching `issue-creation/<type>.md` file). Create the agent team (step 4), spawn the persistent reviewer (step 6) and a writer for the root level (step 7), send the 'begin assigned work' nudge, and wait for root approval before proceeding to child-level task authoring (step 5 for children).
 
 3. **No parent and no level guidance** — read [`determine-starting-level.md`](determine-starting-level.md) in this skill directory and follow its decision procedure. That doc covers:
    - Picking the correct root level from scope signals.
-   - Creating the root issue yourself when applicable.
+   - Authoring root creation+review task pairs when applicable.
    - The narrow conditions under which you should escalate to the user.
 
+   When that doc's action block says the lead creates a root issue, the lead instead authors root creation+review task pairs (step 5a/5b templates) and spawns a writer. Do NOT call `create_issue` from the lead.
+
    Do NOT ask the user for the level as a first move — only ask when `determine-starting-level.md` says the decision is genuinely ambiguous.
+
+> **Root approval ordering constraint.** Root approval MUST complete (all root creation+review tasks marked done) before the lead authors child-level creation/review task pairs. Do not race ahead to child-level task authoring while root review is pending.
+>
+> The persistent reviewer spawned in step 6 handles both the root-level review and all subsequent child-level reviews. This is intentional and safe: the bias guarantee is preserved because the reviewer's initial instructions for each review come from a distinct lead-authored task on the shared task list — not from the writer or from prior review context.
 
 ### 4. Create the Agent Team
 
@@ -242,9 +259,11 @@ Once the creation/review task pairs are on the shared task list, the writer and 
    SendMessage({ to: "<writer-name>", summary: "<parent-id> begin assigned work", message: "begin assigned work" })
    ```
    Substitute the actual parent issue ID (e.g., `F-my-feature`) for `<parent-id>`. Do NOT embed instructions in this nudge — the writer reads its own task-list entries. This nudge exists solely to wake the writer from its initial idle state.
+
+   > **Authoritative start signal**: This `SendMessage` nudge is the single authoritative activation trigger for the writer. When the lead sets `owner` on a task-list entry via `TaskUpdate`, the runtime automatically emits a `task_assignment` DM to that teammate as an invisible side-effect. That DM is **informational only** — writers and reviewers MUST NOT begin work on receipt of a `task_assignment` DM. Work begins only when the explicit `SendMessage` nudge above arrives.
 2. Writer claims a creation task via `TaskUpdate` (via its normal claim mechanism).
 3. Writer creates the child issue, marks the creation task done.
-4. Writer sends an instruction-free activation nudge to `reviewer` via `SendMessage`.
+4. Writer sends an instruction-free activation nudge to `reviewer` via `SendMessage`. See `PROTOCOL.md` §Reviewer activation gate for the two-condition trigger the reviewer enforces.
 5. Reviewer picks up the now-unblocked review task.
 6. Reviewer either:
    - **Approves** → marks review task done via `TaskUpdate`.
@@ -259,6 +278,8 @@ As the lead, you **do not drive this loop** task-by-task. You watch (via `TaskLi
 When a teammate escalates, use `AskUserQuestion` to get a decision from the user, then respond to the teammate via `SendMessage` with the guidance. Do NOT add new work items to the task list based on user answers unless the answer genuinely reveals a new needed child issue within scope.
 
 ### 9a. Cross-Sibling Review (required for 3+ siblings; optional for ≤2)
+
+> **Note:** Cross-sibling review (step 9a) is NOT applicable at the root level because only one root issue is created per run.
 
 When the number of children created at this level is **3 or more**, the lead MUST perform a cross-sibling consistency review using a **fresh** `trellis-issue-reviewer` teammate — never the persistent per-child reviewer. Reusing the persistent reviewer biases the cross-sibling pass with opinions already formed during individual reviews; a fresh teammate sees only the cross-sibling task.
 
