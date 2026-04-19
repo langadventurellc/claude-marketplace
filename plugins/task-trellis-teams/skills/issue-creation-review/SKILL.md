@@ -109,6 +109,13 @@ When your task is a cross-sibling review (not a single-issue review), the input 
 
 **Step 5 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (overlap, gaps, prerequisite issues). If no issues, mark the cross-sibling review task done.
 
+## Teammate Mode
+
+When running as a teammate inside an agent team:
+
+- **Fix cycles**: Send findings as a single `SendMessage` to the writer (writer name is in your task-list entry). Do NOT mark the review task done. Wait for the writer to notify you when fixes are ready, then re-review. Repeat until all critical findings are resolved.
+- **Stall escalation**: If the same finding returns more than 3 times, or there is a genuine dispute, escalate via `SendMessage({ to: "team-lead", ... })`. Do NOT approve a review just to move on.
+
 ## Output
 
 Provide a verification report covering:
