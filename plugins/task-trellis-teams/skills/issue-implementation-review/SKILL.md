@@ -161,6 +161,9 @@ Return only actionable findings. Skip positive assessments, status indicators, a
 ### Recommendations
 - [file:line] [Suggested improvement with rationale]
 
+### Notes
+- [Self-report or metadata gap — non-gating, does not trigger Reconciliation Pass]
+
 ### Gaps
 - [Missing requirement or functionality from the task description]
 
@@ -199,7 +202,10 @@ No issues found.
 
 - **Evidence-based**: Support findings with specific code references (file:line)
 - **Actionable**: Recommendations should be specific and implementable
-- **Proportionate**: Don't nitpick style when substance matters more
+- **Proportionate**: Don't nitpick style when substance matters more.
+  - **Critical** = correctness failures, security vulnerabilities, completeness gaps, hard requirement gaps, dead code or unused symbols, duplicate logic that should be extracted to a shared module, cross-file or cross-task inconsistencies, stale or bit-rot references, missing unit tests on non-trivial logic, unresolved TODOs, or backwards-compat shims for unused code.
+  - **Recommendations** = genuinely optional improvements: subjective style preferences, alternative refactor suggestions the developer may decline, minor nits that do not affect production readiness.
+  - **Notes** = self-report or metadata gaps that do not affect the code or its correctness (e.g., missing `affectedFiles` entry on a scaffold task) — non-gating, do NOT trigger the Reconciliation Pass.
 - **Concise**: Only report items that require action or decision
 
 ## Cross-Task Coherence Review
@@ -233,7 +239,7 @@ Build a complete picture of: which files each task touched, what each task chang
 Evaluate the combined change set against the four categories below. For each finding, note the specific files and tasks involved.
 
 **Duplicate rules**
-Does any rule, constant, named behavior, or configuration value appear in more than one file, introduced by different tasks, in a way that could diverge over time? Examples: the same validation rule defined in two modules, the same default value hardcoded in two places, the same protocol step described twice in a SKILL.md.
+Does any rule, constant, named behavior, or configuration value appear in more than one file, introduced by different tasks, in a way that could diverge over time? Examples: the same validation rule defined in two modules, the same default value hardcoded in two places, the same protocol step described twice in a SKILL.md, the same helper function introduced independently by two tasks (duplicate logic that should instead be extracted to a shared module).
 
 **Conflicting edits**
 Do any two tasks' changes contradict each other in the same file section? Examples: one task adds a rule saying "always X" and another adds a rule saying "never X" in the same instruction block; one task removes a constraint that another task relies on.
@@ -242,7 +248,7 @@ Do any two tasks' changes contradict each other in the same file section? Exampl
 Did any task implement behavior that a sibling task was also supposed to own, creating unintended overlap? Examples: both tasks added handling for the same edge case independently, two tasks both modified the same section of a shared file beyond what their individual scopes required.
 
 **Broken cross-task invariants**
-Does the combined change set violate any invariant that held before the run? Examples: a shared protocol that both tasks touched in incompatible ways, a documented constraint in one task's changes that another task's changes silently break, a section-level structure (ordering, numbering, naming) that two tasks modified in incompatible ways.
+Does the combined change set violate any invariant that held before the run? Examples: a shared protocol that both tasks touched in incompatible ways, a documented constraint in one task's changes that another task's changes silently break, a section-level structure (ordering, numbering, naming) that two tasks modified in incompatible ways, a function removed by one task that another task's code still references (stale or bit-rot reference), a symbol introduced by one task but rendered unused by another task's changes (dead code created by the combined edit).
 
 #### 3. Produce findings
 
@@ -257,6 +263,9 @@ Use the same `## Review Findings` format as per-task reviews:
 ### Recommendations
 - [file:line or task scope] [Suggested improvement with rationale]
 
+### Notes
+- [Self-report or metadata gap — non-gating, does not trigger Reconciliation Pass]
+
 ### Gaps
 - [Cross-task requirement or consistency property that is missing]
 
@@ -266,7 +275,7 @@ Use the same `## Review Findings` format as per-task reviews:
 
 **Scope-tag convention (Critical findings only).** Every Critical finding MUST begin with one of these tags so the lead can mechanically triage between auto-remediation and user escalation:
 
-- `[in-scope]` — The fix is a mechanical edit to files already modified by implemented tasks in this run. No new Trellis issues, no design decisions, no unmodified-file edits required.
+- `[in-scope]` — The fix is a mechanical edit to files already modified by implemented tasks in this run. No new Trellis issues, no design decisions, no unmodified-file edits required. Examples: deleting dead code in a file already touched by this run, extracting a duplicate helper from already-modified files.
 - `[requires-user-decision]` — The fix requires a design choice, policy judgment, or disambiguation of intent that a fresh developer should not make alone.
 - `[out-of-scope]` — The fix requires changes to files not touched by this run, or implies work that would create new Trellis issues.
 

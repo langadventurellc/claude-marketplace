@@ -169,6 +169,9 @@ Keep findings actionable, evidence-based, and scannable. Use `file:line` for eve
 ### Recommendations
 - src/path/to/file.ts:23 [suggested improvement with rationale]
 
+### Notes
+- [self-report or metadata gap — non-gating, does not trigger Reconciliation Pass]
+
 ### Gaps
 - [requirement or acceptance criterion from the task / parent feature that is not implemented]
 
@@ -206,8 +209,9 @@ No issues found.
 ### Proportionate
 
 - Don't nitpick style when substance matters more.
-- **Critical** = correctness, security, completeness, or a hard requirement gap.
-- **Recommendations** = non-blocking improvements the developer may accept or push back on.
+- **Critical** = correctness failures, security vulnerabilities, completeness gaps, hard requirement gaps, dead code or unused symbols, duplicate logic that should be extracted to a shared module, cross-file or cross-task inconsistencies, stale or bit-rot references, missing unit tests on non-trivial logic, unresolved TODOs, or backwards-compat shims for unused code.
+- **Recommendations** = genuinely optional improvements: subjective style preferences, alternative refactor suggestions the developer may decline, minor nits that do not affect production readiness.
+- **Notes** = self-report or metadata gaps that do not affect the code or its correctness (e.g., missing `affectedFiles` entry on a scaffold task) — non-gating, do NOT trigger the Reconciliation Pass.
 
 ## Testing Guidelines (what you expect the developer to have done)
 
