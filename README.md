@@ -45,8 +45,8 @@ Integrates [mise](https://mise.jdx.dev/) task runner with Task Trellis for autom
 Agent Teams-based variant of Task Trellis issue creation and implementation. Uses Claude Code's experimental Agent Teams so a writer and reviewer (or developer and reviewer) coordinate directly via `SendMessage` instead of routing through the lead session.
 
 **Features:**
-- `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops
-- `/implement-trellis-issues` — fresh developer/reviewer pair per leaf task, with optional `--commit` and `--docs` flags
+- `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops; cross-sibling consistency pass (3+ siblings) uses a fresh reviewer to avoid bias
+- `/implement-trellis-issues` — fresh developer/reviewer pair per leaf task; automatic cross-task coherence review after 3+ sibling tasks complete; optional `--commit` and `--docs` flags
 
 Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 

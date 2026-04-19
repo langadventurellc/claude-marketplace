@@ -183,3 +183,87 @@ No issues found.
 - **Actionable**: Recommendations should be specific and implementable
 - **Proportionate**: Don't nitpick style when substance matters more
 - **Concise**: Only report items that require action or decision
+
+## Cross-Task Coherence Review
+
+When your task-list entry asks you to perform a **Cross-Task Coherence Review**, follow this section instead of the per-task review process above.
+
+### Goal
+
+Verify that the combined change set across all sibling tasks is internally consistent — no duplicate rules, no conflicting edits, no scope overlap, no broken shared invariants.
+
+### Inputs
+
+Your task-list entry provides:
+
+- **Feature ID and title**: The shared parent feature.
+- **Implemented task IDs**: The complete list of `T-xxx` tasks to review together.
+
+### Process
+
+#### 1. Gather the full sibling context
+
+For each implemented task ID:
+
+- Call `get_issue` to retrieve the task body, modified files, and implementation log.
+- Read every file listed in the task's modified files.
+
+Build a complete picture of: which files each task touched, what each task changed in those files, and what each task's stated scope was.
+
+#### 2. Apply the coherence rubric
+
+Evaluate the combined change set against the four categories below. For each finding, note the specific files and tasks involved.
+
+**Duplicate rules**
+Does any rule, constant, named behavior, or configuration value appear in more than one file, introduced by different tasks, in a way that could diverge over time? Examples: the same validation rule defined in two modules, the same default value hardcoded in two places, the same protocol step described twice in a SKILL.md.
+
+**Conflicting edits**
+Do any two tasks' changes contradict each other in the same file section? Examples: one task adds a rule saying "always X" and another adds a rule saying "never X" in the same instruction block; one task removes a constraint that another task relies on.
+
+**Scope creep across tasks**
+Did any task implement behavior that a sibling task was also supposed to own, creating unintended overlap? Examples: both tasks added handling for the same edge case independently, two tasks both modified the same section of a shared file beyond what their individual scopes required.
+
+**Broken cross-task invariants**
+Does the combined change set violate any invariant that held before the run? Examples: a shared protocol that both tasks touched in incompatible ways, a documented constraint in one task's changes that another task's changes silently break, a section-level structure (ordering, numbering, naming) that two tasks modified in incompatible ways.
+
+#### 3. Produce findings
+
+Use the same `## Review Findings` format as per-task reviews:
+
+```
+## Review Findings
+
+### Critical (must fix)
+- [file:line or task scope] [Specific cross-task issue that must be addressed]
+
+### Recommendations
+- [file:line or task scope] [Suggested improvement with rationale]
+
+### Gaps
+- [Cross-task requirement or consistency property that is missing]
+
+### Questions
+- [Item needing lead or user clarification]
+```
+
+Apply the same output rules: omit empty sections; if no findings, return only `No issues found.`
+
+### Teammate Mode (coherence review)
+
+When running as a teammate performing a coherence review:
+
+- **Read-only**: Do NOT modify any files.
+- **No new issues**: Do NOT create new Trellis issues.
+- **Report to lead**: Send findings as a single `SendMessage` to the lead (not to individual developers — the lead decides how to route fixes). Do NOT mark the task-list entry done until the lead confirms findings are resolved or accepts the review.
+- **Mark done**: When the lead confirms the review is complete, mark your task-list entry `done` via `TaskUpdate`.
+
+---
+
+## Teammate Mode
+
+When running as a teammate inside an agent team:
+
+- **Fix cycles**: Send all findings as a single `SendMessage` to the paired developer (developer name is in your task-list entry). Do NOT mark the review task-list entry done. Wait for the developer's fix notification, then re-review. Repeat until no critical findings remain.
+- **Read-only**: Do NOT modify any files.
+- **No new issues**: Do NOT create new Trellis issues. If findings fall outside the current task's scope, include them in your review message for the lead to decide.
+- **Mark done**: When approved, mark your task-list entry `done` via `TaskUpdate`.

@@ -91,6 +91,8 @@ Ask questions when:
 
 Use `complete_task` with task ID, summary, and files changed.
 
+**Teammate mode — Notify reviewer**: After `complete_task`, send an instruction-free `SendMessage` activation nudge to your paired reviewer. The reviewer's name is in your task-list entry. Mark your task-list entry `done` only after the nudge is sent.
+
 **STOP!** - Complete one task only. Do not implement another task.
 
 ### 6. Final Response

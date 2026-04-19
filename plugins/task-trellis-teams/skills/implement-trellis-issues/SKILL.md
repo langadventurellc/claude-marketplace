@@ -40,7 +40,7 @@ Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-
 Complete every planned leaf task under the given scope by:
 
 1. Walking the issue tree under the scope and enumerating ready leaf tasks (respecting prerequisites and status).
-2. For each ready task, spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair and authoring two lead-owned task-list entries (impl task → review task with prerequisite).
+2. For each ready task, authoring two lead-owned task-list entries (impl task → review task with prerequisite), then spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair.
 3. Letting the pair coordinate implementation, review, and fix cycles via direct `SendMessage`.
 4. Shutting down the pair on approval and moving to the next ready task.
 5. Optionally updating documentation (`--docs`) and/or committing all changes in a single commit (`--commit`).
@@ -115,7 +115,57 @@ Team size: lead plus up to the maximum number of concurrent pairs you plan to ru
 
 For each ready leaf task in the queue, the lead executes this lifecycle. Multiple ready tasks may run in parallel (see "Parallelism" below).
 
-### 1. Spawn a fresh pair
+### 1. Author the two task-list entries (lead only)
+
+The lead owns both entries. Initial instructions MUST come from the lead — never from another teammate. This preserves the bias guarantee (reviewer is not framed by developer's perspective, and vice versa).
+
+**Impl task** (claimable by the developer immediately):
+
+```
+Implement Trellis task T-<task-id> (<task title>).
+
+Parent feature: F-<feature-id> (<feature title>)
+
+Read task body: `mcp__plugin_task-trellis-teams_task-trellis__get_issue` with T-<task-id>.
+
+Skill: `task-trellis-teams:issue-implementation` (or read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly).
+
+Paired reviewer: <reviewer teammate name>. Nudge them (instruction-free `SendMessage`) when done.
+
+Mark this task-list entry `done` after nudge sent.
+```
+
+**Review task** (prerequisite: the impl task; claimable only after impl is done):
+
+```
+Review implementation of Trellis task T-<task-id> (<task title>).
+
+Parent feature: F-<feature-id> (<feature title>)
+
+Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly).
+
+Paired developer: <developer teammate name>.
+
+Mark this task-list entry `done` when approved.
+```
+
+Set the review task's dependency on the impl task using the two-step `TaskCreate` → `TaskUpdate` pattern. `TaskCreate` does not accept dependencies at creation time; create both tasks first (capturing their returned task IDs), then declare the dependency:
+
+```
+implTaskId = TaskCreate({ "subject": "impl-T-<task-id>", "description": "<impl task body above>" })
+reviewTaskId = TaskCreate({ "subject": "review-T-<task-id>", "description": "<review task body above>" })
+
+TaskUpdate({
+  "taskId": reviewTaskId,
+  "addBlockedBy": [implTaskId]
+})
+```
+
+Persist the name→ID map for the run so you can reference these tasks in later updates (assigning owners via `TaskUpdate({ taskId, owner })`, marking completed via `TaskUpdate({ taskId, status: "completed" })`, etc.). `TaskUpdate` identifies tasks by `taskId`, not by subject.
+
+This dependency blocks the review task-list entry until the impl entry is marked `completed`, so the reviewer cannot claim it early.
+
+### 2. Spawn a fresh pair
 
 Spawn two teammates tied to this one task:
 
@@ -138,90 +188,19 @@ The `Task` tool accepts an optional `model` parameter at spawn time that takes p
 
 - **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus"`. Do NOT rely on frontmatter alone — pass `model: "opus"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
 
-### 2. Author the two task-list entries (lead only)
-
-The lead owns both entries. Initial instructions MUST come from the lead — never from another teammate. This preserves the bias guarantee (reviewer is not framed by developer's perspective, and vice versa).
-
-**Impl task** (claimable by the developer immediately):
-
-```
-Title: Implement T-<task-id>
-
-Body:
-Implement Trellis task T-<task-id> (<task title>).
-
-Parent feature: F-<feature-id> (<feature title>)
-
-Workflow:
-1. Read the task body via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for full requirements.
-2. Follow the research-and-plan → clarify → implement → test workflow described in
-   `task-trellis-teams:issue-implementation` (the SKILL.md file inside this plugin).
-   If the `Skill` tool is unavailable to you as a teammate, open
-   `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly and
-   follow it.
-3. Mark the Trellis task `done` via `complete_task` only after your own quality
-   checks (tests, lint, type checks) pass.
-4. Do NOT commit. Leave changes uncommitted for review.
-5. Do NOT create new Trellis issues. If you hit a blocker that requires new work,
-   message the lead directly.
-6. When the task is done, send a content-free `SendMessage` activation nudge to
-   your paired reviewer (<reviewer teammate name>).
-
-Mark this task-list entry `done` when the implementation is complete and your
-nudge has been sent.
-```
-
-**Review task** (prerequisite: the impl task; claimable only after impl is done):
-
-```
-Title: Review T-<task-id>
-
-Body:
-Review the implementation of Trellis task T-<task-id> (<task title>).
-
-Parent feature: F-<feature-id> (<feature title>)
-
-Workflow:
-1. Follow `task-trellis-teams:issue-implementation-review` (SKILL.md in this plugin).
-   If the `Skill` tool is unavailable, open
-   `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly.
-2. Review the uncommitted changes the developer produced for T-<task-id> for
-   correctness, completeness, and simplicity.
-3. If you have findings, send them as a single `SendMessage` to the paired
-   developer (<developer teammate name>). Wait for the developer to notify you
-   when fixes are ready, then re-review.
-4. When there are no blocking findings, mark this task-list entry `done`.
-5. Do NOT modify files. You are read-only.
-6. Do NOT create new Trellis issues. If findings fall outside the scope of the
-   current task, note them in your review message and let the lead decide.
-```
-
-Set the review task's dependency on the impl task using the two-step `TaskCreate` → `TaskUpdate` pattern. `TaskCreate` does not accept dependencies at creation time; create both tasks first (capturing their returned task IDs), then declare the dependency:
-
-```
-implTaskId = TaskCreate({ "subject": "impl-T-<task-id>", "description": "<impl task body above>" })
-reviewTaskId = TaskCreate({ "subject": "review-T-<task-id>", "description": "<review task body above>" })
-
-TaskUpdate({
-  "taskId": reviewTaskId,
-  "addBlockedBy": [implTaskId]
-})
-```
-
-Persist the name→ID map for the run so you can reference these tasks in later updates (assigning owners via `TaskUpdate({ taskId, owner })`, marking completed via `TaskUpdate({ taskId, status: "completed" })`, etc.). `TaskUpdate` identifies tasks by `taskId`, not by subject.
-
-This dependency blocks the review task-list entry until the impl entry is marked `completed`, so the reviewer cannot claim it early.
-
 ### 3. Pair executes autonomously
 
 The lead does not intervene once the pair is running. Expected flow:
 
-0. **Lead sends start nudge.** After authoring the two task-list entries for this pair (impl + review), the lead MUST send a content-free `SendMessage` to the developer:
+0. **Lead sends start nudge.** After authoring the two task-list entries for this pair (impl + review), the lead MUST send a `SendMessage` to the developer:
    ```
-   SendMessage({ to: "<developer-name>", summary: "begin assigned work", message: "begin assigned work" })
+   SendMessage({ to: "<developer-name>", summary: "T-<task-id> begin assigned work", message: "begin assigned work" })
    ```
-   The reviewer does not need a nudge — its task is blocked until the developer completes.
-1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a content-free `SendMessage` nudge to the reviewer.
+   Substitute the actual Trellis task ID for `T-<task-id>`. The reviewer does not need a nudge — its task is blocked until the developer completes.
+1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a `SendMessage` nudge to the reviewer:
+   ```
+   SendMessage({ to: "<reviewer-name>", summary: "T-<task-id> review ready", message: "review ready" })
+   ```
 2. Reviewer's task-list entry unblocks. Reviewer claims it, reviews the changes, and either:
    - **Approves:** Marks the review task-list entry done.
    - **Has findings:** `SendMessage` directly to the developer with findings. Does NOT mark the review task done.
@@ -291,6 +270,35 @@ If a developer sends a direct message to the lead saying "I can't complete T-xxx
 ## Completion Phase
 
 When every task in the implementation queue is either `done`, `wont-do`, or skipped by user direction, and all pairs have been shut down:
+
+### 0. Cross-Task Coherence Review
+
+**Required** when 3 or more sibling tasks were implemented in this run under a shared feature. **Optional** (lead discretion) for ≤2 sibling tasks.
+
+**Overlapping-files criteria:** Collect the modified-files lists reported by developers during the run (via `append_modified_files` / `affectedFiles` on each Trellis task). If two or more implemented tasks touched the same file path, they overlap. When file-level data is unavailable, default to running the review whenever 3+ tasks were implemented.
+
+When the review applies, the lead authors a **single** cross-task coherence review task-list entry and spawns a **fresh** `trellis-implementation-reviewer` teammate (not one of the per-task reviewers, which are already shut down). Use a name like `rev-coherence-<scope-id>`.
+
+**Task-list entry body:**
+
+```
+Title: coherence-review-<scope-id>
+
+Body:
+Perform a Cross-Task Coherence Review for the sibling tasks implemented under <feature-id> (<feature-title>) in this run.
+
+Implemented task IDs: <comma-separated list of T-xxx IDs>
+
+Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly).
+
+Follow the "Cross-Task Coherence Review" section of that skill. Read each implemented task via `get_issue`, examine all modified files across the sibling set, and produce findings in `## Review Findings` format.
+
+Mark this task-list entry `done` when the coherence review is complete.
+```
+
+Spawn this reviewer with `model: "opus"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
+
+If the coherence review surfaces Critical findings, present them to the user via `AskUserQuestion`. Do NOT fix them from the lead — spawn a fresh developer teammate per affected task, following the same hook-failure recovery pattern in step 2 below.
 
 ### 1. Documentation (only if `--docs`)
 
@@ -366,7 +374,7 @@ Produce a concise final message covering:
 ## Important Constraints
 
 - **Orchestration only.** The lead does NOT write or debug code. The lead spawns teammates, authors task-list entries, routes errors back to teammates, and commits approved changes. That is all.
-- **Bias guarantee — initial instructions come from the lead only.** Every teammate receives its initial instructions from a lead-authored task-list entry. Teammates never pass initial instructions to each other. Direct `SendMessage` is only for (a) content-free activation nudges and (b) fix-cycle iteration after the initial unbiased instructions.
+- **Bias guarantee — initial instructions come from the lead only.** Every teammate receives its initial instructions from a lead-authored task-list entry. Teammates never pass initial instructions to each other. Direct `SendMessage` is only for (a) instruction-free activation nudges and (b) fix-cycle iteration after the initial unbiased instructions.
 - **Fresh pair per issue.** Each leaf task gets its own developer and reviewer pair. Both teammates are shut down on approval. Nothing carries over to the next task.
 - **No new Trellis issues.** The lead, developer, and reviewer NEVER create new Trellis issues during an implementation run. Unplanned work is logged and/or reported to the user at the end — not materialized as issues.
 - **Unplanned non-leaf skip.** If a non-leaf issue has no children, skip it and continue to siblings. Never synthesize children for it.
@@ -390,6 +398,6 @@ Produce a concise final message covering:
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>
   <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
-  <critical>After authoring a pair's task-list entries, the lead MUST send "begin assigned work" to the developer via SendMessage before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
+  <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
   <important>Spawn the developer (`trellis-developer`) with the default `sonnet` model unless the task warrants Opus (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating to Opus, log the reason via `append_issue_log`.</important>
 </rules>
