@@ -78,11 +78,29 @@ Retrieve the full context for the implemented task:
 
 ### 2. Review Changed Files
 
-For each file listed in the task's modified files:
+In a multi-task run the working tree may contain changes from sibling tasks on the same branch. Scope your review to the files this task actually changed:
 
-- **Read the file**: Examine the actual code changes
-- **Understand the changes**: What was added, modified, or removed?
-- **Check related files**: Look at imports, tests, and integration points
+1. Run `git diff --stat <base-branch>...HEAD` to see the full branch diff. Compare this output against the task's `modifiedFiles` list.
+2. For each file in `modifiedFiles`: run `git diff <base-branch>...HEAD -- <file>` to see only that file's changes, then `Read` the full file for context.
+3. **Flag mismatches**: If a file appears in `git diff --stat` output but is absent from `modifiedFiles`, that is a blocking finding — the developer self-report is incomplete. If a file is in `modifiedFiles` but has no diff, note it (may indicate a no-op or stale entry).
+
+Do NOT review files outside `modifiedFiles` as part of this task's correctness check. Off-scope files may have been changed by sibling tasks and are not your responsibility here.
+
+> **Note**: The base branch is typically `main`; determine it via `git symbolic-ref refs/remotes/origin/HEAD` or by checking `git log --oneline` context.
+
+#### Scope-creep tolerance
+
+When a file in `modifiedFiles` contains changes beyond what the task description requires, apply this rule:
+
+- **Block** when off-scope changes introduce new behavior, alter correctness, or contradict a sibling task's scope.
+- **Note (Recommendations)** when off-scope changes are minor and low-risk (e.g., a typo fix or a formatting correction the developer made while in the file).
+- **Ignore** when the off-scope change is trivially correct and the developer did not claim it as part of their scope (no mention in the task summary or log).
+
+Always confirm the off-scope change is not already owned by a sibling task before flagging it.
+
+#### Terminology and consistency tasks
+
+If the task's goal is to rename a term, align a phrase across files, or enforce a consistency rule, do NOT trust the `modifiedFiles` list alone. Run `Grep` across the full working-tree diff for the old term and the new term to verify the rename is complete. A missed occurrence not listed in `modifiedFiles` is a blocking finding (the developer omitted a changed file from their self-report).
 
 ### 3. Correctness Review
 
@@ -254,8 +272,8 @@ When running as a teammate performing a coherence review:
 
 - **Read-only**: Do NOT modify any files.
 - **No new issues**: Do NOT create new Trellis issues.
-- **Report to lead**: Send findings as a single `SendMessage` to the lead (not to individual developers — the lead decides how to route fixes). Do NOT mark the task-list entry done until the lead confirms findings are resolved or accepts the review.
-- **Mark done**: When the lead confirms the review is complete, mark your task-list entry `done` via `TaskUpdate`.
+- **Report to lead**: Send findings as a single `SendMessage` to the lead (not to individual developers — the lead decides how to route fixes).
+- **Mark done**: Mark this task-list entry `completed` via `TaskUpdate` when the coherence review is complete (the lead will decide how to act on any findings).
 
 ---
 

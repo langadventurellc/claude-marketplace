@@ -39,9 +39,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a new Project via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"project"`), using `issue-creation/project.md` as the authoring guide.
-- Team then creates Epics under that project.
-- Strongly consider `--recursive` so the run continues down to features and tasks.
+- The lead authors a root creation task + review task pair for a Project (no parent, type project; reference `issue-creation/project.md` as the authoring guide in the creation task body). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Epic-level task pairs. Strongly consider `--recursive` so the run continues down to features and tasks.
 
 ### 2. Epic
 
@@ -53,9 +51,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a standalone Epic via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"epic"`, no parent), using `issue-creation/epic.md` as the authoring guide.
-- Team then creates Features under that epic.
-- Consider `--recursive` if the user expects leaf-level work produced in one pass.
+- The lead authors a root creation task + review task pair for an Epic (no parent, type epic; reference `issue-creation/epic.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Feature-level task pairs. Consider `--recursive` if the user expects leaf-level work in one pass.
 
 ### 3. Feature
 
@@ -67,9 +63,7 @@ Strong signals:
 
 Action if matched:
 
-- Lead creates a standalone Feature via `mcp__plugin_task-trellis-teams_task-trellis__create_issue` (type `"feature"`, no parent), using `issue-creation/feature.md` as the authoring guide.
-- Team then creates Tasks under that feature.
-- Do NOT set `--recursive` — tasks are already the leaf level.
+- The lead authors a root creation task + review task pair for a Feature (no parent, type feature; reference `issue-creation/feature.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Task-level task pairs. Do NOT set `--recursive` — tasks are already the leaf level.
 
 ### 4. Task(s) only
 
@@ -81,18 +75,19 @@ Strong signals:
 
 Action if matched:
 
-- Running the writer/reviewer team for a single task is not worth the orchestration overhead. Stop the team-based flow and hand the request off to the sibling `task-trellis-teams:issue-creation` skill (or create the task directly via `mcp__plugin_task-trellis-teams_task-trellis__create_issue`), then report back to the user.
+- Running the writer/reviewer team for a single task is not worth the orchestration overhead. Stop the team-based flow and hand the request off to the sibling `task-trellis-teams:issue-creation` skill, then report back to the user.
 - If there are a few clearly independent tasks and the user wants team-reviewed authoring, only create a standalone Feature umbrella when it adds real organizational value; otherwise prefer the direct path above.
 
 ## Applying the result
 
 Once the root level is determined (for Project / Epic / Feature cases):
 
-1. **Create the root issue yourself** with `mcp__plugin_task-trellis-teams_task-trellis__create_issue` before creating the team. Use the matching type-specific file in the sibling `issue-creation` skill as the authoring guide for the root.
-2. **Use the just-created issue's ID as the parent** and return to `SKILL.md` step 3's parent-type table to determine the child type for the team run.
-3. **Continue with the rest of `SKILL.md`** (team creation, spawning teammates, authoring child creation/review task pairs, etc.).
-
-The determination adds at most one `create_issue` call to the lead's workload before the team flow begins.
+1. Create the agent team (SKILL.md step 4) — `TeamCreate` produces the shared task list that subsequent `TaskCreate` calls require.
+2. Author a root creation task + review task pair on the shared task list (step 5a/5b templates; omit `parent` from the creation task description).
+3. Spawn the persistent reviewer (step 6) and a writer for the root level (step 7). The same persistent reviewer handles both the root-level review and all child-level reviews — this is safe because each review task is a distinct lead-authored entry on the shared task list.
+4. Send the 'begin assigned work' nudge and wait for root approval (all root tasks marked done).
+5. Use the root issue ID from the creation task's metadata (`createdIssueId`) as the parent for child-level task pairs.
+6. Continue with the rest of SKILL.md (spawn a fresh writer for the child level, author child creation/review task pairs, etc.).
 
 ## When to escalate to the user
 

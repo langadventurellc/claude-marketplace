@@ -23,6 +23,7 @@ All inputs are optional — any combination is accepted:
 - **Work-item reference** — an ID, URL, or title from the project's ticket system (Trellis, Jira, Linear, GitHub Issues, etc.). Resolve it if a tool for that system is available; otherwise treat it as an identifier to quote in the summary.
 - **Description** — freeform text describing what was done.
 - **Git ref range** — e.g., `main...HEAD`, `v1.2.0..HEAD`, a specific commit. Used for the authoritative diff.
+- **Version bump** — `--version [major|minor|patch]` (optional). When present without a value, the skill infers the appropriate bump level from the diff per the semver rules in `reference/semver-guide.md`. When present with a value, the specified level is used. Accept alongside any combination of the other inputs.
 
 **If no input is supplied**, default to `git diff <default-branch>...HEAD`. Detect the default branch via `git symbolic-ref refs/remotes/origin/HEAD`, then fall back to `main`, then `master`.
 
@@ -52,6 +53,25 @@ Documentation updates are needed only when code changes affect what a reader of 
 
 **Skip** pure refactors, internal renames, formatting, test-only changes, and fixes that don't alter documented behavior. If nothing in the change touches documented surface area, report "no updates needed" and stop.
 
+### 2.5. Version file discovery (when `--version` is set)
+
+If `--version` was not passed, skip this section entirely.
+
+Identify version files in the repo that correspond to the diff scope. Check in this priority order using `Glob` and `Read`:
+
+1. `package.json` — look for a `"version"` field.
+2. `pyproject.toml` — look for `version = "..."` under `[project]` or `[tool.poetry]`.
+3. `Cargo.toml` — look for `version = "..."` under `[package]`.
+4. `VERSION` — a plain-text version file at the repo root.
+5. `plugin.json` files under `.claude-plugin/` directories — look for a `"version"` field.
+6. Other common patterns: `version.py`, `__version__.py`, `setup.cfg`, `gradle.properties`.
+
+**Monorepo rule**: Only bump version files that correspond to the packages or plugins the diff actually touches. Do NOT bump every version file in the repo when only one plugin or package changed. Use `git diff --stat` output to determine which directory the changes are concentrated in, then match that to the nearest version file.
+
+**Project-specific rules override defaults**: Before applying any bump, look for project-level versioning policy — a `VERSIONING.md`, a versioning section in `CONTRIBUTING.md`, or explicit guidance in `CLAUDE.md`/`AGENTS.md`. If found, follow it instead of the generic semver rules in `reference/semver-guide.md`.
+
+Collect the list of version files to bump; carry it into §4.
+
 ### 3. Discover documentation targets
 
 In priority order:
@@ -73,6 +93,7 @@ For each file that needs changes:
 - When editing `CLAUDE.md` or `AGENTS.md`, consult `reference/agent-instructions-guide.md` for authoring conventions.
 - Do not add placeholders, TODOs, or "this section may need expansion" notes.
 - Do not create new documentation files unless an existing file cannot reasonably host the content and the project has a pattern for adding one (e.g., a `docs/` directory with ADRs).
+- **If `--version` was passed**: For each version file identified in §2.5, read the current version string, compute the new version per `reference/semver-guide.md` (or per project policy if found), and apply the bump using `Edit`. Include bumped version files in the "Files Updated" output below. Consult `reference/semver-guide.md` for the bump decision rules.
 
 ### 5. Report
 
@@ -83,6 +104,10 @@ After edits, produce a summary in this format:
 
 ### Files Updated
 - `path/to/file.md`: <one-line description of what changed and why>
+
+### Version Bumps
+*(Omit this section when `--version` was not passed.)*
+- `path/to/version-file`: `<old-version>` → `<new-version>` (<bump-level> bump)
 
 ### Summary
 <2-3 sentences: what changed in the code, what doc surface it affected, what was updated>

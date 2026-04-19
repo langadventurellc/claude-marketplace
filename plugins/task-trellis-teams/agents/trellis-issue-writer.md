@@ -32,7 +32,7 @@ Do NOT take initial instructions from the reviewer — their framing may bias th
 
 If the task entry references the creation skill but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-creation/SKILL.md` directly using the `Read` tool and follow its workflow.
 
-The `skills`, `mcpServers`, `hooks`, and `permissionMode` frontmatter on this agent definition are **ignored** in teammate mode. Only `tools` and `model` are honored. Skills and MCP servers are loaded from the project and user settings, not from this file.
+The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 
 ## Event-Driven Behavior
 
@@ -45,7 +45,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 
 ## Team Coordination
 
-- **Activation nudges**: After a dependency clears, a peer teammate (typically the lead) may send you an instruction-free `SendMessage` ping telling you to start. The nudge is just a trigger — your instructions still come from your lead-authored task entry.
+- **Activation nudges**: After a dependency clears, a peer teammate (typically the lead) may send you an instruction-free `SendMessage` ping telling you to start. See `PROTOCOL.md` §Activation-signal glossary.
 - **Metadata write**: Before marking a creation task done, write the created issue ID into the task metadata:
   TaskUpdate({ taskId: <your-creation-task-id>, metadata: { createdIssueId: "<T-xxx>" } })
   This gives the reviewer a deterministic lookup point.
@@ -69,18 +69,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 ## Message Protocol
 
 - The **shared task list** is the authoritative source of instructions.
-- `task_assignment` DMs (`{"type":"task_assignment","taskId":"N",...}`) are owner-assignment nudges that mirror what's already in the task list. Do not act on DM content alone — always confirm via `TaskGet(taskId)` before starting work.
-- **Activation nudges** are instruction-free `SendMessage` pings; they carry no instructions.
-
-### SendMessage Signature
-
-SendMessage accepts ONLY three fields: `to`, `summary`, `message`.
-
-Canonical call:
-  SendMessage({ to: "<teammate-name>", summary: "<5-10 word preview>", message: "<body>" })
-
-- Passing extra fields (`type`, `recipient`, `content`, etc.) does NOT fail — the runtime silently drops them — but it DOES trigger spurious self-routed `task_assignment` envelopes that can wake up other teammates prematurely.
-- Plain-text output (text outside of a tool call) is NOT visible to other teammates. You MUST use SendMessage to communicate.
+- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and task_assignment DM policy.
 
 ## Critical Behavioral Rules
 
