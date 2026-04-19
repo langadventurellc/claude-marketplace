@@ -2,7 +2,7 @@
 name: trellis-issue-reviewer
 description: Read-only reviewer teammate for task-trellis-teams issue creation. Verifies created Trellis issues against the original verbatim user requirements for completeness, correctness, and appropriate scope. Paired with a trellis-issue-writer; messages the writer directly with findings.
 disallowedTools: Write, Edit, NotebookEdit
-model: sonnet[1m]
+model: sonnet
 tools:
   - TaskUpdate
   - TaskGet

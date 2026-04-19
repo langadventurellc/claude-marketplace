@@ -191,13 +191,13 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 The `Task` tool accepts an optional `model` parameter at spawn time that takes precedence over the agent definition's frontmatter `model`. Use it as follows:
 
-- **Developer (`trellis-developer`):** Default is `sonnet[1m]` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus[1m]"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
+- **Developer (`trellis-developer`):** Default is `sonnet` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus[1m]"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
   - The task involves non-trivial architectural decisions, cross-cutting refactors, or subtle concurrency/state logic.
   - The task body, parent feature, or technical-discovery output flags it as complex, high-risk, or security-sensitive (auth, crypto, data migration, permissions).
   - The task has failed a prior implementation attempt and is being retried.
   - The task body is long or vague in a way that suggests the implementer will need significant reasoning to fill in gaps.
 
-  Otherwise, pass `model: "sonnet[1m]"` explicitly at spawn time — do NOT omit `model`, because omitting it would strip the `[1m]` suffix from the frontmatter value, silently losing the 1M context window. Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
+  Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
 
 - **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus[1m]"`. Do NOT rely on frontmatter alone — pass `model: "opus[1m]"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
 
@@ -531,5 +531,5 @@ Produce a concise final message covering:
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
   <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus[1m]"` passed explicitly to `Task`, regardless of task complexity.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
-  <important>Spawn the developer (`trellis-developer`) with `model: "sonnet[1m]"` by default — always pass this explicitly at spawn time, never omit it. Escalate to `model: "opus[1m]"` only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the reason via `append_issue_log`.</important>
+  <important>Spawn the developer (`trellis-developer`) with default model. Escalate to `model: "opus[1m]"` only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the reason via `append_issue_log`.</important>
 </rules>
