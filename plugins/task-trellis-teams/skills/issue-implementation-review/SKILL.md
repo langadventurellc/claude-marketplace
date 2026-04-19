@@ -252,7 +252,7 @@ Use the same `## Review Findings` format as per-task reviews:
 ## Review Findings
 
 ### Critical (must fix)
-- [file:line or task scope] [Specific cross-task issue that must be addressed]
+- [scope-tag] [file:line or task scope] [Specific cross-task issue that must be addressed]
 
 ### Recommendations
 - [file:line or task scope] [Suggested improvement with rationale]
@@ -263,6 +263,14 @@ Use the same `## Review Findings` format as per-task reviews:
 ### Questions
 - [Item needing lead or user clarification]
 ```
+
+**Scope-tag convention (Critical findings only).** Every Critical finding MUST begin with one of these tags so the lead can mechanically triage between auto-remediation and user escalation:
+
+- `[in-scope]` — The fix is a mechanical edit to files already modified by implemented tasks in this run. No new Trellis issues, no design decisions, no unmodified-file edits required.
+- `[requires-user-decision]` — The fix requires a design choice, policy judgment, or disambiguation of intent that a fresh developer should not make alone.
+- `[out-of-scope]` — The fix requires changes to files not touched by this run, or implies work that would create new Trellis issues.
+
+When in doubt between `[in-scope]` and `[requires-user-decision]`, prefer `[requires-user-decision]`. Tags apply to Critical findings only; Recommendations, Gaps, and Questions do not need them.
 
 Apply the same output rules: omit empty sections; if no findings, return only `No issues found.`
 

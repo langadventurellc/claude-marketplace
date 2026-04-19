@@ -349,7 +349,14 @@ Mark this task-list entry `completed` when the coherence review is complete (the
 
 Spawn this reviewer with `model: "opus"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
 
-If the coherence review surfaces Critical findings, present them to the user via `AskUserQuestion`. Do NOT fix them from the lead — spawn a fresh developer teammate per affected task, following the same hook-failure recovery pattern in step 2 below.
+If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
+
+- A finding requires changes to files that were not modified by any implemented task in this run.
+- A finding requires creating new Trellis issues or otherwise expanding scope beyond the implemented set (the no-new-issues rule is absolute).
+- The coherence reviewer explicitly tagged a finding `[requires-user-decision]` (design choice, policy, ambiguous intent — see the tagging convention in `task-trellis-teams:issue-implementation-review` §"Produce findings").
+- A Reconciliation Pass has already run in this session and the coherence re-review (§0a "After the pass") still returns Critical findings — treat recurrence as a signal that human judgment is needed.
+
+Otherwise, proceed into §0a directly. The lead NEVER writes code to fix findings itself — fixes are always applied by a fresh developer teammate via §0a. §0a retains its own escalation gate for in-flight scope growth (see §0a Constraints).
 
 ### §0a. Reconciliation Pass (when coherence review returns cross-task Critical findings)
 
@@ -376,6 +383,7 @@ If the coherence review surfaces Critical findings, present them to the user via
 **After the pass:**
 - If the cross-task coherence reviewer (§0) is still active, the lead must request a re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to re-approve or surface further findings before proceeding.
 - If the coherence reviewer has already been shut down, the lead verifies there are no residual issues by inspecting the change set directly or re-running the coherence review step (§0) with a fresh reviewer.
+- **Iteration cap:** Cap Reconciliation Passes at **2 per run**. If the second re-review still returns Critical findings, stop and `AskUserQuestion` — recurrence beyond two passes is a signal that automated remediation is not converging and human judgment is required.
 
 **Constraints:**
 - The lead NEVER creates new Trellis issues during a reconciliation pass. If the reconciliation scope grows beyond the original findings, STOP and surface the expansion to the user via `AskUserQuestion`.
@@ -452,6 +460,7 @@ Produce a concise final message covering:
 - **Skipped unplanned non-leaf issues** (list of IDs, one line each) — so the user can plan them if they choose.
 - **Files affected at a high level** (areas of the codebase, not exhaustive file lists).
 - **Docs updated** (yes/no).
+- **Reconciliation pass** (yes/no, and count of findings resolved if yes) — so the user has post-hoc visibility into any auto-remediation the lead performed after the coherence review.
 - **Commit SHA** (if `--commit` ran) or a clear note that uncommitted changes remain.
 - **How to verify** the changes (e.g., run the test suite, try the new CLI command, visit the endpoint).
 
@@ -479,6 +488,7 @@ Produce a concise final message covering:
   <critical>The lead owns team cleanup at the end of the run. Teammates never tear down the team.</critical>
   <critical>Pair spawning is event-driven, not wave-based: on each pair approval, immediately re-evaluate the candidate queue and spawn the next ready pair. For overlap judgment, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
+  <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Always update Trellis state (complete_task, append_issue_log) BEFORE committing, so `.trellis/` changes are included in the commit.</critical>
   <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus"` passed explicitly to `Task`, regardless of task complexity.</critical>
