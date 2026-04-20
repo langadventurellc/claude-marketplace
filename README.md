@@ -47,6 +47,8 @@ Agent Teams-based variant of Task Trellis issue creation and implementation. Use
 **Features:**
 - `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops; cross-sibling consistency pass (3+ siblings) uses a fresh reviewer to avoid bias
 - `/implement-trellis-issues` — fresh developer/reviewer pair per leaf task; wave-based parallelism (all ready candidates spawn together, queue re-evaluated after each wave drains); automatic cross-task coherence review after 3+ sibling tasks complete; optional `--commit` flag (per-wave commits + final end-of-run commit for coherence review and docs) and `--no-docs` flag
+- `/open-ui` — opens the Task Trellis browser UI by calling `get_ui_info` and launching the URL with the platform browser command
+- **SessionStart hook** — probes the UI port at session start; when reachable, injects the URL into model context so the agent knows the UI is running without being asked
 
 Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
