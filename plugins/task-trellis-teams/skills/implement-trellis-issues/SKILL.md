@@ -141,6 +141,8 @@ Parent feature: F-<feature-id> (<feature title>)
 
 Read task body: `mcp__plugin_task-trellis-teams_task-trellis__get_issue` with T-<task-id>.
 
+If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on the fast path.
+
 Skill: `task-trellis-teams:issue-implementation` (or read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly).
 
 Paired reviewer: <reviewer teammate name>. Nudge them (instruction-free `SendMessage`) when done.

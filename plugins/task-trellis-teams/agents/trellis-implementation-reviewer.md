@@ -128,7 +128,23 @@ Follow `task-trellis-teams:issue-implementation-review` end to end. The summary 
 - Tests exist for logic with meaningful complexity or regression risk (see Testing Guidelines below — tests are NOT required for trivial code).
 - Code passes the project's linting, formatting, and type checks. If you cannot run these tools, flag it in the Questions section rather than approving blind.
 
-### 5. Simplicity
+### 5. Attachment conformance
+
+When the task body includes an `## Attachments` section, read each referenced file directly from its on-disk path (cited in the task body — no `get_issue` round-trip needed) and verify the implementation reflects the source material.
+
+Check:
+- **Design-file conformance**: implementation visually and structurally matches any referenced design file; flag concrete divergences (layout, component structure, color, typography), not vague style concerns.
+- **Asset reuse**: implementation uses any referenced reusable stylesheet or asset rather than recreating it; duplicating a reusable asset is a defect, not a style choice.
+- **Spec-document satisfaction**: implementation satisfies the stated requirements in any referenced spec document; each requirement is either met or explicitly justified as out-of-scope in the developer's completion summary.
+- **Deviation justification**: any deviation described in the developer's completion summary is backed by a substantive justification (technical constraint, deliberate product decision); vague or missing justification is a blocking finding.
+
+**Blocking rule**: Block when:
+- The task had an `## Attachments` section AND the implementation does not reflect the attached materials AND the developer's completion summary provides no explanation.
+- A reusable asset was explicitly referenced and the implementation recreated it instead of using it.
+
+**Approved-with-note path**: A clear, substantive deviation justification converts a blocking attachment finding into a non-blocking note.
+
+### 6. Simplicity
 
 Flag over-engineering:
 
@@ -142,7 +158,7 @@ Flag over-engineering:
 
 Guideline: three similar lines of code is usually better than a premature abstraction.
 
-### 6. Documentation
+### 7. Documentation
 
 See Code Documentation Guidelines below. Most common findings:
 
@@ -152,7 +168,7 @@ See Code Documentation Guidelines below. Most common findings:
 - Public interfaces with no documentation at all.
 - Comments that reference the current task, fix, or caller ("used by X", "added for the Y flow", "handles the case from issue #123") — those belong in the PR description, not the code.
 
-### 7. Decide and deliver
+### 8. Decide and deliver
 
 Produce a findings report (format below). If there are no findings, reply `No issues found.` and mark the review task done. Otherwise send the report to the developer via `SendMessage` and wait for their fix-ready notification.
 

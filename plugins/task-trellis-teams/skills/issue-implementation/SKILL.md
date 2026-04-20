@@ -44,6 +44,17 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 
 ### 2. Research and Planning Phase (default — see fast-path exception below)
 
+#### Attachment consultation (mandatory — not skipped by the fast path)
+
+Before researching the codebase, check the task body for an `## Attachments` section. If one is present:
+
+1. Read each referenced file directly from its on-disk path. No `get_issue` call on the holder issue is required — the direct path in the task body is sufficient.
+2. Treat each attachment as **primary source material**, not background reading:
+   - If a design file is referenced → the implementation must visually and structurally conform to it.
+   - If a spec document is referenced → its requirements are load-bearing, not advisory.
+   - If an existing stylesheet or asset is referenced as reusable → reuse it; do not recreate it.
+3. If your implementation deviates from an attached source file, explain why in the `complete_task` summary. Unexplained deviations are treated as defects by the implementation reviewer.
+
 **Research the codebase and plan your approach:**
 
 - **Read parent issues for context**: Use `get_issue` to read the parent feature for context and requirements. Do not continue until you have claimed a task.
@@ -72,6 +83,8 @@ When the task body **fully specifies** the edit, you may skip the broad research
 **When in doubt, use the full research phase.** Fast-path is an opt-in optimization — apply it only when you are confident all three criteria are met. If you discover during implementation that an assumption was wrong (a file doesn't exist, a referenced line has shifted, a cross-file invariant is named that you missed), fall back to the full research phase for that file.
 
 **Do not skip the spot-check.** Even on fast-path, verify that the named file paths exist and the referenced line numbers / strings are present before editing. A one-minute spot-check is not the research phase; it is the minimum due-diligence to avoid editing the wrong location.
+
+**Attachment consultation is NOT skipped on the fast path.** If the task body contains an `## Attachments` section, read every referenced file before starting implementation, regardless of which path you take. See the attachment-consultation step above.
 
 ### 3. Clarify Before Implementing
 

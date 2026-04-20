@@ -6,10 +6,13 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
+  - mcp__plugin_task-trellis-teams_task-trellis__remove_attachment
   - Task
   - Glob
   - Grep
   - Read
+  - Write
   - AskUserQuestion
 ---
 
@@ -46,13 +49,19 @@ Based on the user's request, determine which issue type to create:
 ## Instructions
 
 1. **Identify the issue type** the user wants to create based on their request
-2. **Validate the provided inputs** against the current codebase (see below)
-3. **Read the appropriate type-specific file** for detailed creation instructions:
+2. **Inventory source materials** from the current conversation before creating any issues:
+   - In-chat output from `planning:requirements-creation` or `planning:technical-discovery`
+   - User-supplied file paths (design files, screenshots, PDFs, spec docs)
+   - Anything else the user referenced while scoping the work
+
+   If planning output exists only as in-chat text, save it to a temp file (e.g., `/tmp/trellis-<timestamp>-requirements.md`) using `Write` before attaching. The type-specific file below specifies holder placement rules and `## Attachments` format.
+3. **Validate the provided inputs** against the current codebase (see below)
+4. **Read the appropriate type-specific file** for detailed creation instructions:
    - For projects: Read [project.md](project.md)
    - For epics: Read [epic.md](epic.md)
    - For features: Read [feature.md](feature.md)
    - For tasks: Read [task.md](task.md)
-4. **Follow the detailed process** in that file to create the issue(s)
+5. **Follow the detailed process** in that file to create the issue(s)
 
 ## Validate Inputs
 

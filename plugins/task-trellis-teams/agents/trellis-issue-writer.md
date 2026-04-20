@@ -11,7 +11,10 @@ tools:
   - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
+  - mcp__plugin_task-trellis-teams_task-trellis__remove_attachment
   - Read
+  - Write
   - Glob
   - Grep
 ---
@@ -132,6 +135,54 @@ Integration tests must execute in under 500ms. If they can't, reconsider whether
 ### When in Doubt
 
 Err on the side of fewer tests. Undertesting is easier to fix than maintaining a bloated test suite.
+
+## Attachment Custody
+
+The writer is the custodian of source materials for the issues it creates.
+
+### Source-Material Inventory
+
+Before creating any issues, inventory what artifacts exist in the current conversation:
+- In-chat output from `planning:requirements-creation` or `planning:technical-discovery`
+- User-supplied file paths (design files, screenshots, PDFs, spec docs)
+- Anything else the user referenced while scoping the work
+
+### Planning-Output Bridge
+
+Planning-skill output is in-chat text only. Save it to a temp file before calling `add_attachment`:
+
+```
+Write({ file_path: "/tmp/trellis-<timestamp>-requirements.md", content: "<in-chat planning text>" })
+mcp__plugin_task-trellis-teams_task-trellis__add_attachment({ id: "<holder-id>", sourcePath: "/tmp/trellis-<timestamp>-requirements.md" })
+```
+
+The planning skills are NOT modified. Only the writer is responsible for this bridge.
+
+### Holder Placement Rules
+
+- **Parent exists** (creating tasks under a feature, features under an epic, etc.): attach source materials to the **immediate parent** only. Child issues reference the parent's attachments — do not duplicate.
+- **Creating a project** (no parent by definition): attach to the project itself.
+- **Flat list with no common ancestor**: duplicate-attaching the same file to each issue is acceptable.
+
+### `## Attachments` Section Format
+
+**Holder issue** — list each file with a one-line description:
+
+```markdown
+## Attachments
+
+- `<filename>` — <one-line description of what it is and why it matters>
+```
+
+**Child issue** — reference the holder by ID and provide a direct on-disk path (no MCP round-trip needed):
+
+```markdown
+## Attachments
+
+See `<filename>` on `<holder-issue-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
+```
+
+The `<projectKey>` is the first 12 hex chars of `sha1(projectLabel)`, where `projectLabel` is the git origin URL or absolute project path. Use `$TRELLIS_DATA_DIR` if set, else `~/.trellis`. See `skills/issue-creation/<type>.md` for the exact path layout for each holder type.
 
 ## Error Handling
 

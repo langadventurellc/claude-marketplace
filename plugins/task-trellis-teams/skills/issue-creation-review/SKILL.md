@@ -85,7 +85,53 @@ Verify all required elements are present.
 - **Feasibility**: Approach is technically viable
 - **Consistency**: Aligns with existing system architecture
 
-### 4. Scope Assessment
+### 4. Attachment Verification
+
+Check that source materials were properly attached and referenced per the attachment custody rules.
+
+**Check 1 — Correct holder placement**
+
+Attachments must follow the single-source-of-truth hierarchy:
+- When a parent exists (tasks under a feature, features under an epic, etc.): source materials belong on the **parent** issue only. Children must reference the parent's attachments — not hold their own copy.
+- When creating a project (top-level, no parent): attachments belong on the project.
+- When creating a flat list with no common ancestor: duplicate-attaching the same file to each issue is acceptable.
+
+**Check 2 — No redundant duplication**
+
+When a shared parent exists, the same source file MUST NOT appear as an attachment on multiple sibling children. Confirm the flat-list exception applies (no common ancestor) before allowing duplicate attachments across siblings.
+
+**Check 3 — `## Attachments` section in holder issues**
+
+Every holder issue that has attachments must include an `## Attachments` section listing each filename with a one-line description of what it is and why it matters:
+
+```markdown
+## Attachments
+
+- `<filename>` — <one-line description>
+```
+
+**Check 4 — `## Attachments` section in child issues**
+
+Every child issue that depends on an attached source material must include an `## Attachments` section that:
+- Names the holder issue ID and the specific filename (e.g., `See <filename> on <holder-id>`).
+- Includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path.
+
+```markdown
+## Attachments
+
+See `<filename>` on `<holder-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
+```
+
+**Cross-reference blocking rule**
+
+If source materials were available during the writing session — planning output was produced, the user supplied file paths, or files were referenced in the task description or parent issue body — and the writer did NOT attach them to the appropriate holder, **block the review**. This is not a minor finding.
+
+Use these contextual signals to detect suspected omissions:
+- Prior planning-skill output visible in the conversation (requirements-creation summary, technical-discovery report).
+- File paths mentioned in the task description or the requirements that the writer had access to.
+- Attachment listings on the parent issue that imply related source materials should propagate to children.
+
+### 5. Scope Assessment
 
 Evaluate for over-engineering:
 
@@ -107,7 +153,9 @@ When your task is a cross-sibling review (not a single-issue review), the input 
 
 **Step 4 — Prerequisite coherence check.** For each sibling, read its `prerequisites` field. Identify: (a) logical dependencies implied by the sibling descriptions that are not expressed as prerequisites, and (b) listed prerequisites that do not correspond to logical dependencies.
 
-**Step 5 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (overlap, gaps, prerequisite issues). If no issues, mark the cross-sibling review task done.
+**Step 5 — Attachment consistency check.** Verify that the sibling set as a whole respects the attachment custody rules: attachments reside on the shared parent (not duplicated across siblings), every sibling that depends on an attachment has a correctly formatted `## Attachments` section, and no sibling holds a redundant copy of a file already on the parent.
+
+**Step 6 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (overlap, gaps, prerequisite issues, attachment issues). If no issues, mark the cross-sibling review task done.
 
 ## Teammate Mode
 
@@ -123,8 +171,9 @@ Provide a verification report covering:
 1. **Issue Details**: Type, ID, title
 2. **Completeness**: Complete/Partial/Incomplete with specific gaps
 3. **Correctness**: Correct/Issues Found with specific findings and codebase alignment
-4. **Scope**: Appropriate/Over-engineered with analysis of what was requested vs. created
-5. **Recommendations**: Critical issues and suggested improvements
-6. **Verdict**: APPROVED / NEEDS REVISION / REJECTED with summary
+4. **Attachments**: Verified/Findings — holder placement, duplication, section format, child references, and any suspected omissions
+5. **Scope**: Appropriate/Over-engineered with analysis of what was requested vs. created
+6. **Recommendations**: Critical issues and suggested improvements
+7. **Verdict**: APPROVED / NEEDS REVISION / REJECTED with summary
 
 Use codebase evidence to support findings. Flag over-engineering only when it adds complexity without benefit.
