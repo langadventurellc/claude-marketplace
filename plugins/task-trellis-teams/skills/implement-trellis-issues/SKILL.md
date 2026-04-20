@@ -191,17 +191,17 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 #### Model selection
 
-The `Task` tool accepts an optional `model` parameter at spawn time that takes precedence over the agent definition's frontmatter `model`. Use it as follows:
+**Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Task` tool when spawning teammates.** The `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
 
-- **Developer (`trellis-developer`):** Default is `sonnet` (from the agent frontmatter). Before spawning, the lead assesses the task's complexity and passes `model: "opus[1m]"` at spawn time only when the task warrants it. Escalate to Opus when any of the following apply:
+- **Developer:** Default is `task-trellis-teams:trellis-developer` (sonnet via frontmatter). To escalate to Opus for a given task, change the `subagent_type` to `task-trellis-teams:trellis-developer-opus` (opus[1m] via frontmatter). Do NOT pass a `model` override. Escalate to the Opus variant when any of the following apply:
   - The task involves non-trivial architectural decisions, cross-cutting refactors, or subtle concurrency/state logic.
   - The task body, parent feature, or technical-discovery output flags it as complex, high-risk, or security-sensitive (auth, crypto, data migration, permissions).
   - The task has failed a prior implementation attempt and is being retried.
   - The task body is long or vague in a way that suggests the implementer will need significant reasoning to fill in gaps.
 
-  Bias toward Sonnet — Opus is the exception, not the default. Record the choice and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
+  Bias toward the sonnet-backed `trellis-developer` — the Opus variant is the exception, not the default. Record the chosen `subagent_type` and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
 
-- **Implementation reviewer (`trellis-implementation-reviewer`):** ALWAYS spawn with `model: "opus[1m]"`. Do NOT rely on frontmatter alone — pass `model: "opus[1m]"` at spawn time every time for clarity and to guard against future frontmatter drift. Opus is required here regardless of perceived task complexity; the reviewer's judgment is the last defense before the commit step and must not be degraded.
+- **Implementation reviewer:** Spawn `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override. Its frontmatter already declares `opus[1m]`; any spawn-time override would strip `[1m]` and degrade the reviewer's judgment.
 
 ### 3. Pair executes autonomously
 
@@ -353,7 +353,7 @@ Follow the "Cross-Task Coherence Review" section of that skill. Read each implem
 Mark this task-list entry `completed` when the coherence review is complete (the lead will decide how to act on any findings).
 ```
 
-Spawn this reviewer with `model: "opus[1m]"`. After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
+Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
 
 If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
 
@@ -531,7 +531,7 @@ Produce a concise final message covering:
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
-  <critical>ALWAYS spawn the implementation reviewer (`trellis-implementation-reviewer`) with `model: "opus[1m]"` passed explicitly to `Task`, regardless of task complexity.</critical>
+  <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. Agent frontmatter is authoritative — the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
-  <important>Spawn the developer (`trellis-developer`) with default model. Escalate to `model: "opus[1m]"` only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the reason via `append_issue_log`.</important>
+  <important>Default developer is `task-trellis-teams:trellis-developer` (sonnet frontmatter). Escalate by switching `subagent_type` to `task-trellis-teams:trellis-developer-opus` (opus[1m] frontmatter) only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the chosen `subagent_type` and reason via `append_issue_log`.</important>
 </rules>

@@ -1,7 +1,7 @@
 ---
 name: trellis-developer
 description: Developer teammate for task-trellis-teams. Implements a single Trellis issue identified by the lead's shared task list, then coordinates review with its paired reviewer teammate.
-model: sonnet
+model: opus[1m]
 effort: high
 tools:
   - TaskUpdate

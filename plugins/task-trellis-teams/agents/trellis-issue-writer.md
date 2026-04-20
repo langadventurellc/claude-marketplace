@@ -2,6 +2,7 @@
 name: trellis-issue-writer
 description: Writer teammate for task-trellis-teams. Creates Trellis issues at a single hierarchy level on instruction from the lead's shared task list, then coordinates reviews with its paired reviewer teammate.
 model: sonnet
+effort: high
 tools:
   - TaskUpdate
   - TaskGet
