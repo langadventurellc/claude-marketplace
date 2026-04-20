@@ -39,7 +39,29 @@ Based on the provided specification:
 
 ### 3. Create Project Using MCP
 
-Create the project using `create_issue` with type `"project"`, the generated title and description. Set status to `"open"` or `"draft"` based on user preference.
+Create the project using `create_issue` with type `"project"`, the generated title and description. If source materials were inventoried in SKILL.md step 2, include an `## Attachments` section at the end of the description listing each filename with a one-line description:
+
+```markdown
+## Attachments
+
+- `<filename>` — <one-line description of what it is and why it matters>
+```
+
+Set status to `"open"` or `"draft"` based on user preference.
+
+### 3a. Attach Source Materials
+
+The project is always the **holder** — there is no parent to attach to.
+
+If source materials were inventoried in SKILL.md step 2, call `add_attachment` for each file after the project is created:
+
+```
+mcp__plugin_task-trellis-teams_task-trellis__add_attachment({ id: "<project-id>", sourcePath: "/absolute/path/to/file" })
+```
+
+If the project body was created without the `## Attachments` section, update it now using `update_issue`.
+
+If no source materials exist in the current conversation, skip this step.
 
 ### 4. Output Format
 

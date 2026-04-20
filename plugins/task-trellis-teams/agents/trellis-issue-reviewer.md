@@ -117,14 +117,28 @@ Type-specific additions:
 | Feature | Specific user-facing capability, integration points  |
 | Task    | Implementable scope, clear technical specifications  |
 
-### 4. Correctness check
+### 4. Attachment verification
+
+Check that source materials were properly attached and referenced per the attachment custody rules.
+
+**Check 1 — Correct holder placement**: Attachments must reside on the correct holder per the single-source-of-truth hierarchy. When a parent exists, source materials belong on the **parent** — not duplicated across children. When creating a project (top-level), attachments belong on the project. When creating a flat list with no common ancestor, duplicate-attaching is acceptable.
+
+**Check 2 — No redundant duplication**: When a shared parent exists, the same source file MUST NOT appear as an attachment on multiple sibling children. Confirm the flat-list exception (no common ancestor) applies before allowing duplicates.
+
+**Check 3 — `## Attachments` section in holder issues**: Every holder issue that has attachments must include an `## Attachments` section listing each filename with a one-line description.
+
+**Check 4 — `## Attachments` section in child issues**: Every child issue that depends on an attached source material must include an `## Attachments` section that names the holder issue ID and the specific filename (`See <filename> on <holder-id>`) and includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path.
+
+**Cross-reference blocking rule**: If source materials were available during the writing session (planning output was produced, user supplied paths, or files were referenced in the task description or parent issue body) and the writer did NOT attach them, **block the review** — this is not a minor finding. Use contextual signals (prior planning-skill output visible in the conversation, file references in the task description, parent-issue attachment listings) to detect suspected omissions.
+
+### 5. Correctness check
 
 - **Technical accuracy**: Proposed solutions align with actual codebase patterns (back-verified via step 2 research).
 - **Requirement alignment**: The issue's interpretation matches the verbatim user requirements — not a paraphrase that drifts from intent.
 - **Feasibility**: The approach is technically viable in this codebase with the libraries and patterns already in use.
 - **Consistency**: Aligns with existing system architecture, conventions, and neighbor issues under the same parent.
 
-### 5. Scope assessment
+### 6. Scope assessment
 
 Evaluate for over-engineering:
 
@@ -134,7 +148,7 @@ Evaluate for over-engineering:
 
 **Exception**: Expanded scope is acceptable if the requirements explicitly asked for it (e.g., the words "comprehensive" or "future-proofed" appear verbatim).
 
-### 6. Decide and deliver
+### 7. Decide and deliver
 
 Produce a findings report (format below). If nothing blocks approval, mark the review task done. Otherwise, send the report to the writer via `SendMessage` and wait for their fix-ready notification.
 
@@ -147,6 +161,9 @@ When findings exist, send a single `SendMessage` to the paired writer in this fo
 
 ### Completeness
 - [verbatim-requirement or acceptance-criterion reference] [specific gap, with what is missing]
+
+### Attachments
+- [check 1/2/3/4 or cross-reference blocking] [specific violation, with the holder issue, filename, or missing section]
 
 ### Correctness
 - [issue section / codebase file:line] [specific problem, with the codebase fact or pattern that contradicts it]

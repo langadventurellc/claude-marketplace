@@ -4,6 +4,8 @@ description: Orchestrates Trellis issue creation using Claude Code Agent Teams. 
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
+  - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
+  - mcp__plugin_task-trellis-teams_task-trellis__remove_attachment
   - TeamCreate
   - TeamDelete
   - Task
@@ -244,7 +246,7 @@ Task({
   "subagent_type": "task-trellis-teams:trellis-issue-writer",
   "name": "writer-<level>",
   "description": "Writer creating <child-type> under <parent-id>",
-  "prompt": "You are the writer teammate for this issue-creation run. Read your initial instructions from the shared task list only — specifically the creation tasks the lead authors. Follow the task-trellis-teams:trellis-issue-writer agent guardrails (stay within the assigned parent and level, send activation nudges via SendMessage to the reviewer named 'issue-reviewer' after each creation task, fix review findings sent back by the reviewer). Wait for the lead's 'begin assigned work' SendMessage nudge before claiming your first task."
+  "prompt": "You are the writer teammate for this issue-creation run. Read your initial instructions from the shared task list only — specifically the creation tasks the lead authors. Follow the task-trellis-teams:trellis-issue-writer agent guardrails (stay within the assigned parent and level, send activation nudges via SendMessage to the reviewer named 'issue-reviewer' after each creation task, fix review findings sent back by the reviewer). Attachment custody: before creating issues, inventory source materials from the current conversation; attach them to the holder issue per placement rules in `skills/issue-creation/SKILL.md`; include `## Attachments` sections in all issue bodies per the format in `skills/issue-creation/<type>.md`. Wait for the lead's 'begin assigned work' SendMessage nudge before claiming your first task."
 })
 ```
 

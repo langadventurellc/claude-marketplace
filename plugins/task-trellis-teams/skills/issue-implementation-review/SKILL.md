@@ -122,7 +122,29 @@ Verify all requirements are addressed:
 - **Test coverage**: Tests exist for the new functionality
 - **Quality checks**: Code passes linting, formatting, and type checks
 
-### 5. Simplicity Review
+### 5. Attachment-Conformance Review
+
+When the task body includes an `## Attachments` section, read each referenced file directly from its on-disk path (cited in the task body — no `get_issue` round-trip required) and verify the implementation reflects the source material.
+
+**Four conformance checks:**
+
+1. **Design-file conformance**: When a design file is referenced, the implementation visually and structurally matches it. Flag concrete divergences (layout, component structure, color, typography) rather than vague style concerns.
+
+2. **Asset reuse**: When an existing stylesheet or asset is referenced as reusable, the implementation uses it rather than recreating a similar-but-different version. Duplicating a reusable asset is a defect, not a style choice.
+
+3. **Spec-document satisfaction**: When a spec document is referenced, the implementation satisfies its stated requirements. Each requirement is either met or explicitly justified as out-of-scope in the developer's completion summary.
+
+4. **Deviation justification**: When the developer's completion summary describes a deviation from an attached source material, the justification must be substantive (technical constraint, deliberate product decision). Vague or missing justification is a blocking finding.
+
+**Blocking rule:**
+
+Block when:
+- The task had an `## Attachments` section AND the implementation does not reflect the attached materials AND the developer's completion summary provides no explanation.
+- A reusable asset was explicitly referenced and the implementation recreated it instead of using it.
+
+**Approved-with-note path:** A clear, substantive deviation justification from the developer converts a blocking finding into a non-blocking note.
+
+### 6. Simplicity Review
 
 Evaluate for over-engineering:
 
@@ -135,7 +157,7 @@ Evaluate for over-engineering:
 
 **Guideline**: Three similar lines of code is often better than a premature abstraction.
 
-### 6. Documentation Review
+### 7. Documentation Review
 
 Evaluate code documentation:
 

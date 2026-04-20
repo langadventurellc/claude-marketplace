@@ -103,6 +103,32 @@ For each feature, use `create_issue` with type `"feature"`, the generated title 
 
 **For standalone features**: Omit the `parent` parameter.
 
+### 5a. Attach Source Materials
+
+Attach source materials inventoried in SKILL.md step 2 according to the hierarchy:
+
+**Features under an epic (parent exists):** Attach source materials to the **immediate parent epic**, not to each feature. Call `add_attachment` with the epic ID, then update the epic body to include a holder-style `## Attachments` section if not already present. Include a child-style `## Attachments` section in each feature body:
+
+```markdown
+## Attachments
+
+See `<filename>` on `<epic-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<epic-id>/attachments/<filename>`
+```
+
+where `...` reflects the full hierarchy path up to but not including the holder ID (e.g., `p/<project-id>/e` for epics under a project, or `e` for standalone epics).
+
+**Standalone features (no parent):** The feature is the holder. Include a holder-style `## Attachments` section in the feature body (or update via `update_issue` if already created), then call `add_attachment` with the feature ID:
+
+```markdown
+## Attachments
+
+- `<filename>` — <one-line description of what it is and why it matters>
+```
+
+The `<projectKey>` is the first 12 hex chars of `sha1(projectLabel)`, where `projectLabel` is the git origin URL or absolute project path. Use `$TRELLIS_DATA_DIR` if set, else `~/.trellis`.
+
+If no source materials exist in the current conversation, skip this step.
+
 ### 6. Output Format
 
 After successful creation:
