@@ -42,9 +42,9 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 
 `claim_task` returns the full task body; do NOT call `get_issue` on the claimed task ID again — that is a redundant round-trip.
 
-### 2. Research and Planning Phase (default — see fast-path exception below)
+### 2. Research and Planning Phase
 
-#### Attachment consultation (mandatory — not skipped by the fast path)
+#### Attachment consultation (mandatory — not skipped on any path)
 
 Before researching the codebase, check the task body for an `## Attachments` section. If one is present:
 
@@ -55,36 +55,49 @@ Before researching the codebase, check the task body for an `## Attachments` sec
    - If an existing stylesheet or asset is referenced as reusable → reuse it; do not recreate it.
 3. If your implementation deviates from an attached source file, explain why in the `complete_task` summary. Unexplained deviations are treated as defects by the implementation reviewer.
 
-**Research the codebase and plan your approach:**
+#### Step 1: Check for an Implementation Plan
 
-- **Read parent issues for context**: Use `get_issue` to read the parent feature for context and requirements. Do not continue until you have claimed a task.
-- **Research codebase patterns**: Search for similar implementations, conventions, and patterns in the codebase
-- **Plan your approach**: Identify the files to modify, patterns to follow, and dependencies needed
-- **CRITICAL - Verify your findings**: Spot-check before implementing:
-  - Verify 2-3 key file paths actually exist
-  - Confirm at least one pattern/convention identified
-  - Check that referenced imports or dependencies are real
+After consulting attachments, check the claimed task body for an `## Implementation Plan` section. This determines which path to take:
 
-**When You Find Issues:**
+- **Plan present** → Trust-the-plan path (default)
+- **Plan absent or marked `_Skipped_`** → Fallback research path
 
-- **Minor issues** (wrong path, naming): Adapt and continue
-- **Major issues** (approach wrong, files don't exist): **STOP** and alert the user
-- **Pattern mismatches**: Follow actual codebase patterns
-- **Missing dependencies**: Check if installation needed or find alternatives
+#### Trust-the-Plan Path (default when plan is present)
 
-#### Fast-path exception (opt-in, not default)
+When the task body contains an `## Implementation Plan` section (and it is not a skip marker):
 
-When the task body **fully specifies** the edit, you may skip the broad research phase and proceed directly to §4 Implementation. Fast-path applies only when ALL of the following are true:
+1. **Spot-check the plan** (mandatory — takes 1–2 minutes):
+   - Verify 2–3 named file paths from the plan actually exist on disk.
+   - Confirm one named symbol, class, or pattern is present where stated.
+   - Check that any referenced imports or dependencies are real.
+2. If the spot-check passes, proceed directly to §4 Implementation following the plan's `### File Modifications` and `### Implementation Order` sections as the primary guide.
+3. Attachment consultation (from above) is STILL mandatory on this path — do not skip it.
 
-1. The task body names every file to modify (exact paths, no ambiguity).
-2. The task body specifies each change at the level of "replace X with Y", "insert paragraph at line N", or equivalent find/replace or diff-style directives.
-3. The acceptance criteria are unambiguous and do not name any cross-file invariants that would require investigation to verify.
+#### Fallback Research Path (when plan is absent or skipped)
 
-**When in doubt, use the full research phase.** Fast-path is an opt-in optimization — apply it only when you are confident all three criteria are met. If you discover during implementation that an assumption was wrong (a file doesn't exist, a referenced line has shifted, a cross-file invariant is named that you missed), fall back to the full research phase for that file.
+When the task body has no `## Implementation Plan` section, or it contains only a skip marker (e.g., `_Skipped — …_`), perform the full research-and-plan workflow:
 
-**Do not skip the spot-check.** Even on fast-path, verify that the named file paths exist and the referenced line numbers / strings are present before editing. A one-minute spot-check is not the research phase; it is the minimum due-diligence to avoid editing the wrong location.
+- Read parent issues for context via `get_issue` on the parent feature.
+- Search for similar implementations, conventions, and patterns in the codebase.
+- Plan the approach: identify files to modify, patterns to follow, dependencies.
+- Spot-check findings: verify 2–3 key file paths exist, confirm at least one pattern, check referenced imports are real.
 
-**Attachment consultation is NOT skipped on the fast path.** If the task body contains an `## Attachments` section, read every referenced file before starting implementation, regardless of which path you take. See the attachment-consultation step above.
+#### Three-Tier Deviation Ladder
+
+Apply this ladder whenever the plan's description diverges from codebase reality:
+
+**Tier 1 — Minor deviation** (renamed file, shifted line numbers, minor naming drift that does not change the approach):
+- Adapt silently and continue.
+- Note the adaptation in the `complete_task` summary.
+
+**Tier 2 — Non-trivial deviation** (plan names a module/pattern that does not exist; plan prescribes an approach the current codebase contradicts; plan omits a file that clearly must also change; spot-check fails in a way that casts doubt on the whole plan):
+- **STOP**. Do not attempt to silently re-plan.
+- Call `append_issue_log` on the Trellis task describing the specific mismatch.
+- Send a `SendMessage` to the lead with a short paragraph describing the deviation.
+- Wait for user direction before proceeding. The lead decides whether to route back for re-planning, proceed with a revised approach, or abandon the task.
+
+**Tier 3 — Plan absent** (task body has no `## Implementation Plan` section, or it is a skip marker):
+- Use the Fallback Research Path above.
 
 ### 3. Clarify Before Implementing
 
