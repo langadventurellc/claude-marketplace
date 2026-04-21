@@ -15,7 +15,7 @@ allowed-tools:
 
 # Create Implementation Plan
 
-Generate a detailed, actionable `## Implementation Plan` block for a Trellis coding task. The plan is inlined verbatim into the task description so that a downstream Sonnet developer can implement the task without independent research.
+Generate a detailed, actionable `## Implementation Plan` block for a Trellis coding task. The plan is inlined verbatim into the task description so that a downstream developer can implement the task without independent research.
 
 ## Input Contract
 
@@ -118,4 +118,4 @@ Verify before finalizing the plan:
 
 ## Closing Guidance
 
-The plan you produce is the blueprint. The downstream Sonnet developer trusts it unless direct evidence contradicts it — they will not re-research unless the plan demonstrably conflicts with what they find on disk. Precision matters more than breadth: a plan that names the exact function and line range beats a plan that lists ten vaguely relevant files.
+The plan you produce is the blueprint. The downstream developer trusts it unless direct evidence contradicts it — they will not re-research unless the plan demonstrably conflicts with what they find on disk. Precision matters more than breadth: a plan that names the exact function and line range beats a plan that lists ten vaguely relevant files.

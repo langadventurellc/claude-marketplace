@@ -87,6 +87,7 @@ For each task, create:
   - **Security considerations**: Validation, authorization, and protection requirements
   - **Testing requirements**: Specific tests to write and coverage expectations
   - **Out of scope**: Explicitly state what should NOT be done for this task (e.g., work handled by other tasks, future enhancements)
+  - **Implementation Plan**: For coding tasks, either inline the `## Implementation Plan` block returned by `planning:create-implementation-plan` (verbatim), or include the one-line skip marker (see "When to Generate an Implementation Plan" below).
 
 **Task Granularity Guidelines:**
 
@@ -115,6 +116,31 @@ Group tasks logically:
 - **Setup/Configuration**: Initial setup tasks
 - **Core Implementation**: Main functionality (includes unit tests and documentation)
 - **Security**: Validation and protection (includes related tests and docs)
+
+### When to Generate an Implementation Plan
+
+- **Default: generate the plan.** For every coding task, invoke `planning:create-implementation-plan` before calling `create_issue`.
+- **Skip only when ALL of the following are true:**
+  1. Single file touched
+  2. ≤ ~15 lines of net change
+  3. No new exported symbols introduced
+  4. No cross-cutting concerns (auth, migrations, routing, public APIs, schema changes)
+  5. The writer's own codebase research already produced unambiguous file/line targets
+- **Also skip for non-coding tasks**: docs-only edits, prompt-only changes that don't touch runtime code paths, single-value config changes.
+- **When in doubt, generate the plan.** Err toward inclusion.
+
+**Invocation pattern:**
+```
+Skill(skill="planning:create-implementation-plan", args="<brief>")
+```
+Where `<brief>` is a short prose summary of the task title, scope, and acceptance criteria, plus the parent-feature ID and title, and any relevant attachment paths from `## Attachments`. The skill returns an `## Implementation Plan` block — paste it verbatim into the task body under a top-level `## Implementation Plan` heading, placed after `## Out of Scope` and before `## Attachments`.
+
+**Skip marker format** (when all skip criteria are met):
+```
+**Implementation Plan**: _Skipped — <one-line reason, e.g., trivial single-location edit (add one line to plugins/foo/bar.md line 42)>._
+```
+
+The skip marker replaces the full plan block. It must be present for every task that does not have a full plan — absence is not allowed.
 
 ### 5. Create Tasks Using MCP
 
