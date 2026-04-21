@@ -141,7 +141,7 @@ Parent feature: F-<feature-id> (<feature title>)
 
 Read task body: `mcp__plugin_task-trellis-teams_task-trellis__get_issue` with T-<task-id>.
 
-If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on the fast path.
+If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on any path.
 
 Skill: `task-trellis-teams:issue-implementation` (or read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly).
 
@@ -193,15 +193,7 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 **Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Task` tool when spawning teammates.** The `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
 
-- **Developer:** Default is `task-trellis-teams:trellis-developer` (sonnet via frontmatter). To escalate to Opus for a given task, change the `subagent_type` to `task-trellis-teams:trellis-developer-opus` (opus[1m] via frontmatter). Do NOT pass a `model` override. Escalate to the Opus variant when any of the following apply:
-  - The task involves non-trivial architectural decisions, cross-cutting refactors, or subtle concurrency/state logic.
-  - The task body, parent feature, or technical-discovery output flags it as complex, high-risk, or security-sensitive (auth, crypto, data migration, permissions).
-  - The task has failed a prior implementation attempt and is being retried.
-  - The task body is long or vague in a way that suggests the implementer will need significant reasoning to fill in gaps.
-
-  Bias toward the sonnet-backed `trellis-developer` — the Opus variant is the exception, not the default. Record the chosen `subagent_type` and the reason in an `append_issue_log` entry on the Trellis task so the decision is auditable.
-
-- **Implementation reviewer:** Spawn `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override. Its frontmatter already declares `opus[1m]`; any spawn-time override would strip `[1m]` and degrade the reviewer's judgment.
+Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Task`. The implementation reviewer stays on its frontmatter-declared `opus[1m]`. If a coding task genuinely needs deeper reasoning, it should be reflected in a more detailed `## Implementation Plan` in the task body (produced by `planning:create-implementation-plan` at task-authoring time), not in a stronger developer model at implementation time.
 
 ### 3. Pair executes autonomously
 
@@ -533,5 +525,4 @@ Produce a concise final message covering:
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
   <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. Agent frontmatter is authoritative — the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
-  <important>Default developer is `task-trellis-teams:trellis-developer` (sonnet frontmatter). Escalate by switching `subagent_type` to `task-trellis-teams:trellis-developer-opus` (opus[1m] frontmatter) only when the task warrants it (architectural/cross-cutting, security-sensitive, flagged complex by technical-discovery, retry of a failed attempt, or long/vague body). When escalating, log the chosen `subagent_type` and reason via `append_issue_log`.</important>
 </rules>

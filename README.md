@@ -45,7 +45,7 @@ Integrates [mise](https://mise.jdx.dev/) task runner with Task Trellis for autom
 Agent Teams-based variant of Task Trellis issue creation and implementation. Uses Claude Code's experimental Agent Teams so a writer and reviewer (or developer and reviewer) coordinate directly via `SendMessage` instead of routing through the lead session.
 
 **Features:**
-- `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops; cross-sibling consistency pass (3+ siblings) uses a fresh reviewer to avoid bias; source materials from the conversation (planning output, design files, spec docs) are automatically attached to the appropriate holder issue and referenced in child issue bodies
+- `/create-trellis-issues` — writer + persistent reviewer teammates with direct-message fix loops; cross-sibling consistency pass (3+ siblings) uses a fresh reviewer to avoid bias; source materials from the conversation (planning output, design files, spec docs) are automatically attached to the appropriate holder issue and referenced in child issue bodies; for coding tasks the writer invokes `planning:create-implementation-plan` to inline a detailed implementation plan into each task description before creation
 - `/implement-trellis-issues` — fresh developer/reviewer pair per leaf task; wave-based parallelism (all ready candidates spawn together, queue re-evaluated after each wave drains); automatic cross-task coherence review after 3+ sibling tasks complete; optional `--commit` flag (per-wave commits + final end-of-run commit for coherence review and docs) and `--no-docs` flag; developers must consult task attachments before writing code; reviewers verify attachment conformance
 - `/open-ui` — opens the Task Trellis browser UI by calling `get_ui_info` and launching the URL with the platform browser command
 - **SessionStart hook** — probes the UI port at session start; when reachable, injects the URL into model context so the agent knows the UI is running without being asked
@@ -64,6 +64,7 @@ Planning skills for scoping work, capturing requirements, and keeping documentat
 - `requirements-creation` — turns vague change requests into structured What / Where / Why / Done requirements through focused conversation
 - `technical-discovery` — read-only investigation of a problem or proposed change, producing an impact and recommendations report without writing code
 - `docs-updater` — reviews a body of work (git ref range, ticket, or description) and updates README, CLAUDE.md, AGENTS.md, and `docs/` to prevent drift
+- `create-implementation-plan` — generates a detailed `## Implementation Plan` block for a Trellis coding task; invoked by the issue-writer agent before `create_issue` so the developer teammate can implement without independent research
 - `planning-author` agent that handles documentation authoring on behalf of a caller
 
 ```
