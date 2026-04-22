@@ -121,6 +121,7 @@ Verify all requirements are addressed:
 - **Acceptance criteria**: Parent feature/epic criteria that apply are satisfied
 - **Test coverage**: Tests exist for the new functionality
 - **Quality checks**: Code passes linting, formatting, and type checks
+- **Test suite**: Run the project's test suite via `Bash` before approving WHEN a project-standard test command exists (e.g., `npm test`, `pytest`, `go test ./...`, or one documented in README/CLAUDE.md/package.json). Report the pass/fail count in your findings (or as a Note on approval). A failing test on non-trivial logic is a Critical finding. If no test command is discoverable, record a Note in the review (e.g., "no test suite detected") and proceed. Projects without tests (e.g., plugin marketplaces, docs-only repos) are NOT a blocker for approval.
 
 ### 5. Attachment-Conformance Review
 
