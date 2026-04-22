@@ -71,12 +71,6 @@ Produce the following block and nothing else. Inline it verbatim into the task b
 - **Key findings**: [patterns and conventions identified, similar implementations reviewed, external docs consulted]
 - **Assumptions**: [decisions made where multiple approaches were possible; flag anything uncertain]
 
-### Overview
-[2–3 sentences: what this implementation achieves and how it fits into the broader feature]
-
-### Prerequisites
-[Required dependencies, tools, or setup steps with version requirements if relevant. Omit section if none.]
-
 ### File Modifications
 
 #### 1. [CREATE | MODIFY | DELETE] `path/to/file`
