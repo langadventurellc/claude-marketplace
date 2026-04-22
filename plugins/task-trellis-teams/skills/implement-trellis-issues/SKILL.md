@@ -71,7 +71,7 @@ Complete every planned leaf task under the given scope by:
   - **Project ID** (`P-xxx`) — recursively implements all tasks under all epics and features.
   - **Task ID** (`T-xxx`) — implements a single task.
   - **Empty** — lead calls `get_next_available_issue` (preferring `feature` type) to pick the next scope.
-- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and the final-wave phases (coherence review §0, docs-updater §1, version bump §1.5) finish, the lead produces a final end-of-run commit for those changes. Prefers `/git:commit` skill; falls back to a conventional-commit message including the wave ordinal and task IDs (e.g., `feat: wave 1 — T-foo, T-bar`).
+- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and the final-wave phases (coherence review §0, docs-updater §1, version bump §1.5) finish, the lead produces a final end-of-run commit for those changes. The lead authors a concise conventional-commit message for each commit (see §2).
 - `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after the final wave drains, before the final end-of-run commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the final end-of-run commit.
 - `--version [major|minor|patch]` (optional flag): When set, the lead invokes the `planning:versioning` skill in Completion Phase §1.5 (after docs, before the final commit). If present without a value, the versioning skill infers the bump level from the diff. This flag is independent of `--no-docs` — version bumping runs whether or not docs were updated.
 
@@ -271,11 +271,11 @@ Cap: 3
 Wave 1 (t=0):   A, B, D non-overlapping → spawn pair-A, pair-B, pair-D. (cap reached)
                 C blocked on A — held for next wave.
 Wave 1 drains (t=12): pair-A, pair-B, pair-D all approved and shut down.
-                [--commit] Flush Trellis state → commit wave 1 (T-A, T-B, T-D).
+                [--commit] Flush Trellis state → commit changes.
                 A done → C unblocks → candidates: [C(ready)]
 Wave 2 (t=12):  C ready, non-overlapping → spawn pair-C.
 Wave 2 drains (t=15): pair-C approved and shut down.
-                [--commit] Flush Trellis state → commit wave 2 (T-C).
+                [--commit] Flush Trellis state → commit changes.
 Queue empty. Continue to Completion Phase (§0 coherence review, §1 docs, §2 final commit).
 ```
 
@@ -434,18 +434,27 @@ If `--commit` is set, any version-file edits produced here are included in the f
 
 Commit behavior under `--commit` has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review, §1 docs-updater, and §1.5 version bump complete).
 
+#### Commit message style (applies to every commit the lead produces)
+
+Write a concise conventional-commit subject: `type: description`, under ~50 characters.
+
+- **Types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`.
+- **Style:** imperative mood, capitalize the first word, no trailing period.
+- **Focus:** describe *what changed and why* based on the actual diff. Skip run mechanics — **do not** include wave ordinals, task IDs, phase names (e.g., "post-implementation"), or teammate/pair details.
+- **Examples:** `feat: add login rate limiting`, `refactor: extract session validation`, `docs: update plugin install steps`.
+
+Pick the subject by inspecting the staged diff (`git diff --cached --stat` and spot-check changes as needed), not by summarizing the task list.
+
 #### Per-wave commit procedure (performed in the queue loop)
 
 After all pairs in a wave are approved and shut down:
 
 1. **Flush Trellis state:** Verify that all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks have completed so `.trellis/` changes are staged alongside code.
 2. **Commit the wave:**
-   - **If `/git:commit` is available:** Invoke via the `Skill` tool (the skill authors its own message).
-   - **If not available:** Fall back to:
-     ```bash
-     git add .
-     git commit -m "feat: wave <N> — T-<id1>, T-<id2>"
-     ```
+   ```bash
+   git add .
+   git commit -m "<concise conventional-commit subject per the style rubric above>"
+   ```
    Do NOT pass `--no-verify` and do NOT skip hooks. Do NOT force-push or touch remotes.
 3. **Evaluate the next wave** (see Running Queue section).
 
@@ -462,14 +471,12 @@ After all pairs in a wave are approved and shut down:
 
 #### Final end-of-run commit (performed here, after §0, §1, and §1.5)
 
-After §0 (coherence review), §1 (docs-updater), and §1.5 (version bump, if `--version` was passed) complete, produce a final commit capturing those changes:
+After §0 (coherence review), §1 (docs-updater), and §1.5 (version bump, if `--version` was passed) complete, produce a final commit capturing those changes using the same style rubric:
 
-- **If `/git:commit` is available:** Invoke via the `Skill` tool.
-- **If not available:**
-  ```bash
-  git add .
-  git commit -m "feat: post-implementation — coherence review, docs, and version for <scope-id>"
-  ```
+```bash
+git add .
+git commit -m "<concise conventional-commit subject per the style rubric above>"
+```
 
 If `--commit` is NOT set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`; `planning:versioning` still runs if `--version` was passed).
 
