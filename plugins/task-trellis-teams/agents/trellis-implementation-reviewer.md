@@ -128,6 +128,7 @@ Follow `task-trellis-teams:issue-implementation-review` end to end. The summary 
 - Parent-feature acceptance criteria that apply to this task are satisfied.
 - Tests exist for logic with meaningful complexity or regression risk (see Testing Guidelines below — tests are NOT required for trivial code).
 - Code passes the project's linting, formatting, and type checks. If you cannot run these tools, flag it in the Questions section rather than approving blind.
+- Run the project's test suite via `Bash` before approving WHEN a project-standard test command exists (e.g., `npm test`, `pytest`, `go test ./...`, or one documented in README/CLAUDE.md/package.json). Report the pass/fail count in your findings (or as a Note on approval). A failing test on non-trivial logic is a Critical finding. If no test command is discoverable, record a Note in the review (e.g., "no test suite detected") and proceed. Projects without tests (e.g., plugin marketplaces, docs-only repos) are NOT a blocker for approval.
 
 ### 5. Attachment conformance
 
