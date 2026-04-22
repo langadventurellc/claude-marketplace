@@ -137,12 +137,13 @@ Err on the side of fewer tests. Undertesting is easier to fix than maintaining a
 
 ### What to Document
 
-Document **only** public interfaces:
+Document **only** public interfaces. Names differ by language, but the rule is the same: document what callers see, not what only the implementation sees. Typical examples:
 
 - Public functions and methods
 - Public classes and their constructors
 - Exported types and interfaces
-- Module-level exports
+- Module-, package-, or file-level docstrings for public modules
+- Any other language-idiomatic doc attached to a public symbol (e.g., Elixir `@moduledoc` / `@doc`, Python module and class docstrings, Rust `///` on `pub` items, Go doc comments on exported identifiers)
 
 **Do NOT document**:
 
@@ -190,24 +191,54 @@ Don't document:
 - **Every possible error** - The code shows what can throw
 - **Implementation details** - Read the function body
 
-#### Focus on the "Why" and "What"
+#### Write in Plain English
 
-Document things that aren't obvious from reading the code:
+Describe behavior the way you'd describe it to a teammate who has the file open beside you. Reach for a technical identifier when it's the clearest thing to say; don't reach for implementation prose.
 
-- **Business logic intent** - Why does this rule exist?
-- **Non-obvious constraints** - Rate limits, required ordering, side effects
-- **Usage context** - When should this be called vs. alternatives?
+- **Technical identifiers are fine** when they help: naming another function, type, module, or option the reader may need — e.g., "Cleared by `set_success/0` or `clear/0`", "Returns `{:error, reason}` on failure", "Must be called after `initDatabase`".
+- **Implementation prose is not.** Don't describe internal storage layout, concrete data structures, coercion steps, or private helper names. Those are visible in the code and tie the docs to an implementation the reader can already see.
 
-**Good:**
+#### Document Intent, Not History
+
+Document the *intent* of the current behavior — what it's for, when callers should use it, what invariants it guarantees. Do **not** narrate the *history* of the code.
+
+- ✅ Intent: business rule, non-obvious constraint, required ordering, side effect, usage context, "must be called before X".
+- ❌ History: what the code used to do, why it was changed, what it consolidates or replaces, who rewrote it, which task drove the change.
+
+**Good (states intent):**
 ```typescript
 /** Must be called before any database operations. Initializes connection pool. */
 function initDatabase(): void
 ```
 
-**Bad:**
+**Bad (too vague to justify its existence):**
 ```typescript
 /** Initializes the database. */
 function initDatabase(): void
+```
+
+**Bad (narrates history and implementation mechanics):**
+```elixir
+@moduledoc """
+Test fake that stands in for `Kafka` in tests. Consolidates the behavior
+previously split across `InventoryIngestion.TestKafka`,
+`InventoryApi.TestKafka`, and `Kafka.DummyFailedKafkaClient`.
+
+Messages are stored as 4-tuples in a `:duplicate_bag` ETS table named
+`:kafka_fake_client_messages`. For `send_message/2` body and metadata are
+stringified; for `send_message/3` body is coerced via `IO.iodata_to_binary/1`.
+"""
+```
+
+**Good (plain English, current intent, technical identifiers only where they help callers):**
+```elixir
+@moduledoc """
+Test fake that stands in for `Kafka` so tests can assert on publish behavior
+without a live broker.
+
+Use `take_all/0` or `take_all_for_topic/1` to read captured messages, and
+`set_failure/1` to make subsequent publishes return `{:error, reason}`.
+"""
 ```
 
 #### Examples Over Explanations
@@ -224,12 +255,15 @@ function formatBytes(bytes: number): string
 
 ### What NOT to Do
 
-- **Don't add docs to every function** - Only public interfaces
-- **Don't list all parameters** - Types are self-documenting
-- **Don't enumerate all errors** - Code reveals error conditions
-- **Don't explain the implementation** - The code is right there
-- **Don't add TODO comments for future AI** - Create tasks instead
-- **Don't write documentation for internal/private code**
+- **Don't add docs to every function** - Only public interfaces.
+- **Don't list all parameters** - Types are self-documenting.
+- **Don't enumerate all errors** - The code reveals error conditions.
+- **Don't explain the implementation** - No internal storage layout, data-structure shape, coercion steps, or private helper names in public docs. The code is right there.
+- **Don't reference specific line numbers or file offsets** - They rot the moment the file is edited.
+- **Don't reference Trellis or Jira issue IDs** - That context belongs in the task, PR description, or commit message, not in the code.
+- **Don't narrate prior state or the reason for the change** - No "previously X, now Y", no "consolidates what used to live in …", no "renamed from …", no changelog-style notes. The code is the current state; docs describe the current state.
+- **Don't add TODO comments for future AI** - Create tasks instead.
+- **Don't write documentation for internal/private code.**
 
 ### Remember
 

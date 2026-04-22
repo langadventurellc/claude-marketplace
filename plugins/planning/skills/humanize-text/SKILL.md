@@ -3,7 +3,6 @@ name: humanize-text
 description: Rewrites technical text into plain English for a human reader. Use when an agent has produced prose that reads like implementation notes — PR descriptions, ticket bodies, release notes, code documentation — and the destination is a human-facing surface. Returns only the rewritten text, ready to drop in.
 context: fork
 agent: general-purpose
-model: sonnet
 ---
 
 # Humanize Text

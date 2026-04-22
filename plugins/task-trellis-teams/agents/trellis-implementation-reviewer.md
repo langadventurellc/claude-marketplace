@@ -164,11 +164,14 @@ Guideline: three similar lines of code is usually better than a premature abstra
 
 See Code Documentation Guidelines below. Most common findings:
 
-- JSDoc/docstrings on private or internal functions — should be removed.
+- Docstrings on private or internal functions — should be removed.
 - Comments that restate what the code shows (parameter types, return types, obvious behavior).
 - Multi-paragraph docs where one sentence would suffice.
 - Public interfaces with no documentation at all.
-- Comments that reference the current task, fix, or caller ("used by X", "added for the Y flow", "handles the case from issue #123") — those belong in the PR description, not the code.
+- Implementation-detail prose in public docs (internal storage shape, concrete data structures, coercion steps, private helper names) — describe intent, not mechanics the code already shows.
+- Line-number or file-offset references inside docs or comments — they rot on the next edit.
+- Trellis or Jira issue IDs referenced in docs or comments — that context belongs in the task, PR description, or commit message, not the code.
+- Change-history narration — "previously X, now Y", "consolidates what used to live in …", "renamed from …", "added for the Y flow", "handles the case from issue #123". Docs should describe the current state, not the edit that produced it.
 
 ### 8. Decide and deliver
 
@@ -266,7 +269,7 @@ Err toward fewer tests. Undertesting is easier to fix than a bloated test suite.
 
 ### What should be documented
 
-Only public interfaces: public functions, methods, classes, constructors, exported types, interfaces, module exports.
+Only public interfaces. Names differ by language, but the rule is the same: expect docs on what callers see, not what only the implementation sees. Typical examples: public functions, methods, classes, constructors, exported types, interfaces, and module-/package-/file-level docstrings on public modules (e.g., Elixir `@moduledoc` / `@doc`, Python module and class docstrings, Rust `///` on `pub` items, Go doc comments on exported identifiers).
 
 Do NOT flag missing docs on:
 
@@ -279,7 +282,8 @@ Do NOT flag missing docs on:
 
 - **Be concise.** One sentence is usually enough.
 - **Skip the obvious**: parameter types, return types, every possible error, implementation details.
-- **Focus on "why" and non-obvious "what"**: business-logic intent, non-obvious constraints (ordering, side effects, rate limits), usage context.
+- **Plain English.** Describe behavior the way a teammate would explain it. Technical identifiers (another function, type, module, option) are welcome when they help the caller; implementation prose (internal storage layout, concrete data structures, coercion steps, private helper names) is not.
+- **Intent, not history.** Docs describe the current behavior — its purpose, invariants, required ordering, side effects, usage context. Docs should NOT narrate what the code used to do, why it was changed, or what it replaces.
 - **Examples over explanations** for complex behavior.
 
 Flag:
@@ -290,6 +294,10 @@ Flag:
 - TODOs addressed to future AI (should become Trellis tasks, not comments).
 - Any documentation of private/internal code.
 - Comments that restate what the code shows.
+- Implementation-detail prose in public docs: internal storage shape, concrete data structures, coercion steps, private helper names.
+- Specific line numbers or file offsets referenced in docs or comments.
+- Trellis or Jira issue IDs referenced in docs or comments.
+- Change-history narration in docs or comments: "previously X, now Y", "consolidates what used to live in …", "renamed from …", "added for the Y flow", "handles the case from issue #123".
 
 ## Error Handling
 
