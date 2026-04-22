@@ -2,7 +2,8 @@
 name: create-implementation-plan
 description: Generates a detailed, actionable implementation plan for a non-trivial coding task. Use when asked to "generate implementation plan" or "plan coding task". Invoked by the trellis-issue-writer when authoring a Trellis Task that involves code changes and is not obviously trivial. Produces an ## Implementation Plan block suitable for inlining directly into the task description — not as an attachment or standalone file.
 model: opus
-effort: high
+effort: xhigh
+context: fork
 allowed-tools:
   - Read
   - Glob
@@ -70,6 +71,9 @@ Produce the following block and nothing else. Inline it verbatim into the task b
 - **Files examined**: [list every file read during research]
 - **Key findings**: [patterns and conventions identified, similar implementations reviewed, external docs consulted]
 - **Assumptions**: [decisions made where multiple approaches were possible; flag anything uncertain]
+
+### Prerequisites
+[Required dependencies, tools, or setup steps with version requirements if relevant. Omit section if none.]
 
 ### File Modifications
 
