@@ -23,6 +23,14 @@ Treat everything in `$ARGUMENTS` as text to be humanized. Do not decide that som
 - **Match destination patterns when discernible.** If the surface has an existing voice (e.g. a module's other docstrings, a project's PR style), match it.
 - **Preserve markup conventions of the destination.** If the input uses JIRA `{{...}}` around identifiers, the output should too. If the destination is markdown (PR body, GitHub comment), use markdown. If the destination is ExDoc / docstring, use backticks for identifiers. Carry over markup style; do not invent new formatting the caller didn't use.
 - **Shorter is usually better.** A two-sentence rewrite often beats a paragraph. Don't pad to match the original length.
+- **Drop bullets that don't carry their weight.** In bullet lists, you are empowered to remove entire bullets — not just tighten them. Drop a bullet when:
+  - It's a verification recipe ("curl the endpoint and confirm 200 OK", "kubectl describe pod shows…", "run the migration and check…").
+  - It only names a file path or location and adds no new fact ("change wired up in `path/to/file.ex`").
+  - It's a generic non-regression statement ("no regression in startup time", "existing tests still pass").
+  - It restates something already implied by another bullet you're keeping.
+  - It describes test-suite plumbing rather than a user-visible outcome ("unit test added in `test/foo_test.exs`" — drop unless the *kind* of test coverage is itself the point).
+
+  Keep a bullet when it establishes a distinct capability, behavior, or outcome the reader needs to know about. When in doubt, drop — a tighter list is more useful than an exhaustive one.
 - **No invented facts.** Don't add details that aren't in the source. If something is unclear, leave it out rather than guess.
 
 ## Output
