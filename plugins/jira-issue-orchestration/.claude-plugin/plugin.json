@@ -1,0 +1,7 @@
+{
+  "name": "jira-issue-orchestration",
+  "version": "1.0.0",
+  "dependencies": {
+    "plugins": ["task-trellis-teams"]
+  }
+}

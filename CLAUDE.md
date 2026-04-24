@@ -1,6 +1,6 @@
 # Claude Marketplace
 
-This repository is a **Claude Code Plugin Marketplace** that hosts and distributes plugins for Claude Code. It hosts the Task Trellis plugin family (`task-trellis`, `task-trellis-teams`, `mise`, `planning`, `git`) for hierarchical task management and related AI coding workflows.
+This repository is a **Claude Code Plugin Marketplace** that hosts and distributes plugins for Claude Code. It hosts the Task Trellis plugin family (`task-trellis-teams`, `mise`, `planning`, `git`) for hierarchical task management and related AI coding workflows, plus the `jira-issue-orchestration` plugin for mostly autonomous Jira-to-PR orchestration.
 
 ## Always Consult Current Documentation
 
@@ -34,19 +34,21 @@ claude-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json    # Registers all plugins in this marketplace
 ├── plugins/
-│   ├── task-trellis/       # Hierarchical task management (subagent-based)
-│   ├── task-trellis-teams/ # Agent Teams variant of task-trellis workflows
-│   ├── mise/               # mise task runner integration (hooks)
-│   ├── planning/           # Requirements + docs planning skills
-│   └── git/                # Git workflow skills
+│   ├── task-trellis-teams/         # Agent Teams task management workflows
+│   ├── jira-issue-orchestration/   # Jira → Trellis → PR autonomous orchestration
+│   ├── mise/                       # mise task runner integration (hooks)
+│   ├── planning/                   # Requirements + docs planning skills
+│   └── git/                        # Git workflow skills
 └── README.md
 ```
+
+> **`jira-issue-orchestration` also requires the `issue-orchestration-mcp` Node server** (from the companion repo `claude-code-issue-orchestration`). Build it and register it in your Claude Code MCP settings before using the plugin. See the README for full setup instructions.
 
 ## User Installation
 
 ```
 /plugin marketplace add langadventurellc/claude-marketplace
-/plugin install task-trellis@task-trellis-marketplace
+/plugin install task-trellis-teams@task-trellis-marketplace
 ```
 
 ## Local Development
@@ -54,7 +56,7 @@ claude-marketplace/
 Test a plugin locally:
 
 ```bash
-claude --plugin-dir ./plugins/task-trellis
+claude --plugin-dir ./plugins/task-trellis-teams
 ```
 
 Validate the marketplace or a plugin:

@@ -1,2 +1,4 @@
 .DS_Store
-.trellis
+node_modules/
+dist/
+settings.local.json
