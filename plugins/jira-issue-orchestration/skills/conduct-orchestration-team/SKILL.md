@@ -1,6 +1,8 @@
 ---
 name: conduct-orchestration-team
 description: Internal skill. Manages the full lifecycle of one planning or implementation sub-session. Takes --team-type <planning|implementation>. Launches the sub, waits for hello handshake, sends instructions, waits for done signal from the manage-*-team skill, tears down.
+context: fork
+model: haiku
 allowed-tools:
   - Monitor
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team
