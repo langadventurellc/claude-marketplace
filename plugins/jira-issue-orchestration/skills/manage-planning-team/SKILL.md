@@ -31,7 +31,7 @@ Invoke `investigate-jira-issue` via the `Skill` tool, passing the Jira issue key
 Skill({ name: "investigate-jira-issue", input: "<JIRA_KEY>" })
 ```
 
-Wait for the skill to complete. Its output — a requirements summary or technical-discovery document — is the artifact used in step 4.
+Wait for the skill to complete. Its output — a requirements summary or discovery document — is the artifact used in step 4.
 
 ### 2. Heartbeat to the conductor
 

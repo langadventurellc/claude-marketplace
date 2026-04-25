@@ -50,7 +50,7 @@ Based on the user's request, determine which issue type to create:
 
 1. **Identify the issue type** the user wants to create based on their request
 2. **Inventory source materials** from the current conversation before creating any issues:
-   - In-chat output from `planning:requirements-creation` or `planning:technical-discovery`
+   - In-chat output from `planning:requirements-creation` or `planning:discovery`
    - User-supplied file paths (design files, screenshots, PDFs, spec docs)
    - Anything else the user referenced while scoping the work
 
