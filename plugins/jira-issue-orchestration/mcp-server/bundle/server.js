@@ -20843,9 +20843,10 @@ import { randomBytes as randomBytes2 } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 var PLUGIN_DATA_ROOT = process.env.CLAUDE_PLUGIN_DATA ?? path.join(os.homedir(), ".claude", "plugins", "data", "jira-issue-orchestration");
 var IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
+var CONFIG_ROOT = path.join(PLUGIN_DATA_ROOT, "configs");
 var CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;
 function validateChannelId(id) {
   return typeof id === "string" && CHANNEL_ID_REGEX.test(id);
@@ -20908,6 +20909,31 @@ function listChannels() {
     }
   }
   return result;
+}
+function projectKey() {
+  return createHash("sha256").update(process.cwd()).digest("hex").slice(0, 12);
+}
+function configPath(key) {
+  return path.join(CONFIG_ROOT, `${key}.json`);
+}
+function readConfig() {
+  try {
+    const raw = fs.readFileSync(configPath(projectKey()), "utf8");
+    const parsed = JSON.parse(raw);
+    const values = parsed.values && typeof parsed.values === "object" && !Array.isArray(parsed.values) ? parsed.values : {};
+    return { cwd: process.cwd(), values };
+  } catch (err) {
+    if (err.code === "ENOENT") return { cwd: process.cwd(), values: {} };
+    throw err;
+  }
+}
+function writeConfig(values) {
+  const existing = readConfig();
+  const merged = { cwd: process.cwd(), values: { ...existing.values, ...values } };
+  fs.mkdirSync(CONFIG_ROOT, { recursive: true });
+  const p = configPath(projectKey());
+  fs.writeFileSync(p, JSON.stringify(merged, null, 2), "utf8");
+  return p;
 }
 
 // src/tools.ts
@@ -21005,6 +21031,27 @@ var TOOL_DEFINITIONS = [
     name: "list-channels",
     description: "List all existing IPC channels with their metadata (channelId, label, createdAt, tmuxSession, log paths).",
     inputSchema: { type: "object", properties: {}, additionalProperties: false }
+  },
+  {
+    name: "get-config",
+    description: "Return the persisted per-project configuration values for the current working directory. Returns `{ values: {} }` when no config has been written yet. Project identity is derived server-side from process.cwd().",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false }
+  },
+  {
+    name: "set-config",
+    description: "Merge the supplied string-valued keys into the persisted per-project config for the current working directory. Existing keys not in `values` are preserved; matching keys are overwritten. Returns merged values and the absolute file path.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        values: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Key-value pairs to merge into the config. All values must be strings."
+        }
+      },
+      required: ["values"],
+      additionalProperties: false
+    }
   }
 ];
 async function handleToolCall(name, args) {
@@ -21023,6 +21070,10 @@ async function handleToolCall(name, args) {
       return terminateSub(args);
     case "list-channels":
       return listChannelsHandler();
+    case "get-config":
+      return getConfigHandler();
+    case "set-config":
+      return setConfigHandler(args);
     default:
       return toolError(`Unknown tool: ${name}`);
   }
@@ -21156,6 +21207,34 @@ function terminateSub(args) {
 }
 function listChannelsHandler() {
   return toolOk(listChannels());
+}
+function getConfigHandler() {
+  try {
+    const state = readConfig();
+    return toolOk({ values: state.values });
+  } catch (err) {
+    return toolError(`get-config failed: ${String(err)}`);
+  }
+}
+function setConfigHandler(args) {
+  const raw = args?.values;
+  if (raw === null || raw === void 0) return toolError("values argument is required.");
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return toolError("values must be a plain object.");
+  }
+  const values = raw;
+  for (const [k, v] of Object.entries(values)) {
+    if (typeof v !== "string") {
+      return toolError(`values["${k}"] must be a string, got ${typeof v}.`);
+    }
+  }
+  try {
+    const p = writeConfig(values);
+    const state = readConfig();
+    return toolOk({ values: state.values, path: p });
+  } catch (err) {
+    return toolError(`set-config failed: ${String(err)}`);
+  }
 }
 
 // src/index.ts

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 export interface ChannelMeta {
   channelId: string;
@@ -12,10 +12,16 @@ export interface ChannelMeta {
   label?: string;
 }
 
+export interface ConfigState {
+  cwd: string;
+  values: Record<string, string>;
+}
+
 const PLUGIN_DATA_ROOT =
   process.env.CLAUDE_PLUGIN_DATA ??
   path.join(os.homedir(), ".claude", "plugins", "data", "jira-issue-orchestration");
 const IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
+const CONFIG_ROOT = path.join(PLUGIN_DATA_ROOT, "configs");
 const CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;
 
 /** Returns true when `id` is a valid channel ID (epoch digits, hyphen, lowercase hex). Rejects path traversal, spaces, and uppercase. */
@@ -99,4 +105,40 @@ export function listChannels(): ChannelMeta[] {
     }
   }
   return result;
+}
+
+/** Returns a 12-char hex project key derived from sha256(process.cwd()). */
+export function projectKey(): string {
+  return createHash("sha256").update(process.cwd()).digest("hex").slice(0, 12);
+}
+
+/** Returns the absolute config file path for `key` under `<PLUGIN_DATA_ROOT>/configs/`. */
+export function configPath(key: string): string {
+  return path.join(CONFIG_ROOT, `${key}.json`);
+}
+
+/** Reads the config for the current cwd. Returns `{ cwd, values: {} }` when no file exists. */
+export function readConfig(): ConfigState {
+  try {
+    const raw = fs.readFileSync(configPath(projectKey()), "utf8");
+    const parsed = JSON.parse(raw) as Partial<ConfigState>;
+    const values =
+      parsed.values && typeof parsed.values === "object" && !Array.isArray(parsed.values)
+        ? (parsed.values as Record<string, string>)
+        : {};
+    return { cwd: process.cwd(), values };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return { cwd: process.cwd(), values: {} };
+    throw err;
+  }
+}
+
+/** Merges `values` into the current cwd's config. Creates configs directory if needed. Returns the absolute file path. */
+export function writeConfig(values: Record<string, string>): string {
+  const existing = readConfig();
+  const merged: ConfigState = { cwd: process.cwd(), values: { ...existing.values, ...values } };
+  fs.mkdirSync(CONFIG_ROOT, { recursive: true });
+  const p = configPath(projectKey());
+  fs.writeFileSync(p, JSON.stringify(merged, null, 2), "utf8");
+  return p;
 }

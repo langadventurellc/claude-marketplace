@@ -7,6 +7,7 @@ import {
   generateChannelId, validateChannelId,
   ipcDir, c2sLogPath, s2cLogPath,
   type ChannelMeta,
+  readConfig, writeConfig,
 } from "./state.ts";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -121,6 +122,29 @@ export const TOOL_DEFINITIONS = [
       "List all existing IPC channels with their metadata (channelId, label, createdAt, tmuxSession, log paths).",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
+  {
+    name: "get-config",
+    description:
+      "Return the persisted per-project configuration values for the current working directory. Returns `{ values: {} }` when no config has been written yet. Project identity is derived server-side from process.cwd().",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "set-config",
+    description:
+      "Merge the supplied string-valued keys into the persisted per-project config for the current working directory. Existing keys not in `values` are preserved; matching keys are overwritten. Returns merged values and the absolute file path.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        values: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Key-value pairs to merge into the config. All values must be strings.",
+        },
+      },
+      required: ["values"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 // ── Dispatcher ───────────────────────────────────────────────────────────────
@@ -138,6 +162,8 @@ export async function handleToolCall(
     case "send-message-to-conductor":          return sendMessageToConductor(args);
     case "terminate-sub":                      return terminateSub(args);
     case "list-channels":                      return listChannelsHandler();
+    case "get-config":                         return getConfigHandler();
+    case "set-config":                         return setConfigHandler(args);
     default:                                   return toolError(`Unknown tool: ${name}`);
   }
 }
@@ -266,4 +292,34 @@ function terminateSub(args: Record<string, unknown> | undefined): ToolResult {
 
 function listChannelsHandler(): ToolResult {
   return toolOk(listChannels());
+}
+
+function getConfigHandler(): ToolResult {
+  try {
+    const state = readConfig();
+    return toolOk({ values: state.values });
+  } catch (err) {
+    return toolError(`get-config failed: ${String(err)}`);
+  }
+}
+
+function setConfigHandler(args: Record<string, unknown> | undefined): ToolResult {
+  const raw = args?.values;
+  if (raw === null || raw === undefined) return toolError("values argument is required.");
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return toolError("values must be a plain object.");
+  }
+  const values = raw as Record<string, unknown>;
+  for (const [k, v] of Object.entries(values)) {
+    if (typeof v !== "string") {
+      return toolError(`values["${k}"] must be a string, got ${typeof v}.`);
+    }
+  }
+  try {
+    const p = writeConfig(values as Record<string, string>);
+    const state = readConfig();
+    return toolOk({ values: state.values, path: p });
+  } catch (err) {
+    return toolError(`set-config failed: ${String(err)}`);
+  }
 }
