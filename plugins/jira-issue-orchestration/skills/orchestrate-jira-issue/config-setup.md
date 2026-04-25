@@ -5,7 +5,7 @@
 Run `Bash`:
 
 ```
-mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"
+mkdir -p ~/.claude/jira-issue-orchestration && echo ~/.claude/jira-issue-orchestration/_config.json
 ```
 
 Bind the printed path to `CONFIG_PATH` for the rest of this run.

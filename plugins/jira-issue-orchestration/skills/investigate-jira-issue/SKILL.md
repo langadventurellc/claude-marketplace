@@ -22,7 +22,7 @@ Turn a Jira ticket into an actionable design artifact — either a **requirement
 
 ## Configuration
 
-Tenanty values (`cloudId`, Atlassian base URL) are loaded from `${CLAUDE_PLUGIN_DATA}/_config.json` at the start of every run via the preflight step below. The path resolves at runtime and persists across plugin updates. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
+Tenanty values (`cloudId`, Atlassian base URL) are loaded from `~/.claude/jira-issue-orchestration/_config.json` at the start of every run via the preflight step below. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
 
 ## Input
 
@@ -35,7 +35,7 @@ If the user didn't supply an issue key, ask for one with `AskUserQuestion` befor
 
 ### 0. Preflight: load configuration
 
-1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH`.
+1. Run `Bash`: `echo ~/.claude/jira-issue-orchestration/_config.json`. Bind the printed path to `CONFIG_PATH`.
 2. Use `Read` on `CONFIG_PATH`.
 3. If the file is missing or any required key (`atlassianCloudId`, `atlassianBaseUrl`) is absent/empty — stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
 4. Bind `CLOUD_ID` from `atlassianCloudId` and `BASE_URL` from `atlassianBaseUrl`.
