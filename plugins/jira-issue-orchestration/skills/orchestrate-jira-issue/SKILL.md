@@ -7,8 +7,8 @@ allowed-tools:
   - Monitor
   - Read
   - Skill
-  - mcp__issue-orchestration__claim-conductor
-  - mcp__issue-orchestration__stop-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
   - mcp__plugin_atlassian_atlassian__getJiraIssue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
 ---
@@ -36,7 +36,7 @@ If `<issue_id>` is not provided, ask for it with `AskUserQuestion` before procee
 Execute these steps in order; each is a prerequisite for the next.
 
 1. **Claim conductor channel**  
-   Call `mcp__issue-orchestration__claim-conductor`.  
+   Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor`.  
    Store the returned `channelId`, `c2sLogPath`, and `s2cLogPath`.
 
 2. **Arm persistent Monitor** *(must happen before any launch)*  
@@ -66,7 +66,7 @@ Execute these steps in order; each is a prerequisite for the next.
 `stop-orchestration-team` (called by `conduct-orchestration-team` at the end of Phase 2) clears all channel state. A new channel is required before launching the implementation sub.
 
 1. **Claim a new conductor channel**  
-   Call `mcp__issue-orchestration__claim-conductor` again.  
+   Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor` again.  
    Store the new `channelId` and `s2cLogPath` (the old values are stale).
 
 2. **Arm a new persistent Monitor**  

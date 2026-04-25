@@ -3,7 +3,7 @@ name: manage-implementation-teams
 description: Internal skill. Runs inside the implementation sub-session. Invokes implement-trellis-issues to implement all open Trellis tasks, then invokes orchestration-create-pr to open a draft GitHub PR. Signals completion to the conductor when done.
 allowed-tools:
   - Skill
-  - mcp__issue-orchestration__send-message-to-conductor
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
 ---
 
 # manage-implementation-teams
@@ -40,7 +40,7 @@ Draft quality is acceptable. Do **not** pass `--no-draft`. Capture the PR URL fr
 
 ### 3. Signal completion
 
-Call `mcp__issue-orchestration__send-message-to-conductor` with a single-line done message. Include the PR URL inline if available.
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message. Include the PR URL inline if available.
 
 Example message: `implementation done: PR opened at https://github.com/org/repo/pull/123`
 

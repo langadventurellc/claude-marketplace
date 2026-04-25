@@ -4,7 +4,7 @@ description: Internal skill. Runs inside the planning sub-session. Invokes orche
 allowed-tools:
   - AskUserQuestion
   - Skill
-  - mcp__issue-orchestration__send-message-to-conductor
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
 ---
 
 # manage-planning-team
@@ -51,10 +51,10 @@ Wait for `create-trellis-issues` to complete and confirm that issues were create
 
 ### 4. Signal completion
 
-Call `mcp__issue-orchestration__send-message-to-conductor` with a single-line done message.
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message.
 
 ```
-mcp__issue-orchestration__send-message-to-conductor({ message: "planning done: trellis issues created" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ message: "planning done: trellis issues created" })
 ```
 
 The message **must not contain embedded newlines** (`\n` or `\r`). The tool rejects multi-line messages.

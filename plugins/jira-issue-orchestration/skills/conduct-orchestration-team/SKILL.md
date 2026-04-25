@@ -5,9 +5,9 @@ allowed-tools:
   - Monitor
   - Read
   - Bash
-  - mcp__issue-orchestration__launch-orchestration-team
-  - mcp__issue-orchestration__stop-orchestration-team
-  - mcp__issue-orchestration__send-message-to-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team
 ---
 
 # conduct-orchestration-team
@@ -73,10 +73,10 @@ If `--additional-instructions` was provided, append that text verbatim at the en
 
 ### Step 3 — Launch sub-session
 
-Call `mcp__issue-orchestration__launch-orchestration-team` with the team prompt as the `prompt` argument:
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team` with the team prompt as the `prompt` argument:
 
 ```
-mcp__issue-orchestration__launch-orchestration-team({ prompt: "<team-prompt>" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team({ prompt: "<team-prompt>" })
 ```
 
 Prerequisites already satisfied at this point:
@@ -89,14 +89,14 @@ Block on the Monitor until a `hello` event arrives from the sub. This is the **o
 
 **Do NOT send any IPC message before `hello` arrives.** This ordering is load-bearing: the sub arms its own Monitor on `c2s.log` before sending `hello`, so any message sent before `hello` would be written to `c2s.log` before the sub's tail is armed, and would be silently dropped.
 
-If no `hello` arrives within a reasonable timeout (e.g., 60 seconds), call `mcp__issue-orchestration__stop-orchestration-team` for teardown and surface an error to the caller.
+If no `hello` arrives within a reasonable timeout (e.g., 60 seconds), call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team` for teardown and surface an error to the caller.
 
 ### Step 5 — Send instructions
 
-After receiving `hello`, call `mcp__issue-orchestration__send-message-to-orchestration-team` with the `--additional-instructions` value as the IPC payload — send it verbatim. `--additional-instructions` is the explicit channel for caller-supplied per-run context (e.g. the Jira issue key). Do not construct or augment this payload; the caller is responsible for its contents.
+After receiving `hello`, call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team` with the `--additional-instructions` value as the IPC payload — send it verbatim. `--additional-instructions` is the explicit channel for caller-supplied per-run context (e.g. the Jira issue key). Do not construct or augment this payload; the caller is responsible for its contents.
 
 ```
-mcp__issue-orchestration__send-message-to-orchestration-team({ message: "<instruction>" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team({ message: "<instruction>" })
 ```
 
 **Single-line messages only.** The IPC transport splits on newlines — a message containing `\n` or `\r` will be split into multiple events and corrupt the protocol. If a multi-line payload is ever truly needed, encode it as JSONL (one JSON object per line), not raw newlines.
@@ -111,10 +111,10 @@ The sub may also exit without sending a clean completion signal (crash, user int
 
 ### Step 7 — Teardown
 
-Call `mcp__issue-orchestration__stop-orchestration-team`:
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team`:
 
 ```
-mcp__issue-orchestration__stop-orchestration-team()
+mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team()
 ```
 
 This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session (authoritative shutdown), removes the IPC channel directory, and clears channel state from `~/.claude/issue-orchestration/state.json`.
