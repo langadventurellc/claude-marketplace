@@ -170,7 +170,7 @@ where `...` reflects the full hierarchy path up to but not including the holder 
 - `<filename>` — <one-line description of what it is and why it matters>
 ```
 
-The `<projectKey>` is the first 12 hex chars of `sha1(projectLabel)`, where `projectLabel` is the git origin URL or absolute project path. Use `$TRELLIS_DATA_DIR` if set, else `~/.trellis`.
+For how to find `<projectKey>`, see [attachment-paths.md](attachment-paths.md).
 
 If no source materials exist in the current conversation, skip this step.
 

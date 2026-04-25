@@ -121,7 +121,7 @@ Check that source materials were properly attached and referenced per the attach
 
 **Check 3 — `## Attachments` section in holder issues**: Every holder issue that has attachments must include an `## Attachments` section listing each filename with a one-line description.
 
-**Check 4 — `## Attachments` section in child issues**: Every child issue that depends on an attached source material must include an `## Attachments` section that names the holder issue ID and the specific filename (`See <filename> on <holder-id>`) and includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path.
+**Check 4 — `## Attachments` section in child issues**: Every child issue that depends on an attached source material must include an `## Attachments` section that names the holder issue ID and the specific filename (`See <filename> on <holder-id>`) and includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path. To verify `<projectKey>` against the on-disk directory, see `skills/issue-creation/attachment-paths.md`.
 
 **Cross-reference blocking rule**: If source materials were available during the writing session (planning output was produced, user supplied paths, or files were referenced in the task description or parent issue body) and the writer did NOT attach them, **block the review** — this is not a minor finding. Use contextual signals (prior planning-skill output visible in the conversation, file references in the task description, parent-issue attachment listings) to detect suspected omissions.
 

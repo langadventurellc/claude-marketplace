@@ -122,6 +122,8 @@ Every child issue that depends on an attached source material must include an `#
 See `<filename>` on `<holder-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
 ```
 
+To spot-check `<projectKey>` against the on-disk directory, see [`../issue-creation/attachment-paths.md`](../issue-creation/attachment-paths.md).
+
 **Cross-reference blocking rule**
 
 If source materials were available during the writing session — planning output was produced, the user supplied file paths, or files were referenced in the task description or parent issue body — and the writer did NOT attach them to the appropriate holder, **block the review**. This is not a minor finding.

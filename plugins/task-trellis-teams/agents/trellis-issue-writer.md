@@ -202,7 +202,7 @@ The planning skills are NOT modified. Only the writer is responsible for this br
 See `<filename>` on `<holder-issue-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
 ```
 
-The `<projectKey>` is the first 12 hex chars of `sha1(projectLabel)`, where `projectLabel` is the git origin URL or absolute project path. Use `$TRELLIS_DATA_DIR` if set, else `~/.trellis`. See `skills/issue-creation/<type>.md` for the exact path layout for each holder type.
+For how to find `<projectKey>` and the per-type path layout, see `skills/issue-creation/attachment-paths.md` and `skills/issue-creation/<type>.md`.
 
 ## Error Handling
 
