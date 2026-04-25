@@ -42,6 +42,17 @@ log_file="${plugin_data}/logs/open-claude-iterm.log"
 mkdir -p "$(dirname "$log_file")"
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >>"$log_file"; }
 
+# Resolve tmux to an absolute path. iTerm's `command "..."` parameter inherits
+# a PATH that does not always include /opt/homebrew/bin (notably when iTerm is
+# already running), so passing a bare `tmux` causes the spawned window to die
+# with "tmux: command not found" and close immediately.
+tmux_bin="$(command -v tmux || true)"
+if [[ -z "$tmux_bin" ]]; then
+  echo "ERROR: tmux not found on PATH" >&2
+  log "ERROR: tmux not found on PATH"
+  exit 1
+fi
+
 preamble=$(cat <<EOF
 You are a spawned Claude Code sub-instance participating in a two-party IPC spike with a conductor Claude Code instance.
 
@@ -69,16 +80,16 @@ EOF
 {
   claude_cmd="claude --dangerously-skip-permissions $(printf %q "$preamble")"
 
-  if ! tmux new-session -d -s "$session" "$claude_cmd" 2>>"$log_file"; then
+  if ! "$tmux_bin" new-session -d -s "$session" "$claude_cmd" 2>>"$log_file"; then
     log "ERROR: tmux new-session failed for session=$session channel=$channel_id"
     exit 1
   fi
-  log "Started tmux session=$session channel=$channel_id preamble_len=${#preamble}"
+  log "Started tmux session=$session channel=$channel_id preamble_len=${#preamble} tmux_bin=$tmux_bin"
 
   osascript >>"$log_file" 2>&1 <<APPLESCRIPT
 tell application "iTerm"
     activate
-    create window with default profile command "tmux -CC attach -t ${session}"
+    create window with default profile command "${tmux_bin} -CC attach -t ${session}"
 end tell
 APPLESCRIPT
   log "Dispatched iTerm window for session=$session channel=$channel_id"
