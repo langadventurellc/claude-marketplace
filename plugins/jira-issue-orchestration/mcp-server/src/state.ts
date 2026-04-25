@@ -3,17 +3,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
 
-export interface ChannelState {
+export interface ChannelMeta {
   channelId: string;
   tmuxSession: string | null;
   c2sLogPath: string;
   s2cLogPath: string;
+  createdAt: string;
+  label?: string;
 }
 
 const PLUGIN_DATA_ROOT =
   process.env.CLAUDE_PLUGIN_DATA ??
   path.join(os.homedir(), ".claude", "plugins", "data", "jira-issue-orchestration");
-const STATE_FILE = path.join(PLUGIN_DATA_ROOT, "state.json");
 const IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
 const CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;
 
@@ -47,28 +48,55 @@ export function s2cLogPath(channelId: string): string {
   return path.join(ipcDir(channelId), "s2c.log");
 }
 
-/** Reads persisted channel state from `${CLAUDE_PLUGIN_DATA}/state.json`. Returns `null` when no state file exists. */
-export function readState(): ChannelState | null {
+function metaPath(channelId: string): string {
+  return path.join(ipcDir(channelId), "meta.json");
+}
+
+/** Reads ipc/<channelId>/meta.json. Returns null when absent. Rethrows non-ENOENT errors. */
+export function readMeta(channelId: string): ChannelMeta | null {
   try {
-    const raw = fs.readFileSync(STATE_FILE, "utf8");
-    return JSON.parse(raw) as ChannelState;
+    const raw = fs.readFileSync(metaPath(channelId), "utf8");
+    return JSON.parse(raw) as ChannelMeta;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw err;
   }
 }
 
-/** Persists channel state to `${CLAUDE_PLUGIN_DATA}/state.json`, creating the directory if needed. */
-export function writeState(state: ChannelState): void {
-  fs.mkdirSync(PLUGIN_DATA_ROOT, { recursive: true });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
+/** Writes ipc/<channelId>/meta.json (pretty-printed). Creates channel directory if needed. */
+export function writeMeta(channelId: string, meta: ChannelMeta): void {
+  fs.mkdirSync(ipcDir(channelId), { recursive: true });
+  fs.writeFileSync(metaPath(channelId), JSON.stringify(meta, null, 2), "utf8");
 }
 
-/** Removes the state file. Idempotent — no error if the file is already absent. */
-export function clearState(): void {
+/** Removes ipc/<channelId>/meta.json. Idempotent — no error if absent. Does not remove the channel directory or log files. */
+export function deleteMeta(channelId: string): void {
   try {
-    fs.unlinkSync(STATE_FILE);
+    fs.unlinkSync(metaPath(channelId));
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
+}
+
+/** Returns metadata for every channel with a valid ipc/<channelId>/meta.json.
+ *  Silently skips dirs with missing or corrupt meta.json. Returns [] when IPC root absent. */
+export function listChannels(): ChannelMeta[] {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(IPC_ROOT, { withFileTypes: true });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw err;
+  }
+  const result: ChannelMeta[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !validateChannelId(entry.name)) continue;
+    try {
+      const meta = readMeta(entry.name);
+      if (meta !== null) result.push(meta);
+    } catch {
+      /* skip entries with corrupt or unreadable meta.json */
+    }
+  }
+  return result;
 }

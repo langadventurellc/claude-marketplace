@@ -46,8 +46,9 @@ preamble=$(cat <<EOF
 You are a spawned Claude Code sub-instance participating in a two-party IPC spike with a conductor Claude Code instance.
 
 IPC contract:
+- CHANNEL_ID=${channel_id}
 - Conductor -> you: conductor appends lines to ${c2s_log}
-- You -> conductor: you append lines to ${s2c_log}
+- You -> conductor: use send-message-to-conductor({ channelId: CHANNEL_ID, message: "..." })
 
 BEFORE DOING ANYTHING ELSE, perform these setup steps in order:
 1. If the Monitor tool is not already loaded, load it via ToolSearch with query "select:Monitor".
@@ -57,8 +58,7 @@ BEFORE DOING ANYTHING ELSE, perform these setup steps in order:
 3. Announce readiness by running this Bash command:
      printf '%s\n' "sub: hello conductor, IPC ready" >> ${s2c_log}
 
-After setup, treat every Monitor event from the inbox as a message from the conductor and act on it. To reply, append a single line to ${s2c_log} using:
-     printf '%s\n' "sub: <your reply>" >> ${s2c_log}
+After setup, treat every Monitor event from the inbox as a message from the conductor and act on it. To reply, call send-message-to-conductor({ channelId: CHANNEL_ID, message: "sub: <your reply>" }).
 Keep each message to a single line (no embedded newlines).
 
 User prompt follows (may be empty for a bare spike):
