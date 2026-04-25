@@ -1,5 +1,5 @@
 ---
-name: orchestration-investigate-jira-issue
+name: investigate-jira-issue
 description: Investigate a Jira issue and turn it into a requirements or technical-discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. CORE-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:technical-discovery` (for well-specified work needing research and analysis).
 allowed-tools:
   - AskUserQuestion

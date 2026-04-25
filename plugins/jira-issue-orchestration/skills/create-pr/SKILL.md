@@ -1,5 +1,5 @@
 ---
-name: orchestration-create-pr
+name: create-pr
 description: Commit (if needed), push (if needed), and open a GitHub pull request using the team PR template. Creates a *draft* PR by default. Use whenever the user asks to "create a PR", "open a pull request", "ship this", "file the PR", "PR this up", etc. Handles Jira/Trellis context auto-detection, halts on suspicious staged content (secrets, large binaries, scope creep, merge markers), and enforces the `{JIRA-ID}: {outcome}` title format. Supports `--no-draft` (create non-draft) and `--ai-review` (add `ai-review` label).
 allowed-tools:
   - AskUserQuestion

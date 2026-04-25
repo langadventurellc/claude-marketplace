@@ -53,14 +53,14 @@ Execute these steps in order. Each step depends on the previous.
 
 Construct the prompt that will be injected as the user prompt in the sub-session. The prompt must instruct the sub to invoke the appropriate manage-\*-team skill for its team type:
 
-- **`planning`**: Instruct the sub to invoke `manage-planning-team`. That skill calls `orchestration-investigate-jira-issue`, then `create-trellis-issues`, then signals completion via `send-message-to-conductor`.
+- **`planning`**: Instruct the sub to invoke `manage-planning-team`. That skill calls `investigate-jira-issue`, then `create-trellis-issues`, then signals completion via `send-message-to-conductor`.
 
   Example prompt template:
   ```
   Invoke the manage-planning-team skill. It will guide the full planning workflow for this sub-session, including investigation, Trellis issue creation, and completion signaling via IPC.
   ```
 
-- **`implementation`**: Instruct the sub to invoke `manage-implementation-teams`. That skill calls `implement-trellis-issues`, then `orchestration-create-pr`, then signals completion via `send-message-to-conductor`.
+- **`implementation`**: Instruct the sub to invoke `manage-implementation-teams`. That skill calls `implement-trellis-issues`, then `create-pr`, then signals completion via `send-message-to-conductor`.
 
   Example prompt template:
   ```
@@ -69,7 +69,7 @@ Construct the prompt that will be injected as the user prompt in the sub-session
 
 If `--additional-instructions` was provided, append that text verbatim at the end of the prompt, separated by a blank line.
 
-**Do not bypass manage-\*-team skills** by calling sub-skills (`orchestration-investigate-jira-issue`, `create-trellis-issues`, etc.) directly in the prompt. The manage-\*-team skills own user interaction and the completion-signal contract.
+**Do not bypass manage-\*-team skills** by calling sub-skills (`investigate-jira-issue`, `create-trellis-issues`, etc.) directly in the prompt. The manage-\*-team skills own user interaction and the completion-signal contract.
 
 ### Step 3 — Launch sub-session
 
