@@ -4,7 +4,7 @@ description: Internal skill. Manages the full lifecycle of one planning or imple
 allowed-tools:
   - Monitor
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team
-  - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team
 ---
 
@@ -17,10 +17,11 @@ Internal skill. Manages the full lifecycle of one planning or implementation sub
 ## Usage
 
 ```
-conduct-orchestration-team --team-type <planning|implementation> [--additional-instructions <text>]
+conduct-orchestration-team --team-type <planning|implementation> --channel-id <channelId> [--additional-instructions <text>]
 ```
 
 - `--team-type` — **Required.** Must be `planning` or `implementation`.
+- `--channel-id` — **Required.** The channel ID returned by `claim-conductor` in Phase 1 of the caller. Passed to every IPC tool call.
 - `--additional-instructions` — The IPC instruction payload sent to the sub after the `hello` handshake (Step 4). This is the explicit channel for caller-supplied per-run context such as the Jira issue key (e.g. `ACME-1234`). Its value is also appended verbatim to the team prompt (Step 1). Must be a single line — do not embed newlines.
 
 ## Ordering Constraint (load-bearing)
@@ -55,10 +56,10 @@ If `--additional-instructions` was provided, append that text verbatim at the en
 
 ### Step 2 — Launch sub-session
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team` with the team prompt as the `prompt` argument:
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team` with the channel ID and team prompt:
 
 ```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team({ prompt: "<team-prompt>" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team({ channelId: "<channelId>", prompt: "<team-prompt>" })
 ```
 
 Prerequisites already satisfied at this point:
@@ -70,14 +71,14 @@ Block on the Monitor until a `hello` event arrives from the sub. This is the **o
 
 **Do NOT send any IPC message before `hello` arrives.** This ordering is load-bearing: the sub arms its own Monitor on `c2s.log` before sending `hello`, so any message sent before `hello` would be written to `c2s.log` before the sub's tail is armed, and would be silently dropped.
 
-If no `hello` arrives within a reasonable timeout (e.g., 60 seconds), call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team` for teardown and surface an error to the caller.
+If no `hello` arrives within a reasonable timeout (e.g., 60 seconds), call `mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub({ channelId })` for teardown and surface an error to the caller.
 
 ### Step 4 — Send instructions
 
 After receiving `hello`, call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team` with the `--additional-instructions` value as the IPC payload — send it verbatim. `--additional-instructions` is the explicit channel for caller-supplied per-run context (e.g. the Jira issue key). Do not construct or augment this payload; the caller is responsible for its contents.
 
 ```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team({ message: "<instruction>" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orchestration-team({ channelId: "<channelId>", message: "<instruction>" })
 ```
 
 **Single-line messages only.** The IPC transport splits on newlines — a message containing `\n` or `\r` will be split into multiple events and corrupt the protocol. If a multi-line payload is ever truly needed, encode it as JSONL (one JSON object per line), not raw newlines.
@@ -92,15 +93,15 @@ The sub may also exit without sending a clean completion signal (crash, user int
 
 ### Step 6 — Teardown
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team`:
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub`:
 
 ```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team()
+mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub({ channelId: "<channelId>" })
 ```
 
-This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session (authoritative shutdown), removes the IPC channel directory, and performs cleanup.
+This kills only the active sub (sends `__peer_exit__`, kills the tmux session) while preserving the channel directory and log paths. The caller (`orchestrate-jira-issue`) owns final channel cleanup via `stop-orchestration-team`.
 
-**Always run teardown**, whether the sub completed normally or not. Do not leave tmux sessions or IPC directories orphaned.
+**Always run teardown**, whether the sub completed normally or not. Do not leave tmux sessions orphaned.
 
 ## Critical Constraints
 
@@ -108,4 +109,4 @@ This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session 
 - **Inject manage-\*-team skills as the prompt.** These skills own user interaction (asking clarifying questions directly in the sub's iTerm window) and the `done`-signal contract. Bypassing them breaks the completion-detection protocol.
 - **Completion signal contains `done`.** The conductor matches any incoming IPC message that contains `done` as a substring (e.g. `planning done: trellis issues created`, `implementation done: PR opened at <url>`). Forward the full message to the caller.
 - **Single-line IPC messages only.** Newlines (`\n`, `\r`) in a message split it across Monitor events. Never embed newlines; use JSONL if a structured multi-line payload is required.
-- **Teardown is always required.** Run `stop-orchestration-team` in all exit paths, including errors.
+- **Teardown is always required.** Run `terminate-sub({ channelId })` in all exit paths, including errors. This skill does not call `stop-orchestration-team` — that belongs to the caller.

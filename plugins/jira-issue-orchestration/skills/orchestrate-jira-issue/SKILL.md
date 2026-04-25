@@ -9,6 +9,8 @@ allowed-tools:
   - Write
   - Skill
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
   - mcp__plugin_atlassian_atlassian__getJiraIssue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
@@ -49,8 +51,8 @@ This phase must complete successfully before proceeding to Phase 1.
 Execute these steps in order; each is a prerequisite for the next.
 
 1. **Claim conductor channel**  
-   Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor`.  
-   Store the returned `channelId`, `c2sLogPath`, and `s2cLogPath`.
+   Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor`, optionally passing `label` (e.g., the Jira issue key).  
+   Store the returned `channelId`, `c2sLogPath`, and `s2cLogPath`. Hold `channelId` for the entire run — do not call `claim-conductor` again.
 
 2. **Arm persistent Monitor** *(must happen before any launch)*  
    Start a persistent Monitor on `s2cLogPath`:
@@ -67,42 +69,35 @@ Execute these steps in order; each is a prerequisite for the next.
 ### Phase 2 — Planning
 
 1. **Launch planning sub-session**  
-   Invoke `conduct-orchestration-team --team-type planning --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the Jira issue key from Phase 1.  
-   `conduct-orchestration-team` manages the full planning sub lifecycle (launch → hello → instructions → done → stop). Wait for it to return before proceeding.
+   Invoke `conduct-orchestration-team --team-type planning --channel-id <channelId> --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the Jira issue key from Phase 1.  
+   `conduct-orchestration-team` manages the full planning sub lifecycle (launch → hello → instructions → done → terminate). Wait for it to return before proceeding.
 
 2. **Verify Trellis issues were created**  
    Call `mcp__plugin_task-trellis-teams_task-trellis__list_issues` and check that open tasks exist under the expected parent feature.  
    If no Trellis issues are found, stop and inform the user — do not launch the implementation sub.
 
-### Phase 3 — Re-initialize Channel
+### Phase 3 — Transition Between Phases
 
-`stop-orchestration-team` (called by `conduct-orchestration-team` at the end of Phase 2) clears all channel state. A new channel is required before launching the implementation sub.
-
-1. **Claim a new conductor channel**  
-   Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor` again.  
-   Store the new `channelId` and `s2cLogPath` (the old values are stale).
-
-2. **Arm a new persistent Monitor**  
-   Start a new persistent Monitor on the new `s2cLogPath`:
-   ```
-   Monitor({ persistent: true, command: "tail -n 0 -F <new-s2cLogPath>" })
-   ```
-   The previous Monitor was watching a now-removed file path and must not be reused.
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub({ channelId })` to kill the planning sub while keeping the channel alive. The same `channelId` and `s2cLogPath` remain valid — no new `claim-conductor` or `Monitor` is needed.
 
 ### Phase 4 — Implementation
 
 1. **Launch implementation sub-session**  
-   Invoke `conduct-orchestration-team --team-type implementation --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the same Jira issue key from Phase 1.  
+   Invoke `conduct-orchestration-team --team-type implementation --channel-id <channelId> --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the same Jira issue key from Phase 1.  
    Wait for it to return.
 
 2. **Confirm PR and report to user**  
    Run `gh pr list --state open --limit 5` (via `Bash`) to confirm a PR was opened.  
    Report the PR URL to the user.
 
+### Phase 5 — Final Teardown
+
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team({ channelId })` to tear down the channel, remove IPC directories, and clean up. This is called exactly once, at the very end of the run.
+
 ## Key Constraints
 
 - **No conductor agent type.** This skill runs in the user's existing Claude Code session. Do not define a new agent type.
 - **Monitor before launch.** Always follow the Phase 1 ordering: claim → arm Monitor → fetch Jira. Never call `launch-orchestration-team` before the Monitor is armed.
-- **Re-claim between phases.** After `stop-orchestration-team` clears state, `claim-conductor` must be called again before Phase 4. Reusing the old `channelId` or `s2cLogPath` will fail.
+- **One channel for the full run.** `claim-conductor` is called exactly once (Phase 1). Use `terminate-sub({ channelId })` between phases — it kills the active sub while preserving the channel for the next launch. `stop-orchestration-team({ channelId })` is called only once at the very end.
 - **Single sub at a time.** Do not call `launch-orchestration-team` if a sub is already active.
 - **Single-line IPC messages only.** If you ever send a message directly via IPC (not via `conduct-orchestration-team`), ensure it contains no embedded newlines.

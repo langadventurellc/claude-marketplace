@@ -14,6 +14,8 @@ Internal skill that runs inside the implementation sub-session. Implements all o
 
 This skill is injected as the sub's user prompt by `conduct-orchestration-team --team-type implementation`. The sub's `Monitor` (watching `c2s.log`) is already armed by the IPC preamble before this skill runs — **do not arm a Monitor here**.
 
+The launcher preamble contains a `CHANNEL_ID=<value>` line. Extract this value and pass it as `channelId` to `send-message-to-conductor`.
+
 ## Workflow
 
 Execute these steps in order. Wait for each to complete before starting the next.
@@ -40,9 +42,13 @@ Draft quality is acceptable. Do **not** pass `--no-draft`. Capture the PR URL fr
 
 ### 3. Signal completion
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message. Include the PR URL inline if available.
+Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message. Include the PR URL inline if available.
 
 Example message: `implementation done: PR opened at https://github.com/org/repo/pull/123`
+
+```
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "implementation done: PR opened at <url>" })
+```
 
 The message must contain **no embedded newlines** (`\n` or `\r`). Encode everything on one line.
 

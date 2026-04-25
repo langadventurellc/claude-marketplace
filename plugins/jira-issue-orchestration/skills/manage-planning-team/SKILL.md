@@ -15,6 +15,8 @@ Internal skill that executes inside the planning sub-session. It is not user-inv
 
 This skill runs in a freshly spawned Claude Code sub-instance in its own iTerm/tmux window. The sub's `Monitor` (watching `c2s.log`) is **already armed by the IPC preamble** injected by the launcher. Do NOT arm a Monitor here — doing so is unnecessary and may interfere with the preamble's tail.
 
+The launcher preamble contains a `CHANNEL_ID=<value>` line. Extract this value and pass it as `channelId` to `send-message-to-conductor`.
+
 The Jira issue key is provided in the instructions delivered by the conductor at session start.
 
 ## Workflow
@@ -51,10 +53,10 @@ Wait for `create-trellis-issues` to complete and confirm that issues were create
 
 ### 4. Signal completion
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message.
+Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message.
 
 ```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ message: "planning done: trellis issues created" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning done: trellis issues created" })
 ```
 
 The message **must not contain embedded newlines** (`\n` or `\r`). The tool rejects multi-line messages.
