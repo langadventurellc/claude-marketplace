@@ -60,15 +60,19 @@ Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency)
 Skill({ name: "task-trellis-teams:create-trellis-issues", input: "<artifact from step 1>" })
 ```
 
-Wait for `create-trellis-issues` to complete and confirm that issues were created before proceeding.
+A planning run produces **exactly one root Trellis issue** for the Jira ticket — typically a feature (`F-…`), but may be an epic (`E-…`) or project (`P-…`) for larger work. Multi-root output is not a valid outcome of this skill; if `create-trellis-issues` somehow produces more than one top-level issue, stop and surface the error to the user.
+
+Wait for `create-trellis-issues` to complete, then capture the **root Trellis issue ID** from its summary (the "Parent" entry in its `## Issue Creation Complete` block, or the topmost issue in `### Created Issues` when the run created the root itself). Bind it as `TRELLIS_SCOPE` for step 5.
 
 ### 5. Signal completion
 
-Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message.
+Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message that carries `TRELLIS_SCOPE` in the format `scope=<id>`:
 
 ```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning done: trellis issues created" })
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning done: trellis issues created scope=<TRELLIS_SCOPE>" })
 ```
+
+The `scope=<id>` token is required — the conductor parses it to drive the implementation sub. Do not omit it, do not rename it, do not wrap the value in quotes.
 
 The message **must not contain embedded newlines** (`\n` or `\r`). The tool rejects multi-line messages.
 

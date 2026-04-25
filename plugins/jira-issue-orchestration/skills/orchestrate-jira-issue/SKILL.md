@@ -72,9 +72,10 @@ Execute these steps in order; each is a prerequisite for the next.
    Invoke `conduct-orchestration-team --team-type planning --channel-id <channelId> --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the Jira issue key from Phase 1.  
    `conduct-orchestration-team` manages the full planning sub lifecycle (launch → hello → instructions → done → terminate). Wait for it to return before proceeding.
 
-2. **Verify Trellis issues were created**  
-   Call `mcp__plugin_task-trellis-teams_task-trellis__list_issues` and check that open tasks exist under the expected parent feature.  
-   If no Trellis issues are found, stop and inform the user — do not launch the implementation sub.
+2. **Capture and verify the Trellis scope**  
+   Parse `scope=<TRELLIS_ID>` out of the planning sub's `done` message (forwarded by `conduct-orchestration-team` Step 5). Bind the value as `TRELLIS_SCOPE`. If the token is absent or empty, stop and inform the user — the planning sub failed its contract.  
+   Confirm the root issue exists by calling `mcp__plugin_task-trellis-teams_task-trellis__get_issue({ id: "<TRELLIS_SCOPE>" })`. If the call fails or returns no issue, stop and inform the user.  
+   Confirm there is implementable work under it: call `mcp__plugin_task-trellis-teams_task-trellis__list_issues({ scope: "<TRELLIS_SCOPE>", type: "task", status: ["open", "in-progress"] })` and check the result is non-empty (when the root itself is a task, `get_issue` is sufficient — skip the `list_issues` check). If no open tasks are found under a non-task root, stop and inform the user — do not launch the implementation sub.
 
 ### Phase 3 — Transition Between Phases
 
@@ -83,7 +84,7 @@ Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub({ 
 ### Phase 4 — Implementation
 
 1. **Launch implementation sub-session**  
-   Invoke `conduct-orchestration-team --team-type implementation --channel-id <channelId> --additional-instructions <issue_id>` via the `Skill` tool, where `<issue_id>` is the same Jira issue key from Phase 1.  
+   Invoke `conduct-orchestration-team --team-type implementation --channel-id <channelId> --additional-instructions "<issue_id> scope=<TRELLIS_SCOPE>"` via the `Skill` tool, where `<issue_id>` is the same Jira issue key from Phase 1 and `<TRELLIS_SCOPE>` is the root Trellis ID captured in Phase 2 step 2. Both values ride on a single line — do not embed newlines.  
    Wait for it to return.
 
 2. **Confirm PR and report to user**  

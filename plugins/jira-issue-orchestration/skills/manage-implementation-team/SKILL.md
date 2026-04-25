@@ -22,10 +22,12 @@ Execute these steps in order. Wait for each to complete before starting the next
 
 ### 1. Implement Trellis tasks
 
-Invoke `implement-trellis-issues` (from the `task-trellis-teams` plugin) via the `Skill` tool. This implements all open Trellis tasks created by the planning sub.
+Parse `scope=<TRELLIS_ID>` out of the conductor's instructions. The conductor sends a single line containing the Jira key followed by `scope=<TRELLIS_ID>` — bind the ID as `TRELLIS_SCOPE`. If the token is missing, stop and surface an error; do not fall back to running `implement-trellis-issues` without a scope.
+
+Invoke `implement-trellis-issues` (from the `task-trellis-teams` plugin) via the `Skill` tool, passing `TRELLIS_SCOPE` as the input so the skill is anchored to the planning sub's tree:
 
 ```
-Skill({ name: "task-trellis-teams:implement-trellis-issues" })
+Skill({ name: "task-trellis-teams:implement-trellis-issues", input: "<TRELLIS_SCOPE>" })
 ```
 
 Wait for `implement-trellis-issues` to complete before proceeding. It handles its own testing — do not add a separate testing step.
