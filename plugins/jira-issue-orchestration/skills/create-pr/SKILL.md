@@ -41,18 +41,10 @@ Follow these steps in order. Each step's output is required for the next.
 
 ### 0. Preflight: load configuration
 
-Before any other step, resolve the config path and load it.
-
-1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH` for the rest of this run.
-2. Use the `Read` tool on `CONFIG_PATH`. This skill needs: `atlassianBaseUrl`, `jiraProjectKey`.
-
-If the file is missing, or any required key is absent/empty:
-
-1. Use `AskUserQuestion` to collect the missing values from the user.
-2. Use the `Write` tool to persist the merged config back to `CONFIG_PATH`. **Preserve any keys already present in the file** — merge, don't overwrite.
-3. Use the collected values for the rest of this run.
-
-Bind the resolved values to the local names `BASE_URL`, `PROJECT_KEY`.
+1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH`.
+2. Use `Read` on `CONFIG_PATH`.
+3. If the file is missing or any required key (`atlassianBaseUrl`, `jiraProjectKey`) is absent/empty — stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
+4. Bind `BASE_URL` from `atlassianBaseUrl`, `PROJECT_KEY` from `jiraProjectKey`, and `CLOUD_ID` from `atlassianCloudId`.
 
 ### 1. Pre-flight: sanity-check the working tree
 
@@ -117,7 +109,7 @@ If the user passed `--jira <KEY>` or said "use ACME-5678" in the invocation, ski
 
 Fire the following in parallel; each is optional and degrades gracefully if empty/failing.
 
-- **Primary Jira ticket**: call `mcp__plugin_atlassian_atlassian__getJiraIssue` directly with `cloudId` from `CONFIG_PATH` (`atlassianCloudId` — prompt and persist via the same merge logic as step 0 if missing) and `issueIdOrKey` set to the primary key from step 3. Use `responseContentFormat: "markdown"` for simpler parsing. (The `get-jira-issue` skill wraps this same MCP call — calling the MCP directly is one hop instead of two and avoids re-entering the skill machinery.) Use the returned summary + description to inform the PR's What/Why.
+- **Primary Jira ticket**: call `mcp__plugin_atlassian_atlassian__getJiraIssue` directly with `CLOUD_ID` (bound from `atlassianCloudId` in step 0) and `issueIdOrKey` set to the primary key from step 3. Use `responseContentFormat: "markdown"` for simpler parsing. (The `get-jira-issue` skill wraps this same MCP call — calling the MCP directly is one hop instead of two and avoids re-entering the skill machinery.) Use the returned summary + description to inform the PR's What/Why.
 - **Trellis issues**: scan both **commit messages** and the **branch name** for Trellis issue IDs. Patterns: `\b[TPEF]-[a-f0-9]{6,}\b` (task/project/epic/feature) and `\b[TPEF]-[a-z0-9-]+\b` for human-readable slugs like `F-return-failed-job-status-on`. If a pattern matches, call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each in parallel. If the branch name matches but no commit does, that's fine — still look it up. If no patterns match anywhere, skip silently.
 - **Diff content**: `git diff <default-branch>...HEAD` (full patch, but cap to the first ~500 lines when reading — for summarization purposes only). Pair with `git log <default-branch>..HEAD --format="%h %s%n%b"` for commit messages and bodies.
 

@@ -3,9 +3,9 @@ name: investigate-jira-issue
 description: Investigate a Jira issue and turn it into a requirements or technical-discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. ACME-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:technical-discovery` (for well-specified work needing research and analysis).
 allowed-tools:
   - AskUserQuestion
+  - Bash
   - Skill
   - Read
-  - Write
   - Glob
   - Grep
   - Task
@@ -35,18 +35,10 @@ If the user didn't supply an issue key, ask for one with `AskUserQuestion` befor
 
 ### 0. Preflight: load configuration
 
-Before any other step, resolve the config path and load it.
-
-1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH` for the rest of this run.
-2. Use the `Read` tool on `CONFIG_PATH`. This skill needs: `atlassianCloudId`, `atlassianBaseUrl`.
-
-If the file is missing, or any required key is absent/empty:
-
-1. Use `AskUserQuestion` to collect the missing values from the user.
-2. Use the `Write` tool to persist the merged config back to `CONFIG_PATH`. **Preserve any keys already present in the file** — merge, don't overwrite.
-3. Use the collected values for the rest of this run.
-
-Bind the resolved values to the local names `CLOUD_ID`, `BASE_URL`.
+1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH`.
+2. Use `Read` on `CONFIG_PATH`.
+3. If the file is missing or any required key (`atlassianCloudId`, `atlassianBaseUrl`) is absent/empty — stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
+4. Bind `CLOUD_ID` from `atlassianCloudId` and `BASE_URL` from `atlassianBaseUrl`.
 
 ### 1. Fetch the ticket
 
