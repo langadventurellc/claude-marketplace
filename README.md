@@ -48,6 +48,8 @@ Runs a single command to autonomously take a Jira issue all the way to an open d
 
 **Prerequisites:** `task-trellis-teams` must also be installed (it is a declared plugin dependency). The MCP server is bundled in the plugin and self-registers — no manual setup required. Requires Claude Code v2.1.98+, macOS + iTerm2 + tmux, and Node ≥ 22.
 
+**First-run config:** Run `/orchestrate-jira-issue` once before using the standalone skills — it prompts for your Atlassian base URL, cloud ID, and Jira project key and persists them to a local config file. `/investigate-jira-issue` and `/create-pr` require that config to already exist and will not prompt for missing values.
+
 ```
 /plugin install jira-issue-orchestration@task-trellis-marketplace
 ```
