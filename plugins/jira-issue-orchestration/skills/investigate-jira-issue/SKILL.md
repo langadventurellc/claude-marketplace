@@ -114,15 +114,17 @@ At the top of the output, add a short header line identifying:
 - The Jira key and URL
 - Which route was taken and a one-line justification (e.g. `Route: technical-discovery — ticket is well-specified; value is in mapping affected code and risks`)
 
-### 6. Offer a handoff
+### 6. Hand off
 
-After the document is produced, ask the user what to do next with a single `AskUserQuestion`. Options:
+After the document is produced, decide how to hand off based on your invocation context:
 
-1. **Create Trellis issues** — feed the document into `task-trellis-teams:create-trellis-issues`.
-2. **Implement now** — hand the document off directly to an implementation flow (the user's preferred agent/skill for implementation).
-3. **Stop here** — leave the document in-chat; user will take it from there.
+- **If your invocation context already specifies what to do next with the document** (e.g. you were called from an orchestrator skill, or the user's instructions chain you into another skill), proceed with those instructions immediately. Do not ask the user about the handoff — that decision has already been made.
+- **Otherwise**, ask the user what to do next with a single `AskUserQuestion`. Options:
+  1. **Create Trellis issues** — feed the document into `task-trellis-teams:create-trellis-issues`.
+  2. **Implement now** — hand the document off directly to an implementation flow (the user's preferred agent/skill for implementation).
+  3. **Stop here** — leave the document in-chat; user will take it from there.
 
-Make the Trellis option the first entry (`(Recommended)`) when the document is broad enough to warrant issue breakdown; make `Stop here` the recommended default for small or single-change tickets.
+  Make the Trellis option the first entry (`(Recommended)`) when the document is broad enough to warrant issue breakdown; make `Stop here` the recommended default for small or single-change tickets.
 
 ## Notes on behavior
 

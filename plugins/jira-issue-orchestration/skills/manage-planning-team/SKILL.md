@@ -33,6 +33,8 @@ Skill({ name: "investigate-jira-issue", input: "<JIRA_KEY>" })
 
 Wait for the skill to complete. Its output — a requirements summary or technical-discovery document — is the artifact used in step 3.
 
+**When `investigate-jira-issue` returns its document, your next action MUST be a `Skill` call to `task-trellis-teams:create-trellis-issues` (step 3). Do not stop. Do not ask the user about the handoff — that decision is already made by this skill.** The only exception is step 2: if the investigation surfaced blocking ambiguities that the user must resolve before issue creation, handle those first via `AskUserQuestion`, then proceed to step 3.
+
 ### 2. Clarify if needed
 
 If the investigation reveals ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's iTerm window** using `AskUserQuestion`.
