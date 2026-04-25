@@ -1,11 +1,11 @@
 {
   "name": "mise",
-  "version": "1.0.0",
-  "description": "Mise-en-place integration with Task Trellis for AI coding agents",
+  "version": "1.1.0",
+  "description": "Mise Claude Code hooks",
   "author": {
     "name": "LangAdventure LLC"
   },
   "repository": "https://github.com/langadventurellc/task-trellis-mcp",
   "license": "MIT",
-  "keywords": ["ai-agents", "trellis"]
+  "keywords": ["trellis"]
 }
