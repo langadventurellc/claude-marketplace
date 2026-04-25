@@ -10,9 +10,11 @@ export interface ChannelState {
   s2cLogPath: string;
 }
 
-const STATE_DIR = path.join(os.homedir(), ".claude", "issue-orchestration");
-const STATE_FILE = path.join(STATE_DIR, "state.json");
-const IPC_ROOT = path.join(os.homedir(), ".claude", "ipc");
+const PLUGIN_DATA_ROOT =
+  process.env.CLAUDE_PLUGIN_DATA ??
+  path.join(os.homedir(), ".claude", "plugins", "data", "jira-issue-orchestration");
+const STATE_FILE = path.join(PLUGIN_DATA_ROOT, "state.json");
+const IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
 const CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;
 
 /** Returns true when `id` is a valid channel ID (epoch digits, hyphen, lowercase hex). Rejects path traversal, spaces, and uppercase. */
@@ -45,7 +47,7 @@ export function s2cLogPath(channelId: string): string {
   return path.join(ipcDir(channelId), "s2c.log");
 }
 
-/** Reads persisted channel state from `~/.claude/issue-orchestration/state.json`. Returns `null` when no state file exists. */
+/** Reads persisted channel state from `${CLAUDE_PLUGIN_DATA}/state.json`. Returns `null` when no state file exists. */
 export function readState(): ChannelState | null {
   try {
     const raw = fs.readFileSync(STATE_FILE, "utf8");
@@ -56,9 +58,9 @@ export function readState(): ChannelState | null {
   }
 }
 
-/** Persists channel state to `~/.claude/issue-orchestration/state.json`, creating the directory if needed. */
+/** Persists channel state to `${CLAUDE_PLUGIN_DATA}/state.json`, creating the directory if needed. */
 export function writeState(state: ChannelState): void {
-  fs.mkdirSync(STATE_DIR, { recursive: true });
+  fs.mkdirSync(PLUGIN_DATA_ROOT, { recursive: true });
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
 }
 

@@ -35,7 +35,7 @@ Execute these steps in order. Each step depends on the previous.
 
 ### Step 1 — Read state and arm conductor Monitor
 
-1. Use the `Read` tool to load `~/.claude/issue-orchestration/state.json`. This file is written by `claim-conductor` and contains `s2cLogPath` (the sub→conductor log path).
+1. Resolve the state file path and load it. Run `Bash`: `echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/state.json"`, then use the `Read` tool on the printed path. This file is written by `claim-conductor` and contains `s2cLogPath` (the sub→conductor log path).
 
    If the file is missing or `s2cLogPath` is absent, stop immediately — the conductor has not claimed a channel. Surface a clear error to the caller.
 
@@ -117,7 +117,7 @@ Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestrati
 mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team()
 ```
 
-This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session (authoritative shutdown), removes the IPC channel directory, and clears channel state from `~/.claude/issue-orchestration/state.json`.
+This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session (authoritative shutdown), removes the IPC channel directory, and clears channel state from `${CLAUDE_PLUGIN_DATA}/state.json`.
 
 **Always run teardown**, whether the sub completed normally or not. Do not leave tmux sessions or IPC directories orphaned.
 
@@ -129,5 +129,5 @@ This tool sends the `__peer_exit__` sentinel to the sub, kills the tmux session 
 - **Single-line IPC messages only.** Newlines (`\n`, `\r`) in a message split it across Monitor events. Never embed newlines; use JSONL if a structured multi-line payload is required.
 - **Monitor is NOT declared in `plugin.json`.** It is armed dynamically inside this skill per channel. Do not add a `monitors` key to the plugin manifest.
 - **Monitor requires Claude Code v2.1.98+.** Unavailable on Bedrock/Vertex/Foundry or when `DISABLE_TELEMETRY` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` are set. Always check availability and surface a clear error if missing.
-- **State file is the source of truth.** Read `~/.claude/issue-orchestration/state.json` to obtain `s2cLogPath`; do not hard-code or construct paths manually.
+- **State file is the source of truth.** Read `${CLAUDE_PLUGIN_DATA}/state.json` to obtain `s2cLogPath`; do not hard-code or construct paths manually.
 - **Teardown is always required.** Run `stop-orchestration-team` in all exit paths, including errors.

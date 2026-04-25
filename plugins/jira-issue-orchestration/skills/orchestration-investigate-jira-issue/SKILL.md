@@ -22,7 +22,7 @@ Turn a Jira ticket into an actionable design artifact — either a **requirement
 
 ## Configuration
 
-Tenanty values (`cloudId`, Atlassian base URL) are loaded from `~/.claude/skills/_config.json` at the start of every run via the preflight step below. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
+Tenanty values (`cloudId`, Atlassian base URL) are loaded from `${CLAUDE_PLUGIN_DATA}/_config.json` at the start of every run via the preflight step below. The path resolves at runtime and persists across plugin updates. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
 
 ## Input
 
@@ -35,12 +35,15 @@ If the user didn't supply an issue key, ask for one with `AskUserQuestion` befor
 
 ### 0. Preflight: load configuration
 
-Before any other step, use the `Read` tool to load `~/.claude/skills/_config.json`. This skill needs: `atlassianCloudId`, `atlassianBaseUrl`.
+Before any other step, resolve the config path and load it.
+
+1. Run `Bash`: `mkdir -p "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}" && echo "${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}/_config.json"`. Bind the printed path to `CONFIG_PATH` for the rest of this run.
+2. Use the `Read` tool on `CONFIG_PATH`. This skill needs: `atlassianCloudId`, `atlassianBaseUrl`.
 
 If the file is missing, or any required key is absent/empty:
 
 1. Use `AskUserQuestion` to collect the missing values from the user.
-2. Use the `Write` tool to persist the merged config back to `~/.claude/skills/_config.json`. **Preserve any keys already present in the file** — merge, don't overwrite.
+2. Use the `Write` tool to persist the merged config back to `CONFIG_PATH`. **Preserve any keys already present in the file** — merge, don't overwrite.
 3. Use the collected values for the rest of this run.
 
 Bind the resolved values to the local names `CLOUD_ID`, `BASE_URL`.

@@ -142,10 +142,11 @@ function launchOrchestrationTeam(args: Record<string, unknown> | undefined): Too
   if (!fs.existsSync(scriptPath)) {
     return toolError(`Launcher script missing at ${scriptPath}`);
   }
-  const child = spawn(scriptPath, [state.channelId, prompt, sessionName], {
-    detached: true,
-    stdio: "ignore",
-  });
+  const child = spawn(
+    scriptPath,
+    [state.channelId, prompt, sessionName, state.c2sLogPath, state.s2cLogPath],
+    { detached: true, stdio: "ignore" }
+  );
   child.unref();
   writeState({ ...state, tmuxSession: sessionName });
   return toolOk({ tmuxSession: sessionName, channelId: state.channelId, prompt });

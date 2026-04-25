@@ -5,28 +5,29 @@
 # log file via the Monitor tool and to send replies by appending to a
 # sub->conductor log file.
 #
-# Usage: open-claude-iterm-ipc.sh <channel-id> [user-prompt] [session-name]
+# Usage: open-claude-iterm-ipc.sh <channel-id> <user-prompt> <session-name> <c2s-log> <s2c-log>
 #
-# IPC files (created if missing):
-#   ~/.claude/ipc/<channel-id>/c2s.log   # conductor -> sub
-#   ~/.claude/ipc/<channel-id>/s2c.log   # sub -> conductor
+# IPC log paths are passed in by the MCP server (which owns path layout via
+# ${CLAUDE_PLUGIN_DATA}). This script does not derive them itself.
 
 set -u
 
 channel_id="${1-}"
 user_prompt="${2-}"
 session_arg="${3-}"
+c2s_log="${4-}"
+s2c_log="${5-}"
 
 if [[ -z "$channel_id" ]]; then
   echo "ERROR: channel-id required as first argument" >&2
   exit 1
 fi
+if [[ -z "$c2s_log" || -z "$s2c_log" ]]; then
+  echo "ERROR: c2s-log and s2c-log paths required as args 4 and 5" >&2
+  exit 1
+fi
 
-ipc_dir="${HOME}/.claude/ipc/${channel_id}"
-c2s_log="${ipc_dir}/c2s.log"
-s2c_log="${ipc_dir}/s2c.log"
-
-mkdir -p "$ipc_dir"
+mkdir -p "$(dirname "$c2s_log")"
 : >>"$c2s_log"
 : >>"$s2c_log"
 
@@ -36,7 +37,8 @@ else
   session="claude-$(date +%s)-$$-$RANDOM"
 fi
 
-log_file="${HOME}/.claude/logs/open-claude-iterm.log"
+plugin_data="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}"
+log_file="${plugin_data}/logs/open-claude-iterm.log"
 mkdir -p "$(dirname "$log_file")"
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >>"$log_file"; }
 
