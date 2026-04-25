@@ -85,7 +85,10 @@ Run these commands in order after cloning:
 ```bash
 mise install
 npm install --prefix plugins/jira-issue-orchestration/mcp-server
+mise run install-hooks
 ```
+
+The `install-hooks` step points git at `.githooks/`, which contains a pre-commit hook that rebuilds `plugins/jira-issue-orchestration/mcp-server/bundle/server.js` whenever the MCP server source is staged and adds the rebuilt bundle to the same commit. The bundle is what the marketplace ships — `node_modules/` is not distributed.
 
 ### Available tasks
 
@@ -97,6 +100,8 @@ All tasks delegate to npm scripts in `plugins/jira-issue-orchestration/mcp-serve
 | `mise run type-check` | TypeScript type check (`tsc --noEmit`) in `mcp-server/` |
 | `mise run quality` | Aggregates `lint` + `type-check` |
 | `mise run test` | Vitest (`--passWithNoTests`) in `mcp-server/` |
+| `mise run bundle` | esbuild-bundle the MCP server to `mcp-server/bundle/server.js` |
+| `mise run install-hooks` | Point git at `.githooks/` so commit-time bundling runs |
 
 ### Marketplace mise plugin automation
 

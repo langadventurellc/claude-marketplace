@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Rebuild the jira-issue-orchestration MCP bundle when its sources are staged,
+# then add the bundle to the same commit if it changed.
+
+set -euo pipefail
+
+MCP_DIR="plugins/jira-issue-orchestration/mcp-server"
+BUNDLE_PATH="$MCP_DIR/bundle/server.js"
+TRIGGER_REGEX="^$MCP_DIR/(src/|package(-lock)?\.json$)"
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+if ! grep -qE "$TRIGGER_REGEX" <<<"$staged"; then
+  exit 0
+fi
+
+if [ ! -x "$MCP_DIR/node_modules/.bin/esbuild" ]; then
+  echo "[pre-commit] esbuild not found in $MCP_DIR/node_modules. Run:" >&2
+  echo "  npm install --prefix $MCP_DIR" >&2
+  exit 1
+fi
+
+echo "[pre-commit] MCP server source changed — rebuilding bundle..."
+npm --prefix "$MCP_DIR" run bundle --silent
+
+git add "$BUNDLE_PATH"

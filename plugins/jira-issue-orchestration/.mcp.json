@@ -3,8 +3,7 @@
     "issue-orchestration": {
       "command": "node",
       "args": [
-        "--experimental-strip-types",
-        "${CLAUDE_PLUGIN_ROOT}/mcp-server/src/index.ts"
+        "${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle/server.js"
       ]
     }
   }

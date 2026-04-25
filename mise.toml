@@ -16,3 +16,11 @@ run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run test"
 [tasks.quality]
 description = "Aggregate quality gate (lint + type-check)"
 depends = ["lint", "type-check"]
+
+[tasks.bundle]
+description = "Bundle the MCP server into a single self-contained JS file"
+run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run bundle"
+
+[tasks.install-hooks]
+description = "Point git at .githooks/ so commit-time bundling runs"
+run = "git config core.hooksPath .githooks"
