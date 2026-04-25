@@ -46,24 +46,7 @@ Runs a single command to autonomously take a Jira issue all the way to an open d
 - `/orchestration-investigate-jira-issue <JIRA-ID>` — standalone investigation step. Fetches the ticket, pulls linked context, then routes to `planning:requirements-creation` (underspecified) or `planning:technical-discovery` (well-specified) to produce a requirements artifact.
 - `/orchestration-create-pr` — commit, push, and open a draft GitHub PR with Jira context auto-detected. Enforces `{JIRA-ID}: {outcome}` title format; halts on suspicious staged content.
 
-**Prerequisites:** The companion `issue-orchestration-mcp` Node server must be built and registered in your Claude Code MCP settings. `task-trellis-teams` must also be installed (it is a declared plugin dependency). Requires Claude Code v2.1.98+, macOS + iTerm2 + tmux, and Node ≥ 18.
-
-```bash
-# Build and register the MCP server (one-time setup)
-cd <issue-orchestration-mcp-dir> && npm install && npm run build
-```
-
-Add to MCP settings:
-```json
-{
-  "mcpServers": {
-    "issue-orchestration": {
-      "command": "node",
-      "args": ["<abs-path>/issue-orchestration-mcp/dist/index.js"]
-    }
-  }
-}
-```
+**Prerequisites:** `task-trellis-teams` must also be installed (it is a declared plugin dependency). The MCP server is bundled in the plugin and self-registers — no manual setup required. Requires Claude Code v2.1.98+, macOS + iTerm2 + tmux, and Node ≥ 22.
 
 ```
 /plugin install jira-issue-orchestration@task-trellis-marketplace

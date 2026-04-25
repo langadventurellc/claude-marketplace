@@ -42,7 +42,7 @@ claude-marketplace/
 └── README.md
 ```
 
-> **`jira-issue-orchestration` also requires the `issue-orchestration-mcp` Node server** (from the companion repo `claude-code-issue-orchestration`). Build it and register it in your Claude Code MCP settings before using the plugin. See the README for full setup instructions.
+> **`jira-issue-orchestration`** bundles its `issue-orchestration-mcp` MCP server inside the plugin — no companion repo or manual MCP registration required. Install the plugin and it self-registers.
 
 ## User Installation
 
