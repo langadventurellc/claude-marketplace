@@ -1,0 +1,18 @@
+[tools]
+node = "22"
+
+[tasks.lint]
+description = "Lint the MCP server"
+run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run lint"
+
+[tasks.type-check]
+description = "TypeScript type check"
+run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run type-check"
+
+[tasks.test]
+description = "Run all tests"
+run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run test"
+
+[tasks.quality]
+description = "Aggregate quality gate (lint + type-check)"
+depends = ["lint", "type-check"]

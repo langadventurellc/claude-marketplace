@@ -64,6 +64,47 @@ Runs a single command to autonomously take a Jira issue all the way to an open d
 /plugin install git@task-trellis-marketplace
 ```
 
+## Local Development
+
+### Prerequisites
+
+Install [mise](https://mise.jdx.dev/) before working in this repo:
+
+```bash
+brew install mise   # macOS
+```
+
+For other platforms, see the [mise installation docs](https://mise.jdx.dev/getting-started.html).
+
+> **Warning:** If you have the marketplace's `mise` plugin enabled but `mise` is not installed, post-edit and pre-complete-task hooks will fail with `mise: command not found`.
+
+### Bootstrap
+
+Run these commands in order after cloning:
+
+```bash
+mise install
+npm install --prefix plugins/jira-issue-orchestration/mcp-server
+```
+
+### Available tasks
+
+All tasks delegate to npm scripts in `plugins/jira-issue-orchestration/mcp-server/`:
+
+| Task | Description |
+|------|-------------|
+| `mise run lint` | ESLint on `src/**/*.ts` in `mcp-server/` |
+| `mise run type-check` | TypeScript type check (`tsc --noEmit`) in `mcp-server/` |
+| `mise run quality` | Aggregates `lint` + `type-check` |
+| `mise run test` | Vitest (`--passWithNoTests`) in `mcp-server/` |
+
+### Marketplace mise plugin automation
+
+If the marketplace's `mise` plugin is installed, these tasks run automatically:
+
+- **`lint` and `type-check`** — after every `Edit`, `Write`, or `MultiEdit` tool call
+- **`quality` and `test`** — before every `complete_task` MCP tool call
+
 ## License
 
 GNU General Public License v3.0
