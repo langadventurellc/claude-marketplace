@@ -3,9 +3,10 @@ import * as path from "node:path";
 import { spawn, execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
-  readState, writeState, clearState,
+  readMeta, writeMeta, deleteMeta, listChannels,
   generateChannelId, validateChannelId,
   ipcDir, c2sLogPath, s2cLogPath,
+  type ChannelMeta,
 } from "./state.ts";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -24,58 +25,101 @@ function generateTmuxSessionName(): string {
   return `claude-${Math.floor(Date.now() / 1000)}-${process.pid}-${randomBytes(2).toString("hex")}`;
 }
 
+function requireChannelId(args: Record<string, unknown> | undefined): string | ToolResult {
+  const channelId = typeof args?.channelId === "string" ? args.channelId : null;
+  if (channelId === null) return toolError("channelId argument is required and must be a string.");
+  if (!validateChannelId(channelId)) return toolError(`Invalid channelId: ${channelId}`);
+  return channelId;
+}
+
 // ── Tool Definitions ─────────────────────────────────────────────────────────
 
 export const TOOL_DEFINITIONS = [
   {
     name: "claim-conductor",
     description:
-      "Register this Claude instance as the active conductor. Returns a channel ID and IPC log paths. You MUST arm a persistent Monitor on s2cLogPath before calling launch-orchestration-team.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      "Register this Claude instance as the conductor for a new channel. Returns a channel ID and IPC log paths. Each call creates a fresh independent channel. You MUST arm a persistent Monitor on s2cLogPath before calling launch-orchestration-team.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        label: { type: "string", description: "Optional human-readable label for this channel (e.g. \"KAN-1\")." },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "launch-orchestration-team",
     description:
-      "Launch a sub Claude instance in a new iTerm/tmux window. Fails if no conductor is claimed or a sub is already active. PREREQUISITE: arm Monitor on s2cLogPath first.",
+      "Launch a sub Claude instance in a new iTerm/tmux window for the given channel. Fails if the channel is unknown or a sub is already active. PREREQUISITE: arm Monitor on s2cLogPath first.",
     inputSchema: {
       type: "object",
       properties: {
+        channelId: { type: "string", description: "Channel ID returned by claim-conductor." },
         prompt: { type: "string", description: "Optional user prompt to pass to the sub instance." },
       },
+      required: ["channelId"],
       additionalProperties: false,
     },
   },
   {
     name: "stop-orchestration-team",
     description:
-      "Stop the active orchestration team: send __peer_exit__ sentinel, kill tmux session, remove IPC directory, and clear state. Idempotent.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      "Stop the named orchestration channel: send __peer_exit__ sentinel, kill tmux session, remove IPC directory, and delete meta. Only the named channel is affected. Idempotent.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        channelId: { type: "string", description: "Channel ID to stop." },
+      },
+      required: ["channelId"],
+      additionalProperties: false,
+    },
   },
   {
     name: "send-message-to-orchestration-team",
     description:
-      "Append a single-line message to the conductor→sub IPC log (c2s.log). Rejects multi-line messages.",
+      "Append a single-line message to the conductor→sub IPC log (c2s.log) for the given channel. Rejects multi-line messages.",
     inputSchema: {
       type: "object",
       properties: {
+        channelId: { type: "string", description: "Channel ID to send the message to." },
         message: { type: "string", description: "Single-line message to send to the orchestration team." },
       },
-      required: ["message"],
+      required: ["channelId", "message"],
       additionalProperties: false,
     },
   },
   {
     name: "send-message-to-conductor",
     description:
-      "Append a single-line message to the sub→conductor IPC log (s2c.log). Fails if no conductor is claimed.",
+      "Append a single-line message to the sub→conductor IPC log (s2c.log) for the given channel. Fails if the channel is unknown.",
     inputSchema: {
       type: "object",
       properties: {
+        channelId: { type: "string", description: "Channel ID to send the message on." },
         message: { type: "string", description: "Single-line message to send to the conductor." },
       },
-      required: ["message"],
+      required: ["channelId", "message"],
       additionalProperties: false,
     },
+  },
+  {
+    name: "terminate-sub",
+    description:
+      "Terminate the active sub for the given channel (sends __peer_exit__, kills tmux) without destroying the channel directory, log files, or meta. Idempotent — safe to call even when no sub is active.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        channelId: { type: "string", description: "Channel ID whose sub should be terminated." },
+      },
+      required: ["channelId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list-channels",
+    description:
+      "List all existing IPC channels with their metadata (channelId, label, createdAt, tmuxSession, log paths).",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
 ];
 
@@ -87,24 +131,21 @@ export async function handleToolCall(
   args: Record<string, unknown> | undefined
 ): Promise<ToolResult> {
   switch (name) {
-    case "claim-conductor":                  return claimConductor();
-    case "launch-orchestration-team":        return launchOrchestrationTeam(args);
-    case "stop-orchestration-team":          return stopOrchestrationTeam();
+    case "claim-conductor":                    return claimConductor(args);
+    case "launch-orchestration-team":          return launchOrchestrationTeam(args);
+    case "stop-orchestration-team":            return stopOrchestrationTeam(args);
     case "send-message-to-orchestration-team": return sendMessageToOrchestrationTeam(args);
-    case "send-message-to-conductor":        return sendMessageToConductor(args);
-    default:                                 return toolError(`Unknown tool: ${name}`);
+    case "send-message-to-conductor":          return sendMessageToConductor(args);
+    case "terminate-sub":                      return terminateSub(args);
+    case "list-channels":                      return listChannelsHandler();
+    default:                                   return toolError(`Unknown tool: ${name}`);
   }
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
-function claimConductor(): ToolResult {
-  const existing = readState();
-  if (existing !== null) {
-    return toolError(
-      `Conductor already claimed for channel ${existing.channelId}. Call stop-orchestration-team to release it.`
-    );
-  }
+function claimConductor(args: Record<string, unknown> | undefined): ToolResult {
+  const label = typeof args?.label === "string" ? args.label : undefined;
   const channelId = generateChannelId();
   const dir = ipcDir(channelId);
   fs.mkdirSync(dir, { recursive: true });
@@ -112,7 +153,15 @@ function claimConductor(): ToolResult {
   const s2c = s2cLogPath(channelId);
   fs.closeSync(fs.openSync(c2s, "a"));
   fs.closeSync(fs.openSync(s2c, "a"));
-  writeState({ channelId, tmuxSession: null, c2sLogPath: c2s, s2cLogPath: s2c });
+  const meta: ChannelMeta = {
+    channelId,
+    tmuxSession: null,
+    c2sLogPath: c2s,
+    s2cLogPath: s2c,
+    createdAt: new Date().toISOString(),
+  };
+  if (label !== undefined) meta.label = label;
+  writeMeta(channelId, meta);
   return toolOk({
     channelId,
     c2sLogPath: c2s,
@@ -124,18 +173,17 @@ function claimConductor(): ToolResult {
 }
 
 function launchOrchestrationTeam(args: Record<string, unknown> | undefined): ToolResult {
+  const chId = requireChannelId(args);
+  if (typeof chId !== "string") return chId;
   const prompt = typeof args?.prompt === "string" ? args.prompt : "";
-  const state = readState();
-  if (state === null) {
-    return toolError("No conductor claimed. Call claim-conductor first.");
+  const meta = readMeta(chId);
+  if (meta === null) {
+    return toolError(`channel \`${chId}\` not found. Call claim-conductor first.`);
   }
-  if (state.tmuxSession !== null) {
+  if (meta.tmuxSession !== null) {
     return toolError(
-      `Orchestration team already active (tmux session ${state.tmuxSession}). Call stop-orchestration-team before launching another.`
+      `sub already active in channel \`${chId}\` (tmux session ${meta.tmuxSession}). Call terminate-sub before launching another.`
     );
-  }
-  if (!validateChannelId(state.channelId)) {
-    return toolError("State file has invalid channelId; refusing to construct filesystem paths.");
   }
   const sessionName = generateTmuxSessionName();
   const scriptPath = path.resolve(import.meta.dirname, "../scripts/open-claude-iterm-ipc.sh");
@@ -144,62 +192,78 @@ function launchOrchestrationTeam(args: Record<string, unknown> | undefined): Too
   }
   const child = spawn(
     scriptPath,
-    [state.channelId, prompt, sessionName, state.c2sLogPath, state.s2cLogPath],
+    [chId, prompt, sessionName, meta.c2sLogPath, meta.s2cLogPath],
     { detached: true, stdio: "ignore" }
   );
   child.unref();
-  writeState({ ...state, tmuxSession: sessionName });
-  return toolOk({ tmuxSession: sessionName, channelId: state.channelId, prompt });
+  writeMeta(chId, { ...meta, tmuxSession: sessionName });
+  return toolOk({ tmuxSession: sessionName, channelId: chId, prompt });
 }
 
-function stopOrchestrationTeam(): ToolResult {
-  const state = readState();
-  if (state === null) {
-    return toolOk({ stopped: false, reason: "No active state. Nothing to stop." });
+function stopOrchestrationTeam(args: Record<string, unknown> | undefined): ToolResult {
+  const chId = requireChannelId(args);
+  if (typeof chId !== "string") return chId;
+  const meta = readMeta(chId);
+  if (meta === null) {
+    return toolOk({ stopped: false, channelId: chId, reason: "channel not found; nothing to stop." });
   }
-  if (!validateChannelId(state.channelId)) {
-    clearState();
-    return toolOk({ stopped: true, note: "State had invalid channelId; cleared without filesystem cleanup." });
+  try { fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n"); } catch { /* swallow */ }
+  if (meta.tmuxSession) {
+    try { execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" }); } catch { /* already gone */ }
   }
-  try { fs.appendFileSync(state.c2sLogPath, "__peer_exit__\n"); } catch { /* swallow */ }
-  if (state.tmuxSession) {
-    try { execSync(`tmux kill-session -t ${JSON.stringify(state.tmuxSession)}`, { stdio: "ignore" }); } catch { /* already gone */ }
-  }
-  try { fs.rmSync(ipcDir(state.channelId), { recursive: true, force: true }); } catch { /* swallow */ }
-  clearState();
-  return toolOk({ stopped: true, channelId: state.channelId, tmuxSession: state.tmuxSession });
+  try { fs.rmSync(ipcDir(chId), { recursive: true, force: true }); } catch { /* swallow */ }
+  deleteMeta(chId);
+  return toolOk({ stopped: true, channelId: chId, tmuxSession: meta.tmuxSession });
 }
 
 function sendMessageToOrchestrationTeam(args: Record<string, unknown> | undefined): ToolResult {
+  const chId = requireChannelId(args);
+  if (typeof chId !== "string") return chId;
   const message = typeof args?.message === "string" ? args.message : null;
   if (message === null) return toolError("message argument is required and must be a string.");
   if (message.includes("\n") || message.includes("\r")) {
     return toolError("message must not contain newline characters; IPC is single-line.");
   }
-  const state = readState();
-  if (state === null || state.tmuxSession === null) {
-    return toolError("No orchestration team active. Call launch-orchestration-team first.");
+  const meta = readMeta(chId);
+  if (meta === null || meta.tmuxSession === null) {
+    return toolError(`no sub active in channel \`${chId}\`. Call launch-orchestration-team first.`);
   }
-  if (!validateChannelId(state.channelId)) {
-    return toolError("State file has invalid channelId; refusing to write.");
-  }
-  fs.appendFileSync(state.c2sLogPath, message + "\n");
+  fs.appendFileSync(meta.c2sLogPath, message + "\n");
   return toolOk({ sent: true, bytes: Buffer.byteLength(message) + 1 });
 }
 
 function sendMessageToConductor(args: Record<string, unknown> | undefined): ToolResult {
+  const chId = requireChannelId(args);
+  if (typeof chId !== "string") return chId;
   const message = typeof args?.message === "string" ? args.message : null;
   if (message === null) return toolError("message argument is required and must be a string.");
   if (message.includes("\n") || message.includes("\r")) {
     return toolError("message must not contain newline characters; IPC is single-line.");
   }
-  const state = readState();
-  if (state === null) {
-    return toolError("No conductor claimed. Call claim-conductor before sending messages to the conductor.");
+  const meta = readMeta(chId);
+  if (meta === null) {
+    return toolError(`channel \`${chId}\` not found. Call claim-conductor first.`);
   }
-  if (!validateChannelId(state.channelId)) {
-    return toolError("State file has invalid channelId; refusing to write.");
-  }
-  fs.appendFileSync(state.s2cLogPath, message + "\n");
+  fs.appendFileSync(meta.s2cLogPath, message + "\n");
   return toolOk({ sent: true, bytes: Buffer.byteLength(message) + 1 });
+}
+
+function terminateSub(args: Record<string, unknown> | undefined): ToolResult {
+  const chId = requireChannelId(args);
+  if (typeof chId !== "string") return chId;
+  const meta = readMeta(chId);
+  if (meta === null) {
+    return toolOk({ terminated: false, channelId: chId, reason: "channel not found; nothing to terminate." });
+  }
+  const previousTmuxSession = meta.tmuxSession;
+  try { fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n"); } catch { /* swallow */ }
+  if (meta.tmuxSession) {
+    try { execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" }); } catch { /* already gone */ }
+  }
+  writeMeta(chId, { ...meta, tmuxSession: null });
+  return toolOk({ terminated: true, channelId: chId, previousTmuxSession });
+}
+
+function listChannelsHandler(): ToolResult {
+  return toolOk(listChannels());
 }
