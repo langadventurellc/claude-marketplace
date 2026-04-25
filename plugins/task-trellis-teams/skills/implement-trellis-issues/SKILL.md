@@ -145,7 +145,7 @@ If the task body includes an `## Attachments` section, read each referenced file
 
 Skill: `task-trellis-teams:issue-implementation` (or read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly).
 
-Paired reviewer: <reviewer teammate name>. Nudge them (instruction-free `SendMessage`) when done.
+Paired reviewer: <reviewer teammate name>. Send them a pointer-only `SendMessage` naming the review task-list task ID when done.
 
 Mark this task-list entry `done` after nudge sent.
 ```
@@ -176,7 +176,7 @@ TaskUpdate({
 })
 ```
 
-Persist the name→ID map for the run so you can reference these tasks in later updates (assigning owners via `TaskUpdate({ taskId, owner })`, marking completed via `TaskUpdate({ taskId, status: "completed" })`, etc.). `TaskUpdate` identifies tasks by `taskId`, not by subject.
+Persist the name→ID map for the run so you can reference these tasks in later updates (marking completed via `TaskUpdate({ taskId, status: "completed" })`, etc.). `TaskUpdate` identifies tasks by `taskId`, not by subject.
 
 This dependency blocks the review task-list entry until the impl entry is marked `completed`, so the reviewer cannot claim it early.
 
@@ -201,19 +201,19 @@ The lead does not intervene once the pair is running. Expected flow:
 
 0. **Lead sends start nudge.** After authoring the two task-list entries for this pair (impl + review), the lead MUST send a `SendMessage` to the developer:
    ```
-   SendMessage({ to: "<developer-name>", summary: "T-<task-id> begin assigned work", message: "begin assigned work" })
+   SendMessage({ to: "<developer-name>", summary: "<impl-task-id> begin", message: "claim and begin <impl-task-list-task-id>" })
    ```
-   Substitute the actual Trellis task ID for `T-<task-id>`. The reviewer does not need a nudge — its task is blocked until the developer completes.
+   where `<impl-task-list-task-id>` is the shared-task-list task ID for the impl entry (captured in §1). The reviewer does not need a nudge — its task is blocked until the developer completes.
 
-   > **Authoritative start signal**: This `SendMessage` nudge is the single authoritative activation trigger for the developer. When the lead sets `owner` on a task-list entry via `TaskUpdate`, the runtime automatically emits a `task_assignment` DM to that teammate as an invisible side-effect. That DM is **informational only** — developers MUST NOT begin work on receipt of a `task_assignment` DM. Work begins only when the explicit `SendMessage` nudge above arrives.
+   Wait for the developer's ack `SendMessage({ to: 'team-lead', ... message: 'claimed' })`. If no ack within ~60s, inspect `TaskList` first; re-nudge only if the task is still unclaimed.
 1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a `SendMessage` nudge to the reviewer:
    ```
-   SendMessage({ to: "<reviewer-name>", summary: "T-<task-id> review ready", message: "review ready" })
+   SendMessage({ to: "<reviewer-name>", summary: "<review-task-id> begin", message: "claim and begin <review-task-list-task-id>" })
    ```
 2. Reviewer's task-list entry unblocks. Reviewer claims it, reviews the changes, and either:
    - **Approves:** Marks the review task-list entry done.
    - **Has findings:** `SendMessage` directly to the developer with findings. Does NOT mark the review task done.
-   See `PROTOCOL.md` §Reviewer activation gate for the two-condition trigger the reviewer enforces.
+   See `PROTOCOL.md` §Reviewer activation gate.
 3. Developer receives findings, fixes, then `SendMessage`s the reviewer when fixes are ready. Reviewer re-reviews. Repeat until approved.
 4. Once the review task-list entry is marked done, the pair's work is complete.
 
@@ -345,7 +345,11 @@ Follow the "Cross-Task Coherence Review" section of that skill. Read each implem
 Mark this task-list entry `completed` when the coherence review is complete (the lead will decide how to act on any findings).
 ```
 
-Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send an instruction-free `SendMessage` nudge to start the reviewer. Wait for it to mark the task-list entry `done`, then shut it down.
+Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
+```
+SendMessage({ to: "rev-coherence-<scope-id>", summary: "<coherence-task-id> begin", message: "claim and begin <coherenceTaskId>" })
+```
+Wait for it to mark the task-list entry `done`, then shut it down.
 
 If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
 
@@ -366,16 +370,16 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 - These entries do NOT correspond to any single Trellis issue — no `claim_task` or `complete_task` is called. The developer applies fixes directly to the working tree; the reviewer verifies via `git diff`. The Trellis task-list entries are the only tracking mechanism for this pass.
 
 **Lead steps:**
-1. Author the developer task-list entry with the full list of findings to fix and the files to touch. Make clear this is a reconciliation pass (not a new Trellis task) so the developer does not attempt `claim_task` or `complete_task`. The body MUST instruct the developer to (a) apply fixes directly to the working tree, (b) mark this task-list entry `completed` when done, and (c) send an instruction-free `SendMessage` activation nudge to the paired reviewer (`rev-reconcile-<scope>`) immediately after marking the entry `completed` — this mirrors the standard Per-Issue Pair Lifecycle §3 step 1 handoff and is required for the reviewer's activation gate to fire.
+1. Author the developer task-list entry with the full list of findings to fix and the files to touch. Make clear this is a reconciliation pass (not a new Trellis task) so the developer does not attempt `claim_task` or `complete_task`. The body MUST instruct the developer to (a) apply fixes directly to the working tree, (b) mark this task-list entry `completed` when done, and (c) send a pointer-only `SendMessage` to the paired reviewer (`rev-reconcile-<scope>`) naming the reviewer's task-list task ID immediately after marking the entry `completed` — this mirrors the standard Per-Issue Pair Lifecycle §3 step 1 handoff and is required for the reviewer's activation gate to fire.
 2. Author the reviewer task-list entry blocked on the developer entry. The body MUST include:
    - The paired developer teammate name (e.g., `dev-reconcile-<scope>`).
    - The coherence review findings being resolved (copy the findings inline or reference the coherence review task entry).
    - The list of files expected to be touched (same list as the developer entry), plus the base branch to diff against.
    - **Review procedure (reconciliation carve-out):** Review the changes by running `git diff <base-branch>...HEAD -- <file1> <file2> ...` against the findings enumerated in the developer entry. Read each changed file for context. Verify each finding is resolved in the diff. Do NOT call `get_issue`, `claim_task`, `complete_task`, or `append_modified_files` — there is no corresponding Trellis task for this pass. Do NOT rely on `modifiedFiles` metadata.
-   - **Carve-out note (named exception to the standard reviewer blocking-guard):** For a reconciliation-pass review, an empty/absent `modifiedFiles` list and a non-`done` Trellis task status are NOT blocking findings — the standard blocking-guard from `task-trellis-teams:issue-implementation-review` §2 (which blocks review when `modifiedFiles` is empty or the Trellis task is not `done`) does NOT apply here. This carve-out is analogous to the cross-sibling / cross-task coherence review carve-out for the `task_assignment`/activation-gate exception: both are named exceptions triggered by task-list entries that explicitly describe a cross-cutting or reconciliation pass.
+   - **Carve-out note (named exception to the standard reviewer blocking-guard):** For a reconciliation-pass review, an empty/absent `modifiedFiles` list and a non-`done` Trellis task status are NOT blocking findings — the standard blocking-guard from `task-trellis-teams:issue-implementation-review` §2 (which blocks review when `modifiedFiles` is empty or the Trellis task is not `done`) does NOT apply here.
    - **Approval / findings flow:** If there are no blocking findings, mark this task-list entry `completed` via `TaskUpdate`. On findings, send a single `SendMessage` to the paired developer with findings grouped by severity (standard fix-cycle pattern) and wait for the developer's fix-ready nudge before re-reviewing.
 3. Spawn a fresh developer and reviewer pair (same model selection rules as per-issue pairs). Name them clearly (e.g., `dev-reconcile-<scope>`, `rev-reconcile-<scope>`).
-4. Send the developer an activation nudge: `SendMessage({ to: "dev-reconcile-<scope>", summary: "reconciliation pass begin", message: "begin assigned work" })`. The reviewer does NOT need a lead nudge — it will be activated by the developer's handoff nudge (step 1.c) once the developer's task-list entry is marked `completed`.
+4. Send the developer a pointer-only nudge: `SendMessage({ to: "dev-reconcile-<scope>", summary: "<reconcile-task-id> begin", message: "claim and begin <reconcileImplTaskId>" })` where `<reconcileImplTaskId>` is the task-list task ID for the reconciliation developer entry. The reviewer does NOT need a lead nudge — it will be activated by the developer's handoff nudge (step 1.c) once the developer's task-list entry is marked `completed`.
 5. Wait for the reviewer to mark the review entry done, then shut both teammates down.
 
 **After the pass:**
@@ -506,7 +510,7 @@ Produce a concise final message covering:
 ## Important Constraints
 
 - **Orchestration only.** The lead does NOT write or debug code. The lead spawns teammates, authors task-list entries, routes errors back to teammates, and commits approved changes. That is all.
-- **Bias guarantee — initial instructions come from the lead only.** Every teammate receives its initial instructions from a lead-authored task-list entry. Teammates never pass initial instructions to each other. Direct `SendMessage` is only for (a) instruction-free activation nudges and (b) fix-cycle iteration after the initial unbiased instructions.
+- **Bias guarantee — initial instructions come from the lead only.** Every teammate receives its initial instructions from a lead-authored task-list entry. Teammates never pass initial instructions to each other. Direct `SendMessage` is only for (a) pointer-only activation nudges and (b) fix-cycle iteration after the initial unbiased instructions.
 - **Fresh pair per issue.** Each leaf task gets its own developer and reviewer pair. Both teammates are shut down on approval. Nothing carries over to the next task.
 - **No new Trellis issues.** The lead, developer, and reviewer NEVER create new Trellis issues during an implementation run. Unplanned work is logged and/or reported to the user at the end — not materialized as issues.
 - **Unplanned non-leaf skip.** If a non-leaf issue has no children, skip it and continue to siblings. Never synthesize children for it.
@@ -531,5 +535,5 @@ Produce a concise final message covering:
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
   <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. Agent frontmatter is authoritative — the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
-  <critical>After authoring a pair's task-list entries, the lead MUST send a `SendMessage` to the developer with `summary: "T-<task-id> begin assigned work"` (using the actual Trellis task ID) before stepping back. Do NOT rely on the developer picking up work autonomously.</critical>
+  <critical>After authoring a pair's task-list entries, the lead MUST send a pointer-only `SendMessage` to the developer naming the impl task-list task ID before stepping back. The message body is `'claim and begin <impl-task-list-task-id>'`. Do NOT embed instructions. Do NOT rely on the developer picking up work autonomously.</critical>
 </rules>

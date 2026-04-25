@@ -45,20 +45,24 @@ The following frontmatter fields are honored in teammate mode: `tools`, `model`,
 
 Teammates are event-driven — they act when a DM arrives, not by polling.
 
-- **No self-polling.** Do NOT call `TaskList` speculatively. Only call it on your first turn (cold-start) or immediately after receiving a DM that implies work is available.
+- **No self-polling.** Do NOT call `TaskList` speculatively. Only call it immediately after receiving a DM that implies work is available.
 - **Idle-turn rule.** If you have no claimed in-progress work and no unread DM at the start of a turn, end the turn immediately without calling `TaskList`. The lead will DM when there is new work.
-- **Cold-start rule.** On your first turn, if `TaskList` returns empty, send exactly ONE `SendMessage` to `team-lead` requesting explicit task IDs, then end the turn and wait. Do NOT re-poll.
+- **Cold-start rule.** On your first turn, do NOT call `TaskList`. End the turn idle and wait for the lead's first DM.
 - **Outcome-summary consolidation.** When ending a turn with meaningful state (approved, created an issue, sent findings), include the outcome summary in the final DM sent before the turn ends. Do not follow that DM with a separate bare idle notification.
 
 ## Team Coordination
 
-- **Activation nudges**: After a dependency clears, a peer teammate (typically the lead) may send you an instruction-free `SendMessage` ping telling you to start. See `PROTOCOL.md` §Activation-signal glossary.
+- **Activation nudges**: On receipt of a pointer-only `SendMessage` from the lead naming a task-list task ID:
+  1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
+  2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
+  3. Then read the named task for instructions (lead-authored task list is still the source of truth).
+  See `PROTOCOL.md` §Activation-signal glossary.
 - **Metadata write**: Before marking a creation task done, write the created issue ID into the task metadata:
   TaskUpdate({ taskId: <your-creation-task-id>, metadata: { createdIssueId: "<T-xxx>" } })
   This gives the reviewer a deterministic lookup point.
 - **Post-creation handoff**: Each child issue you create has a paired per-child review task already on the shared task list. After you mark a creation task done, send an activation nudge via `SendMessage` to your paired reviewer so they pick up the per-child review. Do NOT include instructions in the nudge — the reviewer reads its own lead-authored task for instructions:
   ```
-  SendMessage({ to: "issue-reviewer", summary: "<created-issue-id> review ready", message: "review ready" })
+  SendMessage({ to: "issue-reviewer", summary: "<review-task-id> begin", message: "claim and begin <review-task-list-task-id>" })
   ```
   Also send a one-line summary `SendMessage` to the lead:
   ```
@@ -76,7 +80,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 ## Message Protocol
 
 - The **shared task list** is the authoritative source of instructions.
-- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and task_assignment DM policy.
+- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and reviewer activation gate.
 
 ## Critical Behavioral Rules
 

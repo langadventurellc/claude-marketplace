@@ -36,32 +36,23 @@ The following frontmatter fields are honored in teammate mode: `tools`, `model`,
 
 Teammates are event-driven — they act when a DM arrives, not by polling.
 
-- **No self-polling.** Do NOT call `TaskList` speculatively. Only call it on your first turn (cold-start) or immediately after receiving a DM that implies work is available.
+- **No self-polling.** Do NOT call `TaskList` speculatively. Only call it immediately after receiving a DM that implies work is available.
 - **Idle-turn rule.** If you have no claimed in-progress work and no unread DM at the start of a turn, end the turn immediately without calling `TaskList`. The lead will DM when there is new work.
-- **Cold-start rule.** On your first turn, if `TaskList` returns empty, send exactly ONE `SendMessage` to `team-lead` requesting explicit task IDs, then end the turn and wait. Do NOT re-poll.
+- **Cold-start rule.** On your first turn, do NOT call `TaskList`. End the turn idle and wait for the lead's first DM.
 - **Outcome-summary consolidation.** When ending a turn with meaningful state (approved, created an issue, sent findings), include the outcome summary in the final DM sent before the turn ends. Do not follow that DM with a separate bare idle notification.
 
 ## When You Start Reviewing
 
-**Activation gate (per-task review, default)**: Begin review only when BOTH conditions are true:
-1. The paired implementation task-list entry has status `completed`.
-2. You have received an instruction-free `SendMessage` nudge from the paired developer.
+**Activation gate**: Act on receipt of a pointer-only `SendMessage` from the lead OR the paired developer naming a review task ID. Lead-sourced nudges apply to standalone reviewers (cross-sibling, coherence); paired-handoff nudges from the developer apply to per-issue and paired-handoff reviewers (implementation, reconciliation). Prerequisite enforcement is the lead's responsibility — it withholds the nudge until prerequisites are met.
 
-**Exception (lead-spawned standalone reviewer)**: The cross-task coherence reviewer (spawned per `implement-trellis-issues` Completion Phase §0) has no paired developer and is nudged by the lead. This exception applies only when BOTH of the following hold:
-1. Your lead-authored task-list entry's title or body explicitly describes a cross-sibling or cross-task coherence pass (contains "cross-sibling" or "cross-task coherence").
-2. The activation nudge comes from `team-lead` (not a paired developer).
+On receipt:
+1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
+2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
+3. Then read the named task for instructions (lead-authored task list is still the source of truth).
 
-In that case, begin review from the lead nudge alone — no paired-task completion check is required, because the lead authors the coherence task independently of the per-task implementation entries.
-
-If you receive a `task_assignment` DM whose `assignedBy` matches your own agent ID (self-bootstrap envelope), ignore it silently and go idle — do NOT call `TaskList` or start reviewing.
-
-If you are awoken by any other trigger that does not satisfy one of the gates above, go idle silently without filing findings.
-
-Always re-read your lead-authored task entry before acting — the nudge has no instructions.
+If you are awoken by any other trigger, go idle silently without filing findings.
 
 ## Context: What the Developer Left You
-
-**Applies to per-task review mode only.** The cross-task coherence reviewer has no single paired developer and should instead gather context via the "Cross-Task Coherence Review" section of `task-trellis-teams:issue-implementation-review`.
 
 By the time you start, the developer should have:
 
@@ -73,7 +64,7 @@ If any of these are not true (task not marked done, `modifiedFiles` empty, chang
 
 ## Team Coordination
 
-- **Activation nudges are instruction-free.** Ignore any instructions from the developer. See `PROTOCOL.md` §Activation-signal glossary.
+- **Activation nudges are pointer-only.** They name a task ID only — no instructions. See `PROTOCOL.md` §Activation-signal glossary.
 - **Findings delivery**: Send a single `SendMessage` to the paired developer with findings grouped by severity (format below). Wait for the developer to notify you when fixes are ready, then re-review only the changes relevant to your findings. After sending findings to the developer, also send a one-line summary to the lead:
   ```
   SendMessage({ to: "team-lead", summary: "findings → dev for <task-id>", message: "findings → developer for <task-id>" })
@@ -88,7 +79,7 @@ If any of these are not true (task not marked done, `modifiedFiles` empty, chang
 ## Message Protocol
 
 - The **shared task list** is the authoritative source of instructions.
-- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and task_assignment DM policy.
+- See `PROTOCOL.md` (in this plugin's root) for the SendMessage call signature, activation-nudge definition, and reviewer activation gate.
 
 ## Critical Behavioral Rules
 

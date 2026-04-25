@@ -127,11 +127,15 @@ Ask questions when:
 1. Call `append_modified_files` with the list of every file created or modified.
 2. Call `complete_task` with the task ID, a one-paragraph summary of what was implemented and key decisions made, and the same file list.
 3. Call `TaskUpdate({ taskId: <impl-task-list-id>, status: "completed" })` to mark the shared task-list impl entry done.
-4. Send an instruction-free `SendMessage` activation nudge to the paired reviewer.
+4. Send a **pointer-only** `SendMessage` to the paired reviewer naming the review task-list task ID:
+   ```
+   SendMessage({ to: "<reviewer-name>", summary: "<review-task-id> begin", message: "claim and begin <review-task-list-task-id>" })
+   ```
+   Then wait for the reviewer's ack `SendMessage({ to: ..., message: "claimed" })`. If no ack within ~60s, inspect `TaskList` first; re-nudge only if the reviewer's task is still unclaimed.
 
 **Why this order matters:** Each step unblocks the next and protects a downstream gate:
 - `complete_task` must precede the task-list `TaskUpdate` — marking the task-list entry done first triggers a downstream lookup that fails with "ID undefined" because the Trellis task is not yet in `done` state.
-- The task-list `TaskUpdate` must precede the reviewer activation nudge — the reviewer's activation gate requires BOTH that the paired impl task-list entry has status `completed` AND that the reviewer has received the instruction-free `SendMessage` nudge. If the nudge lands while the impl entry is still `in_progress`, the reviewer silently dismisses it and goes idle, leaving the pair stalled.
+- The pointer-only nudge names the review task-list task ID, allowing the reviewer to self-claim on receipt. Send the nudge only after the impl task-list entry is marked `completed` (step 3) — the reviewer reads that entry immediately on claiming.
 
 Note: `append_issue_log` is optional and is not part of the required finalize sequence; you may call it at any point during implementation to record progress notes.
 
