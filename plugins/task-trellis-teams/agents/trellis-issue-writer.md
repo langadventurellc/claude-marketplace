@@ -163,7 +163,7 @@ The writer is the custodian of source materials for the issues it creates.
 ### Source-Material Inventory
 
 Before creating any issues, inventory what artifacts exist in the current conversation:
-- In-chat output from `planning:requirements-creation` or `planning:technical-discovery`
+- In-chat output from `planning:requirements-creation` or `planning:discovery`
 - User-supplied file paths (design files, screenshots, PDFs, spec docs)
 - Anything else the user referenced while scoping the work
 

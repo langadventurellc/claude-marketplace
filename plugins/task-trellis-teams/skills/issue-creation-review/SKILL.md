@@ -129,7 +129,7 @@ To spot-check `<projectKey>` against the on-disk directory, see [`../issue-creat
 If source materials were available during the writing session — planning output was produced, the user supplied file paths, or files were referenced in the task description or parent issue body — and the writer did NOT attach them to the appropriate holder, **block the review**. This is not a minor finding.
 
 Use these contextual signals to detect suspected omissions:
-- Prior planning-skill output visible in the conversation (requirements-creation summary, technical-discovery report).
+- Prior planning-skill output visible in the conversation (requirements-creation summary, discovery report).
 - File paths mentioned in the task description or the requirements that the writer had access to.
 - Attachment listings on the parent issue that imply related source materials should propagate to children.
 

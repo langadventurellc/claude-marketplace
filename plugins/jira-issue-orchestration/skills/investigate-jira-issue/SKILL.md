@@ -1,6 +1,6 @@
 ---
 name: investigate-jira-issue
-description: Investigate a Jira issue and turn it into a requirements or technical-discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. ACME-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:technical-discovery` (for well-specified work needing research and analysis).
+description: Investigate a Jira issue and turn it into a requirements or discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. ACME-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:discovery` (for well-specified work needing research and analysis).
 allowed-tools:
   - AskUserQuestion
   - Bash
@@ -78,7 +78,7 @@ Pick one of the two downstream planning skills based on what you see. Do not ask
 - Multiple plausible interpretations of what's being asked
 - Short descriptions that read as an idea, not a specification
 
-**Use `planning:technical-discovery` otherwise** — i.e. when the ticket is well-specified and the value is in research and analysis:
+**Use `planning:discovery` otherwise** — i.e. when the ticket is well-specified and the value is in research and analysis:
 
 - Clear outcome stated; the question is *how* and *where*, not *what*
 - "Investigate the feasibility of X"
@@ -110,7 +110,7 @@ The chosen planning skill emits its output in-chat. That is the deliverable — 
 At the top of the output, add a short header line identifying:
 
 - The Jira key and URL
-- Which route was taken and a one-line justification (e.g. `Route: technical-discovery — ticket is well-specified; value is in mapping affected code and risks`)
+- Which route was taken and a one-line justification (e.g. `Route: discovery — ticket is well-specified; value is in mapping affected code and risks`)
 
 ### 6. Hand off
 
@@ -141,13 +141,13 @@ After the document is produced, decide how to hand off based on your invocation 
 
 1. Fetch `ACME-3412`. It says: *"Add WebP support to the image ingest pipeline. Acceptance: ingest accepts WebP, stored variants include WebP, CDN serves WebP to supporting clients."*
 2. Notice a linked Confluence page titled "WebP rollout plan" — clearly relevant, fetch it. Notice a linked epic `ACME-3648` "Image Format Modernization" — relevant, pull its summary. Skip a linked "Team OKRs Q2" page — generic, not ticket-specific.
-3. Decide: ticket is well-specified with clear acceptance; value is in mapping affected code and risks → route to `planning:technical-discovery`.
-4. Invoke `planning:technical-discovery` with the ticket content, the WebP rollout page excerpt, the epic framing, and the user's focus instruction. Instruct it to examine local ingest-pipeline code; do **not** instruct it to search the web or Confluence further.
+3. Decide: ticket is well-specified with clear acceptance; value is in mapping affected code and risks → route to `planning:discovery`.
+4. Invoke `planning:discovery` with the ticket content, the WebP rollout page excerpt, the epic framing, and the user's focus instruction. Instruct it to examine local ingest-pipeline code; do **not** instruct it to search the web or Confluence further.
 5. Output the discovery document in-chat, prefaced with:
 
    ```
    Jira: ACME-3412 — https://acmecorp.atlassian.net/browse/ACME-3412
-   Route: technical-discovery — ticket is well-specified; value is in mapping affected ingest code and risks.
+   Route: discovery — ticket is well-specified; value is in mapping affected ingest code and risks.
    ```
 
 6. If your invocation context already specifies the next step, hand off immediately. Otherwise ask: create Trellis issues, implement now, or stop here?
