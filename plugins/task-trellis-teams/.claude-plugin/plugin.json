@@ -1,6 +1,6 @@
 {
   "name": "task-trellis-teams",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Task Trellis Teams - Agent Teams-based hierarchical task management for AI coding agents",
   "author": {
     "name": "LangAdventure LLC"
@@ -8,5 +8,5 @@
   "repository": "https://github.com/langadventurellc/task-trellis-mcp",
   "license": "MIT",
   "keywords": ["task-management", "project-management", "ai-agents", "trellis", "agent-teams"],
-  "dependencies": [{ "name": "planning", "version": "^1.6.0" }]
+  "dependencies": [{ "name": "planning" }]
 }
