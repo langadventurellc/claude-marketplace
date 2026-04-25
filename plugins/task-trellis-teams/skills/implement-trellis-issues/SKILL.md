@@ -103,7 +103,7 @@ Starting from the resolved scope, walk down recursively. At each node:
 
 Build the final implementation queue from the candidate list. Respect the prerequisite DAG: a candidate is **ready** only when all of its `prerequisites` are `done`. Other candidates **wait** until their prerequisites clear.
 
-### 3. Feature branch creation
+### 3. Feature branch creation and diff base capture
 
 Run:
 
@@ -111,12 +111,14 @@ Run:
 git branch --show-current
 ```
 
-- **If on `main`:** Create and checkout a feature branch using the resolved scope ID:
+- **If on `main`:** Capture the current `main` SHA as the run's **diff base** with `git rev-parse HEAD` before branching. Then create and checkout a feature branch using the resolved scope ID:
   ```bash
   git checkout -b feature/<SCOPE_ID>
   ```
   Example: `feature/F-add-user-auth`. If the scope is a task, use the task ID.
-- **If on any other branch:** Continue without branching.
+- **If on any other branch:** Capture the branch's fork point with `main` as the run's **diff base** via `git merge-base main HEAD`. Continue without branching.
+
+Stash the captured SHA on the run — it is passed into the docs-updater task body in Completion Phase §1 so docs-updater can diff the working tree against it (`git diff <base>`) and see every change on the branch, committed or uncommitted.
 
 ## Team Creation
 
@@ -403,6 +405,12 @@ Body:
 Invoke the `planning:docs-updater` skill to review and update documentation
 (CLAUDE.md, README.md, docs/) based on the changes implemented under <scope>
 in this branch.
+
+Diff base for docs-updater: <captured-base-SHA>
+
+Pass this base SHA to docs-updater as its input. The skill will run
+`git diff <base>` to see every change on the branch — committed and
+uncommitted — relative to that base.
 
 If the `Skill` tool is unavailable to you as a teammate, open
 `plugins/planning/skills/docs-updater/SKILL.md` directly and follow it.

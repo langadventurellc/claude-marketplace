@@ -1,6 +1,6 @@
 ---
 name: docs-updater
-description: Reviews completed work and updates project documentation (README, CLAUDE.md, AGENTS.md, docs/) to prevent stale docs. Use after finishing a body of work — when the user says "update docs", "docs are probably stale", "keep docs in sync", or after completing a feature, ticket, or branch. Accepts a work-item reference, a freeform description of what changed, or a git ref range; defaults to diffing the current branch against the default branch.
+description: Reviews completed work and updates project documentation (README, CLAUDE.md, AGENTS.md, docs/) to prevent stale docs. Invoked at the end of an implementation workflow with a base ref; diffs the working tree against that base to capture every change on the branch — committed and uncommitted.
 allowed-tools:
   - Glob
   - Grep
@@ -8,23 +8,15 @@ allowed-tools:
   - Edit
   - Write
   - Bash
-  - WebFetch
-  - WebSearch
 ---
 
 # Documentation Updater
 
-Keep project documentation in sync with the code. Invoked after a body of work is finished — by a user running the slash command, or by another agent at the end of a workflow. The primary goal is to prevent documentation drift: new behavior left undocumented, removed behavior still documented, or prose that contradicts the current code.
+Keep project documentation in sync with the code. Invoked at the end of an implementation workflow. The primary goal is to prevent documentation drift: new behavior left undocumented, removed behavior still documented, or prose that contradicts the current code.
 
-## Inputs
+## Input
 
-All inputs are optional — any combination is accepted:
-
-- **Work-item reference** — an ID, URL, or title from the project's ticket system (Trellis, Jira, Linear, GitHub Issues, etc.). Resolve it if a tool for that system is available; otherwise treat it as an identifier to quote in the summary.
-- **Description** — freeform text describing what was done.
-- **Git ref range** — e.g., `main...HEAD`, `v1.2.0..HEAD`, a specific commit. Used for the authoritative diff.
-
-**If no input is supplied**, default to `git diff <default-branch>...HEAD`. Detect the default branch via `git symbolic-ref refs/remotes/origin/HEAD`, then fall back to `main`, then `master`.
+A **base ref** (commit SHA or branch ref) supplied by the caller. The skill diffs the working tree against this base to see every change on the branch — committed and uncommitted — relative to that base.
 
 **Version bumps are out of scope for this skill.** Use `planning:versioning` separately when a version bump is needed.
 
@@ -32,12 +24,7 @@ All inputs are optional — any combination is accepted:
 
 ### 1. Establish what changed
 
-Build a concrete picture of the change before touching any docs:
-
-- If given a git ref range (or using the default), run `git diff <range>` and `git diff --stat <range>` to see scope.
-- If given a work-item reference, read its description and any linked implementation notes (use the appropriate tool if one is available; otherwise fetch the URL or ask the caller for context).
-- If given a freeform description, treat it as intent, and still run the git diff to verify what actually landed.
-- When description and code disagree, the code is truth.
+Run `git diff <base>` and `git diff --stat <base>` to see every change on the branch — committed and uncommitted — relative to the base ref.
 
 Compile a short list of what changed: new behavior, removed behavior, renamed/moved things, changed APIs/config/flags, new or removed dependencies.
 
