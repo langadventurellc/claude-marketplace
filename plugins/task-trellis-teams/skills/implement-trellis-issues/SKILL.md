@@ -139,7 +139,7 @@ Implement Trellis task T-<task-id> (<task title>).
 
 Parent feature: F-<feature-id> (<feature title>)
 
-Read task body: `mcp__plugin_task-trellis-teams_task-trellis__get_issue` with T-<task-id>.
+Claim and read the task body in one call: `mcp__plugin_task-trellis-teams_task-trellis__claim_task` with T-<task-id>. Do not call `get_issue` on this task ID — `claim_task` returns the full body.
 
 If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on any path.
 
