@@ -31,21 +31,30 @@ Invoke `investigate-jira-issue` via the `Skill` tool, passing the Jira issue key
 Skill({ name: "investigate-jira-issue", input: "<JIRA_KEY>" })
 ```
 
-Wait for the skill to complete. Its output — a requirements summary or technical-discovery document — is the artifact used in step 3.
+Wait for the skill to complete. Its output — a requirements summary or technical-discovery document — is the artifact used in step 4.
 
-**When `investigate-jira-issue` returns its document, your next action MUST be a `Skill` call to `task-trellis-teams:create-trellis-issues` (step 3). Do not stop. Do not ask the user about the handoff — that decision is already made by this skill.** The only exception is step 2: if the investigation surfaced blocking ambiguities that the user must resolve before issue creation, handle those first via `AskUserQuestion`, then proceed to step 3.
+### 2. Heartbeat to the conductor
 
-### 2. Clarify if needed
+The moment `investigate-jira-issue` returns its document, your VERY NEXT action MUST be a `send-message-to-conductor` call. Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line) and send an informational heartbeat:
 
-If the investigation reveals ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's iTerm window** using `AskUserQuestion`.
+```
+mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning: investigation complete, creating Trellis issues" })
+```
+
+This is not optional and is not contingent on anything. Do not pause to ask the user about the handoff — that decision is already made by this skill. The heartbeat is purely informational; the conductor does not act on it. After the heartbeat returns, proceed to step 3.
+
+### 3. Clarify if needed
+
+If the investigation surfaced ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's iTerm window** using `AskUserQuestion`.
 
 - Do NOT relay questions to the conductor via IPC.
 - The user is watching this window; ask here and wait for their answer.
-- Only proceed to step 3 once all blocking ambiguities are resolved.
+- If there are no blocking ambiguities, skip this step.
+- Only proceed to step 4 once all blocking ambiguities are resolved.
 
-### 3. Create Trellis issues
+### 4. Create Trellis issues
 
-Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact produced in step 1 (and incorporating any clarifications from step 2).
+Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact produced in step 1 (and incorporating any clarifications from step 3).
 
 ```
 Skill({ name: "task-trellis-teams:create-trellis-issues", input: "<artifact from step 1>" })
@@ -53,7 +62,7 @@ Skill({ name: "task-trellis-teams:create-trellis-issues", input: "<artifact from
 
 Wait for `create-trellis-issues` to complete and confirm that issues were created before proceeding.
 
-### 4. Signal completion
+### 5. Signal completion
 
 Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message.
 

@@ -133,6 +133,7 @@ After the document is produced, decide how to hand off based on your invocation 
 - **Respect overrides.** If the user's additional instructions say "just do discovery" or "just gather requirements", honor that instead of auto-deciding.
 - **One ticket per invocation** unless the user asks for multiple. If multiple keys are given, fetch in parallel, but still decide the route per ticket — different tickets can route differently.
 - **Be honest about gaps.** If the ticket is too thin to route sensibly even after fetching links, say so and ask the user for a one-paragraph framing before invoking a planning skill.
+- **A long document is not a turn-end.** When the chosen planning skill emits its multi-section document, that is the deliverable but NOT the end of your turn. If your invocation context specifies what to do next, your VERY NEXT action MUST be the next tool call in that chain — not a stop. Do not let the visual finality of the document trick you into ending the turn.
 
 ## Example
 
@@ -151,4 +152,4 @@ After the document is produced, decide how to hand off based on your invocation 
    Route: technical-discovery — ticket is well-specified; value is in mapping affected ingest code and risks.
    ```
 
-6. Ask: create Trellis issues, implement now, or stop here?
+6. If your invocation context already specifies the next step, hand off immediately. Otherwise ask: create Trellis issues, implement now, or stop here?
