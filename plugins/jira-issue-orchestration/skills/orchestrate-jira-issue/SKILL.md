@@ -1,6 +1,6 @@
 ---
 name: orchestrate-jira-issue
-description: Primary user entry point. Given a Jira issue key (e.g. CORE-1234), validates the issue then runs a planning sub-session (producing Trellis issues) followed by an implementation sub-session (opening a PR). Use when the user says "orchestrate", "run orchestration on", or "implement" a Jira issue via this plugin.
+description: Primary user entry point. Given a Jira issue key (e.g. ACME-1234), validates the issue then runs a planning sub-session (producing Trellis issues) followed by an implementation sub-session (opening a PR). Use when the user says "orchestrate", "run orchestration on", or "implement" a Jira issue via this plugin.
 allowed-tools:
   - AskUserQuestion
   - Bash

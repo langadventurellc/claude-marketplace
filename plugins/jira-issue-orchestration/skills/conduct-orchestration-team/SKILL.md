@@ -23,7 +23,7 @@ conduct-orchestration-team --team-type <planning|implementation> [--additional-i
 ```
 
 - `--team-type` — **Required.** Must be `planning` or `implementation`.
-- `--additional-instructions` — The IPC instruction payload sent to the sub after the `hello` handshake (Step 5). This is the explicit channel for caller-supplied per-run context such as the Jira issue key (e.g. `CORE-1234`). Its value is also appended verbatim to the team prompt (Step 2). Must be a single line — do not embed newlines.
+- `--additional-instructions` — The IPC instruction payload sent to the sub after the `hello` handshake (Step 5). This is the explicit channel for caller-supplied per-run context such as the Jira issue key (e.g. `ACME-1234`). Its value is also appended verbatim to the team prompt (Step 2). Must be a single line — do not embed newlines.
 
 ## Ordering Constraint (load-bearing)
 

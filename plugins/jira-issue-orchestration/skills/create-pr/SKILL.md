@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Commit (if needed), push (if needed), and open a GitHub pull request using the team PR template. Creates a *draft* PR by default. Use whenever the user asks to "create a PR", "open a pull request", "ship this", "file the PR", "PR this up", etc. Handles Jira/Trellis context auto-detection, halts on suspicious staged content (secrets, large binaries, scope creep, merge markers), and enforces the `{JIRA-ID}: {outcome}` title format. Supports `--no-draft` (create non-draft) and `--ai-review` (add `ai-review` label).
+description: Commit (if needed), push (if needed), and open a GitHub pull request using the team PR template. Creates a *draft* PR by default. Use whenever the user asks to "create a PR", "open a pull request", "ship this", "file the PR", "PR this up", etc. Handles Jira/Trellis context auto-detection, halts on suspicious staged content (secrets, large binaries, scope creep, merge markers), and enforces the `{JIRA-ID}: {outcome}` title format. Supports `--no-draft` (create non-draft).
 allowed-tools:
   - AskUserQuestion
   - Bash
@@ -24,7 +24,6 @@ Inline constants (not in the config file):
 | Field | Value |
 |---|---|
 | Default draft state | `draft` |
-| AI review label | `ai-review` (added only when `--ai-review` is passed) |
 
 ## Flags
 
@@ -33,7 +32,6 @@ Parse these from the invocation arguments before doing anything else:
 | Flag | Effect |
 |---|---|
 | `--no-draft` | Create a non-draft PR. Default is draft. |
-| `--ai-review` | Add the `ai-review` label on the PR after creation. |
 
 Unknown flags → stop and ask the user what they meant via `AskUserQuestion`. Don't silently ignore.
 
@@ -86,7 +84,7 @@ Scan the combined file list and (where relevant) the diff content for any of the
 |---|---|
 | **Secrets / credentials** | File names matching `.env*` (except `.env.example`, `.env.sample`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*.p12`, `service-account*.json`. In diff content: lines matching `(api[_-]?key|secret|token|password|authorization)\s*[:=]\s*["']?[A-Za-z0-9_\-./+=]{16,}`, AWS key patterns (`AKIA[0-9A-Z]{16}`), private key headers (`-----BEGIN (RSA |EC |DSA |OPENSSH |)PRIVATE KEY-----`). |
 | **Large/binary/artifact files** | Paths under `node_modules/`, `dist/`, `build/`, `target/`, `out/`, `.next/`, `.cache/`, `coverage/`, `__pycache__/`, `*.pyc`, `*.class`, `*.jar`, `*.zip`, `*.tar.gz`, `*.dmg`, `*.exe`, `*.so`, `*.dylib`. Also: any single file >1MB in the diff (check with `git diff <base>...HEAD --stat` and `ls -l`). |
-| **Scope creep / unrelated files** | Files whose paths don't plausibly relate to the Jira summary, branch name, or recent commit messages. This is a judgment call — only flag if it's *clearly* off-topic (e.g. branch is `CORE-1234-image-pipeline` but diff touches `billing/invoice_renderer.rb`). If unsure, don't flag. |
+| **Scope creep / unrelated files** | Files whose paths don't plausibly relate to the Jira summary, branch name, or recent commit messages. This is a judgment call — only flag if it's *clearly* off-topic (e.g. branch is `ACME-1234-image-pipeline` but diff touches `billing/invoice_renderer.rb`). If unsure, don't flag. |
 | **Merge conflict markers** | Any tracked file containing `<<<<<<<`, `=======` (on its own line between markers), or `>>>>>>>`. Use `git grep -nE '^(<<<<<<<\|=======\|>>>>>>>)' -- ':(exclude)*.md'` as a fast check. |
 
 When halting, list each trigger with the file path and a one-line reason. Then stop. Example:
@@ -95,7 +93,7 @@ When halting, list each trigger with the file path and a one-line reason. Then s
 Pre-flight check found issues — stopping before commit/push:
 
   • Secret suspected in src/config/aws.ts:14 — "AWS_SECRET_ACCESS_KEY = AKIA..."
-  • Unrelated file in change set: billing/invoice_renderer.rb (branch is CORE-1234-image-pipeline)
+  • Unrelated file in change set: billing/invoice_renderer.rb (branch is ACME-1234-image-pipeline)
 
 Fix these or confirm they're intentional before I continue.
 ```
@@ -113,7 +111,7 @@ Results:
 - **Exactly one ID** → use it silently. No confirmation prompt — the user approves it implicitly when they approve the full draft in step 5 (the ID is in the title). Adding a second prompt here is redundant friction.
 - **Multiple distinct IDs** → `AskUserQuestion` to pick the **primary** (goes in title + Jira ticket section). List up to 3 top candidates (branch-matched first, then most-recent-commit order) + `No Jira ticket`. All detected IDs still get linked in the PR body's Jira ticket section — primary first, others on following lines.
 
-If the user passed `--jira <KEY>` or said "use CORE-5678" in the invocation, skip detection and use that directly.
+If the user passed `--jira <KEY>` or said "use ACME-5678" in the invocation, skip detection and use that directly.
 
 ### 4. Gather PR context
 
@@ -134,7 +132,7 @@ Format: `{JIRA-ID}: {one-line outcome-focused description}`
 Rules (same spirit as `create-jira-ticket`):
 
 - State the **outcome**, not the implementation steps. "Report failed status for stalled finalizer jobs" beats "Update status enum and add stall detector and update worker loop".
-- Keep under ~70 characters (including the `CORE-####:` prefix — no space before the colon).
+- Keep under ~70 characters (including the `ACME-####:` prefix — no space before the colon).
 - Strong verb start: Add, Fix, Enable, Remove, Migrate, Expose, Prevent, Report, Restore.
 - No comma-separated action lists ("Add X, update Y, and fix Z") — find the unifying intent.
 - No trailing period.
@@ -228,22 +226,17 @@ Construct the `gh pr create` command:
 - `--base <default branch from step 1>`
 - `--draft` unless `--no-draft` was passed.
 
-Then, only if `--ai-review` was passed, run `gh pr edit <pr-number-or-url> --add-label ai-review` after creation. Keep it a separate call — bundling `--label` into `gh pr create` fails if the label doesn't exist on the repo yet, and the error is harder to recover from mid-flow.
-
-If the label add fails (label doesn't exist, permission), report the PR URL and mention the label failure. Don't retry or auto-create the label.
-
 ### 9. Report back
 
-Four lines, nothing more:
+Three lines, nothing more:
 
 ```
 Opened <draft|PR> <url>
 Title: <title>
 Base: <default branch>
-Labels: <ai-review if added, else "—">
 ```
 
-Append a 5th line `Jira: <primary key>` if one was used, or omit if not. Append a 6th line noting any graceful fallbacks that happened (e.g. `Note: get-jira-issue failed (404) — body drafted from diff only.`).
+Append a 4th line `Jira: <primary key>` if one was used, or omit if not. Append a 5th line noting any graceful fallbacks that happened (e.g. `Note: get-jira-issue failed (404) — body drafted from diff only.`).
 
 Do not echo the body back — the user can click the URL.
 
@@ -253,7 +246,7 @@ If `--no-draft` was passed (and the PR was actually created as non-draft in step
 
 Call `AskUserQuestion` with:
 
-- Question: `Announce this PR in #team-core-services-inventory-chat?`
+- Question: `Announce this PR in #team-report-export?`
 - Options:
   - `Yes, announce it (Recommended)` — invoke the `announce-pr` skill via the `Skill` tool with `--pr <url>`.
   - `No` — stop. No Slack message.
@@ -266,14 +259,14 @@ If the user cancels inside `announce-pr`, that's fine — no cleanup needed.
 
 ### Minimal happy path
 
-**User:** `/create-pr` (on branch `CORE-1234-circuit-breaker-eprocess`, one commit `add circuit breaker around eProcess download`)
+**User:** `/create-pr` (on branch `ACME-1234-circuit-breaker-warehouse`, one commit `add circuit breaker around warehouse fetch`)
 
 **You silently:**
 
 1. Pre-flight clean, branch is not default.
 2. No halt triggers.
-3. `CORE-1234` detected in branch — single match, use silently (no confirmation prompt).
-4. Fetch CORE-1234 via the Atlassian MCP (`getJiraIssue`).
+3. `ACME-1234` detected in branch — single match, use silently (no confirmation prompt).
+4. Fetch ACME-1234 via the Atlassian MCP (`getJiraIssue`).
 5. Print title + body as assistant text.
 6. Working tree clean, skip commit.
 7. Push (branch has no upstream).
@@ -283,16 +276,15 @@ If the user cancels inside `announce-pr`, that's fine — no cleanup needed.
 **Output:**
 
 ```
-Opened draft PR https://github.com/carsdotcom/inventory-svc/pull/4421
-Title: CORE-1234: Prevent cascading timeouts during eProcess CDN flaps
+Opened draft PR https://github.com/acmecorp/report-export-svc/pull/4421
+Title: ACME-1234: Prevent cascading timeouts during warehouse CDN flaps
 Base: main
-Labels: —
-Jira: CORE-1234
+Jira: ACME-1234
 ```
 
-### `--no-draft --ai-review` on dirty tree
+### `--no-draft` on dirty tree
 
-**User:** `/create-pr --no-draft --ai-review`
+**User:** `/create-pr --no-draft`
 
 **You silently:**
 
@@ -303,18 +295,17 @@ Jira: CORE-1234
 5. Print title + body as assistant text.
 6. Delegate to `git:commit` — new commit lands.
 7. Push with `-u`.
-8. `gh pr create --title ... --body-file ... --base main` (no `--draft`), then `gh pr edit <url> --add-label ai-review`.
+8. `gh pr create --title ... --body-file ... --base main` (no `--draft`).
 9. Report.
-10. Non-draft → `AskUserQuestion`: "Announce this PR in #team-core-services-inventory-chat?" — on Yes, hand off to the `announce-pr` skill with `--pr <url>`.
+10. Non-draft → `AskUserQuestion`: "Announce this PR in #team-report-export?" — on Yes, hand off to the `announce-pr` skill with `--pr <url>`.
 
 **Output:**
 
 ```
-Opened PR https://github.com/carsdotcom/inventory-svc/pull/4422
-Title: CORE-1234: Prevent cascading timeouts during eProcess CDN flaps
+Opened PR https://github.com/acmecorp/report-export-svc/pull/4422
+Title: ACME-1234: Prevent cascading timeouts during warehouse CDN flaps
 Base: main
-Labels: ai-review
-Jira: CORE-1234
+Jira: ACME-1234
 ```
 
 ### Halt on suspected secret
@@ -336,10 +327,10 @@ No commit, no push, no PR.
 ## Notes on behavior
 
 - **Draft by default.** The team defaults to draft PRs so CI runs without pinging reviewers prematurely. Only pass `--no-draft` when the user explicitly wants it.
-- **Non-draft PRs offer a Slack announcement.** After a successful `--no-draft` PR creation, the final step prompts to hand off to the `announce-pr` skill (which posts a short message to `#team-core-services-inventory-chat`). Draft PRs never trigger this offer — draft is the "don't page reviewers yet" signal.
+- **Non-draft PRs offer a Slack announcement.** After a successful `--no-draft` PR creation, the final step prompts to hand off to the `announce-pr` skill (which posts a short message to `#team-report-export`). Draft PRs never trigger this offer — draft is the "don't page reviewers yet" signal.
 - **Don't generate the commit message yourself.** `git:commit` handles it. Avoids two skills fighting over conventional-commit format.
 - **Don't force-push.** Ever. If the branch has diverged, stop and let the user resolve.
-- **Don't set reviewers, assignees, or labels** beyond `ai-review`. CODEOWNERS / team norms handle the rest.
+- **Don't set reviewers, assignees, or labels.** CODEOWNERS / team norms handle the rest.
 - **One PR per invocation.** If the user wants multiple PRs (e.g. atomized branches), they should run the skill once per branch.
 - **Respect overrides.** If the user says "skip the pre-flight check, just create it" or "use this title: ...", honor it. The halt triggers are a default, not a policy.
 - **Keep the body short.** Padding is worse than `N/A`. Reviewers already have the diff.

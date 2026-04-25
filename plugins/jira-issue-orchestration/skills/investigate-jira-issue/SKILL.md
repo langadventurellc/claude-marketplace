@@ -1,6 +1,6 @@
 ---
 name: investigate-jira-issue
-description: Investigate a Jira issue and turn it into a requirements or technical-discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. CORE-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:technical-discovery` (for well-specified work needing research and analysis).
+description: Investigate a Jira issue and turn it into a requirements or technical-discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. ACME-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:technical-discovery` (for well-specified work needing research and analysis).
 allowed-tools:
   - AskUserQuestion
   - Skill
@@ -26,7 +26,7 @@ Tenanty values (`cloudId`, Atlassian base URL) are loaded from `${CLAUDE_PLUGIN_
 
 ## Input
 
-- **Required**: a Jira issue key (e.g. `CORE-1234`).
+- **Required**: a Jira issue key (e.g. `ACME-1234`).
 - **Optional**: any additional user instructions to forward verbatim to the downstream planning skill (focus areas, specific files to inspect, constraints, deadlines, etc.).
 
 If the user didn't supply an issue key, ask for one with `AskUserQuestion` before doing anything else.
@@ -142,18 +142,18 @@ Make the Trellis option the first entry (`(Recommended)`) when the document is b
 
 ## Example
 
-**User:** `investigate CORE-3412 and focus on the image pipeline side`
+**User:** `investigate ACME-3412 and focus on the image pipeline side`
 
 **You silently:**
 
-1. Fetch `CORE-3412`. It says: *"Add WebP support to the image ingest pipeline. Acceptance: ingest accepts WebP, stored variants include WebP, CDN serves WebP to supporting clients."*
-2. Notice a linked Confluence page titled "WebP rollout plan" — clearly relevant, fetch it. Notice a linked epic `CORE-3648` "Image Format Modernization" — relevant, pull its summary. Skip a linked "Team OKRs Q2" page — generic, not ticket-specific.
+1. Fetch `ACME-3412`. It says: *"Add WebP support to the image ingest pipeline. Acceptance: ingest accepts WebP, stored variants include WebP, CDN serves WebP to supporting clients."*
+2. Notice a linked Confluence page titled "WebP rollout plan" — clearly relevant, fetch it. Notice a linked epic `ACME-3648` "Image Format Modernization" — relevant, pull its summary. Skip a linked "Team OKRs Q2" page — generic, not ticket-specific.
 3. Decide: ticket is well-specified with clear acceptance; value is in mapping affected code and risks → route to `planning:technical-discovery`.
 4. Invoke `planning:technical-discovery` with the ticket content, the WebP rollout page excerpt, the epic framing, and the user's focus instruction. Instruct it to examine local ingest-pipeline code; do **not** instruct it to search the web or Confluence further.
 5. Output the discovery document in-chat, prefaced with:
 
    ```
-   Jira: CORE-3412 — https://carscommerce.atlassian.net/browse/CORE-3412
+   Jira: ACME-3412 — https://acmecorp.atlassian.net/browse/ACME-3412
    Route: technical-discovery — ticket is well-specified; value is in mapping affected ingest code and risks.
    ```
 
