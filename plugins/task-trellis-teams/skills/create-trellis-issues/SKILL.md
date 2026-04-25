@@ -55,7 +55,7 @@ You are the **lead** — you do NOT write issues or review issues yourself. Your
 - `<parent-id>` — ID of the parent Trellis issue (e.g., `P-project-id`, `E-epic-id`, `F-feature-id`). Optional if the parent is obvious from prior conversation context.
 - `--recursive` — optional flag. When set, the lead recurses down the hierarchy, spawning a fresh writer per level until all levels are written. The reviewer persists across all levels.
 
-All remaining text in `$ARGUMENTS` is the **original user requirements** and MUST be preserved verbatim — see "Verbatim Requirements Preservation" below.
+All remaining text in `$ARGUMENTS` is the **original user requirements** and MUST be preserved verbatim in the `requirements` task created in step 2 — and only there.
 
 ## Process
 
@@ -67,16 +67,7 @@ If the preflight check fails, STOP and report to the user. Do NOT attempt workar
 
 ### 2. Capture Original Input Verbatim
 
-**CRITICAL.** Before authoring any shared-task-list entries, store the exact user instructions verbatim:
-
-```
-Original User Requirements:
----
-[EXACT_USER_INPUT_HERE]
----
-```
-
-Do NOT paraphrase, summarize, or modify it in any way. Then create a single dedicated task on the shared list as the canonical source of truth:
+Before authoring any shared-task-list entries, create a single dedicated task on the shared list as the canonical source of truth. Embed the exact user instructions verbatim — do NOT paraphrase, summarize, or modify them:
 
 ```
 TaskCreate({
@@ -307,15 +298,12 @@ Perform a cross-sibling consistency review of all child issues created under <pa
 
 Child issues to review: <comma-separated list of child issue IDs>
 
+Requirements: `TaskGet taskId="<requirementsTaskId>"` — single source of truth; read before reviewing.
+
 Check the following, in order:
 1. **Scope overlap**: Do any two siblings claim responsibility for the same functionality, file area, or subsystem? Flag any overlap with the sibling pair involved and the conflicting scope language.
-2. **Coverage gaps**: Do the siblings together cover all requirements from the product requirements below? List any requirement that no sibling addresses.
+2. **Coverage gaps**: Do the siblings together cover all requirements from the requirements task above? List any requirement that no sibling addresses.
 3. **Prerequisite coherence**: Are the prerequisite links between siblings correct? Flag any missing prerequisite (A must complete before B but B does not list A as a prerequisite) or spurious prerequisite (A lists B as a prerequisite but there is no logical dependency).
-
-Product Requirements (verbatim):
----
-<PRODUCT_REQUIREMENTS_FROM_STEP_2>
----
 
 Use `task-trellis-teams:issue-creation-review` as your review guide and the cross-sibling rubric in that skill's SKILL.md. Send findings directly to the writer (<writer-name>) via SendMessage if changes to child issues are needed. Approve (mark this task done) when no blocking cross-sibling issues remain.
 ```
@@ -398,16 +386,6 @@ Produce a summary in the format:
 <suggestions: implement, add more detail, recurse into a specific child, etc.>
 ```
 
-## Verbatim Requirements Preservation
-
-The lead MUST create exactly **one** `requirements` task per run (step 2) containing the verbatim input. All creation task descriptions (step 5a) and review task descriptions (step 5b) MUST reference it by ID via `TaskGet` — no inline embedding.
-
-Lead-meta instructions (classified in step 2b) are NEVER placed in the `requirements` task or any teammate-visible task descriptions. They apply only to the lead's own run behavior (e.g., gathering observations before shutdown).
-
-The bias guarantee holds: writer and reviewer both read identical, unmodified bytes from the same single `requirements` task. For N children, this produces one copy of the requirements instead of 2N inline copies.
-
-This is the same guarantee as `plugins/task-trellis/skills/issue-creation-orchestration/SKILL.md` — preserved here via the shared task list mechanism.
-
 ## Bias Guarantee
 
 **Initial instructions to writer and reviewer always come from lead-authored task descriptions** on the shared task list — never from each other. Direct `SendMessage` between teammates is allowed only for:
@@ -453,7 +431,7 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   - `task-trellis-teams:trellis-issue-reviewer`
 
 <rules>
-  <critical>The lead MUST create exactly one `requirements` task (step 2) containing the verbatim input. All creation and review task descriptions MUST reference it by ID via TaskGet. Do NOT embed verbatim requirements inline in 5a/5b templates. Lead-meta instructions (classified in step 2b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
+  <critical>The lead MUST create exactly one `requirements` task (step 2) containing the verbatim input. All other task descriptions reference it via `TaskGet taskId="<requirementsTaskId>"` — never inline. Lead-meta instructions (classified in step 2b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
   <critical>Without `--recursive`, stop after creating only the immediate child level. Do NOT recursively decompose.</critical>
   <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
