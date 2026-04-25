@@ -4,9 +4,9 @@ description: Commit (if needed), push (if needed), and open a GitHub pull reques
 allowed-tools:
   - AskUserQuestion
   - Bash
-  - Read
   - Write
   - Skill
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_atlassian_atlassian__getJiraIssue
 ---
@@ -17,7 +17,7 @@ Collapse the usual commit → push → open-PR-with-template dance into one invo
 
 ## Configuration
 
-Tenanty values (Jira project prefix, Atlassian base URL, Atlassian cloud ID) are loaded from `~/.claude/jira-issue-orchestration/_config.json` at the start of every run via the preflight step below. Jira URL format is `<BASE_URL>/browse/<KEY>`.
+Tenanty values (Jira project prefix, Atlassian base URL, Atlassian cloud ID) are loaded via the `issue-orchestration` MCP server's `get-config` tool in the preflight step below. Jira URL format is `<BASE_URL>/browse/<KEY>`.
 
 Inline constants (not in the config file):
 
@@ -41,10 +41,7 @@ Follow these steps in order. Each step's output is required for the next.
 
 ### 0. Preflight: load configuration
 
-1. Run `Bash`: `echo ~/.claude/jira-issue-orchestration/_config.json`. Bind the printed path to `CONFIG_PATH`.
-2. Use `Read` on `CONFIG_PATH`.
-3. If the file is missing or any required key (`atlassianBaseUrl`, `atlassianCloudId`, `jiraProjectKey`) is absent/empty — stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
-4. Bind `BASE_URL` from `atlassianBaseUrl`, `PROJECT_KEY` from `jiraProjectKey`, and `CLOUD_ID` from `atlassianCloudId`.
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl`, `PROJECT_KEY` from `values.jiraProjectKey`, and `CLOUD_ID` from `values.atlassianCloudId`. If any are missing or empty, stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
 
 ### 1. Pre-flight: sanity-check the working tree
 

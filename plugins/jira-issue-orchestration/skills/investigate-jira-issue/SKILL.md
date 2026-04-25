@@ -9,6 +9,7 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
   - mcp__plugin_atlassian_atlassian__getJiraIssue
   - mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks
   - mcp__plugin_atlassian_atlassian__getConfluencePage
@@ -22,7 +23,7 @@ Turn a Jira ticket into an actionable design artifact — either a **requirement
 
 ## Configuration
 
-Tenanty values (`cloudId`, Atlassian base URL) are loaded from `~/.claude/jira-issue-orchestration/_config.json` at the start of every run via the preflight step below. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
+Tenanty values (`cloudId`, Atlassian base URL) are loaded via the `issue-orchestration` MCP server's `get-config` tool in the preflight step below. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
 
 ## Input
 
@@ -35,10 +36,7 @@ If the user didn't supply an issue key, ask for one with `AskUserQuestion` befor
 
 ### 0. Preflight: load configuration
 
-1. Run `Bash`: `echo ~/.claude/jira-issue-orchestration/_config.json`. Bind the printed path to `CONFIG_PATH`.
-2. Use `Read` on `CONFIG_PATH`.
-3. If the file is missing or any required key (`atlassianCloudId`, `atlassianBaseUrl`) is absent/empty — stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
-4. Bind `CLOUD_ID` from `atlassianCloudId` and `BASE_URL` from `atlassianBaseUrl`.
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl` and `CLOUD_ID` from `values.atlassianCloudId`. If either is missing or empty, stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
 
 ### 1. Fetch the ticket
 

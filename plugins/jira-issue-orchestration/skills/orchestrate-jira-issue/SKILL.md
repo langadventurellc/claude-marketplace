@@ -5,9 +5,9 @@ allowed-tools:
   - AskUserQuestion
   - Bash
   - Monitor
-  - Read
-  - Write
   - Skill
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
+  - mcp__plugin_jira-issue-orchestration_issue-orchestration__set-config
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-team
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__terminate-sub
@@ -36,15 +36,15 @@ If `<issue_id>` is not provided, ask for it with `AskUserQuestion` before procee
 
 ### Phase 0 — Configuration setup
 
-Before any other phase begins, follow the instructions in `config-setup.md` (co-located in this skill's directory) to ensure `_config.json` exists and contains all required keys.
+Required keys: `atlassianBaseUrl`, `atlassianCloudId`, `jiraProjectKey`.
 
-Bind the resolved values for use in later phases:
-
-- `BASE_URL` ← `atlassianBaseUrl`
-- `CLOUD_ID` ← `atlassianCloudId` (required by the `getJiraIssue` call in Phase 1 step 3)
-- `PROJECT_KEY` ← `jiraProjectKey`
-
-This phase must complete successfully before proceeding to Phase 1.
+1. Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Read the returned `values` object.
+2. For each required key missing or empty in `values`, ask the user with `AskUserQuestion` to provide it.
+3. If any keys were collected from the user, persist them in a single `mcp__plugin_jira-issue-orchestration_issue-orchestration__set-config` call: `{ values: { <collected keys> } }`.
+4. Bind for later phases:
+   - `BASE_URL` ← `atlassianBaseUrl`
+   - `CLOUD_ID` ← `atlassianCloudId` (used by `getJiraIssue` in Phase 1 step 3)
+   - `PROJECT_KEY` ← `jiraProjectKey`
 
 ### Phase 1 — Initialization
 
