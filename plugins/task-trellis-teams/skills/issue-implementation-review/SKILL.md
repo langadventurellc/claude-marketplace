@@ -313,7 +313,8 @@ When running as a teammate performing a coherence review:
 - **Read-only**: Do NOT modify any files.
 - **No new issues**: Do NOT create new Trellis issues.
 - **Report to lead**: Send findings as a single `SendMessage` to the lead (not to individual developers — the lead decides how to route fixes).
-- **Mark done**: Mark this task-list entry `completed` via `TaskUpdate` when the coherence review is complete (the lead will decide how to act on any findings).
+- **Fix cycles**: If your review produces Critical findings, do NOT mark the task-list entry done. Stay alive after sending findings to the lead. The lead will trigger a Reconciliation Pass and then nudge you to re-review with `"reconciliation changes applied — please re-review"`. Re-review against the new diff and repeat until no Critical findings remain.
+- **Mark done**: Mark this task-list entry `completed` via `TaskUpdate` only on a clean review (no Critical findings).
 
 ---
 

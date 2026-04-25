@@ -344,14 +344,14 @@ Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-t
 
 Follow the "Cross-Task Coherence Review" section of that skill. Read each implemented task via `get_issue`, examine all modified files across the sibling set, and produce findings in `## Review Findings` format.
 
-Mark this task-list entry `completed` when the coherence review is complete (the lead will decide how to act on any findings).
+Mark this task-list entry `completed` only on a clean review (no Critical findings). On Critical findings, send them to the lead via `SendMessage` and stay alive — the lead will trigger a Reconciliation Pass and nudge you to re-review.
 ```
 
 Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
 ```
 SendMessage({ to: "rev-coherence-<scope-id>", summary: "<coherence-task-id> begin", message: "claim and begin <coherenceTaskId>" })
 ```
-Wait for it to mark the task-list entry `done`, then shut it down.
+Wait for the reviewer to either (a) mark the task-list entry `done` (no Critical findings) — then shut it down, or (b) `SendMessage` the lead with Critical findings — leave the reviewer alive for the §0a Reconciliation Pass and re-review (it is shut down in §0a after a clean re-review).
 
 If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
 
@@ -385,8 +385,7 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 5. Wait for the reviewer to mark the review entry done, then shut both teammates down.
 
 **After the pass:**
-- If the cross-task coherence reviewer (§0) is still active, the lead must request a re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to re-approve or surface further findings before proceeding.
-- If the coherence reviewer has already been shut down, the lead verifies there are no residual issues by inspecting the change set directly or re-running the coherence review step (§0) with a fresh reviewer.
+- The lead nudges the original coherence reviewer (still alive from §0 — its task-list entry is not yet `done`) to re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to either re-approve (mark its task-list entry `done`) or surface further Critical findings. After a clean re-review, shut the coherence reviewer down.
 - **Iteration cap:** Cap Reconciliation Passes at **2 per run**. If the second re-review still returns Critical findings, stop and `AskUserQuestion` — recurrence beyond two passes is a signal that automated remediation is not converging and human judgment is required.
 
 **Constraints:**
