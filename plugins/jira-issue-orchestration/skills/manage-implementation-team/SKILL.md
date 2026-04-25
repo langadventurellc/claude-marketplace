@@ -1,12 +1,12 @@
 ---
-name: manage-implementation-teams
+name: manage-implementation-team
 description: Internal skill. Runs inside the implementation sub-session. Invokes implement-trellis-issues to implement all open Trellis tasks, then invokes create-pr to open a draft GitHub PR. Signals completion to the conductor when done.
 allowed-tools:
   - Skill
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
 ---
 
-# manage-implementation-teams
+# manage-implementation-team
 
 Internal skill that runs inside the implementation sub-session. Implements all open Trellis tasks, opens a draft GitHub PR, and signals the conductor when done.
 

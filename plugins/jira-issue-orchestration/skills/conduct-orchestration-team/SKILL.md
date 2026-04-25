@@ -60,11 +60,11 @@ Construct the prompt that will be injected as the user prompt in the sub-session
   Invoke the manage-planning-team skill. It will guide the full planning workflow for this sub-session, including investigation, Trellis issue creation, and completion signaling via IPC.
   ```
 
-- **`implementation`**: Instruct the sub to invoke `manage-implementation-teams`. That skill calls `implement-trellis-issues`, then `create-pr`, then signals completion via `send-message-to-conductor`.
+- **`implementation`**: Instruct the sub to invoke `manage-implementation-team`. That skill calls `implement-trellis-issues`, then `create-pr`, then signals completion via `send-message-to-conductor`.
 
   Example prompt template:
   ```
-  Invoke the manage-implementation-teams skill. It will guide the full implementation workflow for this sub-session, including Trellis task implementation, PR creation, and completion signaling via IPC.
+  Invoke the manage-implementation-team skill. It will guide the full implementation workflow for this sub-session, including Trellis task implementation, PR creation, and completion signaling via IPC.
   ```
 
 If `--additional-instructions` was provided, append that text verbatim at the end of the prompt, separated by a blank line.
