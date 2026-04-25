@@ -6,6 +6,7 @@ allowed-tools:
   - Bash
   - Monitor
   - Read
+  - Write
   - Skill
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
@@ -30,6 +31,18 @@ If `<issue_id>` is not provided, ask for it with `AskUserQuestion` before procee
 **Always arm a `Monitor` on `s2cLogPath` BEFORE calling any launch tool.** The sub's first message (`hello`) is the only liveness signal — it is written immediately after the sub boots. Because `tail -n 0` discards all lines written before the tail is armed, arming the Monitor even slightly after the launch call will silently miss the handshake, causing the conductor to hang waiting for a message that was already dropped.
 
 ## Workflow
+
+### Phase 0 — Configuration setup
+
+Before any other phase begins, follow the instructions in `config-setup.md` (co-located in this skill's directory) to ensure `_config.json` exists and contains all required keys.
+
+Bind the resolved values for use in later phases:
+
+- `BASE_URL` ← `atlassianBaseUrl`
+- `CLOUD_ID` ← `atlassianCloudId` (required by the `getJiraIssue` call in Phase 1 step 3)
+- `PROJECT_KEY` ← `jiraProjectKey`
+
+This phase must complete successfully before proceeding to Phase 1.
 
 ### Phase 1 — Initialization
 
