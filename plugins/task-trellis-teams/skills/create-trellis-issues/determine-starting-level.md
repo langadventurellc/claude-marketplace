@@ -39,7 +39,7 @@ Strong signals:
 
 Action if matched:
 
-- The lead authors a root creation task + review task pair for a Project (no parent, type project; reference `issue-creation/project.md` as the authoring guide in the creation task body). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Epic-level task pairs. Strongly consider `--recursive` so the run continues down to features and tasks.
+- The lead authors a root creation task + review task pair for a Project (no parent, type project; reference `issue-creation/project.md` as the authoring guide in the creation task body). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Epic-level task pairs. Default behavior recurses all the way to leaf tasks; pass `--no-recursive` only if the user explicitly wants to stop after epics.
 
 ### 2. Epic
 
@@ -51,7 +51,7 @@ Strong signals:
 
 Action if matched:
 
-- The lead authors a root creation task + review task pair for an Epic (no parent, type epic; reference `issue-creation/epic.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Feature-level task pairs. Consider `--recursive` if the user expects leaf-level work in one pass.
+- The lead authors a root creation task + review task pair for an Epic (no parent, type epic; reference `issue-creation/epic.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Feature-level task pairs. Default behavior recurses to leaf tasks; pass `--no-recursive` only if the user explicitly wants to stop after features.
 
 ### 3. Feature
 
@@ -63,7 +63,7 @@ Strong signals:
 
 Action if matched:
 
-- The lead authors a root creation task + review task pair for a Feature (no parent, type feature; reference `issue-creation/feature.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Task-level task pairs. Do NOT set `--recursive` — tasks are already the leaf level.
+- The lead authors a root creation task + review task pair for a Feature (no parent, type feature; reference `issue-creation/feature.md` as the authoring guide). Spawn the persistent reviewer and a writer for the root level; wait for root approval before authoring Task-level task pairs. `--no-recursive` is moot at this level — tasks are already the leaf level, so the run stops there either way.
 
 ### 4. Task(s) only
 
@@ -102,5 +102,5 @@ When you do ask, present a focused question with concrete options drawn from thi
 ## Do not use this doc for
 
 - **How many** children to author at a given level — granularity is covered by the sibling `issue-creation` docs ("default to coarser").
-- Whether to set `--recursive` — that depends on whether the user wants leaf-level issues produced in this run, not on the root level.
+- Whether to set `--no-recursive` — that depends on whether the user wants to stop at the immediate child level rather than continue down to leaves; it is independent of the root-level decision.
 - Deciding the **child** level when a parent is known — use the parent-type table in `SKILL.md` step 3 instead.

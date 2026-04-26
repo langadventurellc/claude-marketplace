@@ -53,7 +53,7 @@ You are the **lead** — you do NOT write issues or review issues yourself. Your
 `$ARGUMENTS` format:
 
 - `<parent-id>` — ID of the parent Trellis issue (e.g., `P-project-id`, `E-epic-id`, `F-feature-id`). Optional if the parent is obvious from prior conversation context.
-- `--recursive` — optional flag. When set, the lead recurses down the hierarchy, spawning a fresh writer per level until all levels are written. The reviewer persists across all levels.
+- `--no-recursive` — optional flag. When set, the lead stops after creating only the immediate child level. Default behavior is to recurse down the hierarchy, spawning a fresh writer per level until all levels are written; the reviewer persists across all levels.
 
 All remaining text in `$ARGUMENTS` is the **original user requirements** and MUST be preserved verbatim in the `requirements` task created in step 2 — and only there.
 
@@ -213,7 +213,7 @@ When approved, mark this task done via TaskUpdate.
 
 ### 6. Spawn the Persistent Reviewer
 
-Spawn ONE reviewer teammate that will live for the entire orchestration (across levels if `--recursive` is set). Use the `Task` tool with `team_name`:
+Spawn ONE reviewer teammate that will live for the entire orchestration (across levels unless `--no-recursive` is set). Use the `Task` tool with `team_name`:
 
 ```
 Task({
@@ -229,7 +229,7 @@ The reviewer's real work instructions come from the per-child review tasks autho
 
 ### 7. Spawn the Writer for the Current Level
 
-Spawn ONE writer teammate for the current level. It will be shut down at the end of this level (if recursing) or at team cleanup (if not).
+Spawn ONE writer teammate for the current level. It will be shut down at the end of this level (when continuing to a deeper level) or at team cleanup (when stopping after this level).
 
 ```
 Task({
@@ -342,8 +342,8 @@ Wait for its `shutdown_response` before proceeding to step 9b. Do NOT let the fr
 
 Once all per-child tasks **and the cross-sibling review task (if authored)** are marked done and there are no open blocking messages, the level is complete. Confirm via `TaskList` filtered on the current level's task names.
 
-- **If `--recursive` is NOT set:** Stop after this level. Proceed to step 10 (cleanup and summary).
-- **If `--recursive` IS set:** For each newly-created child that itself needs children (e.g., each epic created under a project needs features; each feature needs tasks), loop back:
+- **If `--no-recursive` IS set:** Stop after this level. Proceed to step 10 (cleanup and summary).
+- **Default (no `--no-recursive`):** For each newly-created child that itself needs children (e.g., each epic created under a project needs features; each feature needs tasks), loop back:
   - Shut down the current writer via the shutdown handshake: `SendMessage({ to: "<writer-name>", message: { type: "shutdown_request" } })`. The teammate responds with `{ type: "shutdown_response", request_id, approve }`. Approval terminates its process; on rejection, resolve whatever blocker the teammate cites via direct message, then re-request shutdown.
   - Author per-child creation/review task pairs for the next level (step 5 templates).
   - Spawn a fresh writer for the next level under each new parent via `Task` (step 7 template).
@@ -433,12 +433,12 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
 <rules>
   <critical>The lead MUST create exactly one `requirements` task (step 2) containing the verbatim input. All other task descriptions reference it via `TaskGet taskId="<requirementsTaskId>"` — never inline. Lead-meta instructions (classified in step 2b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
-  <critical>Without `--recursive`, stop after creating only the immediate child level. Do NOT recursively decompose.</critical>
+  <critical>Default behavior recurses down the hierarchy until every leaf level is written. With `--no-recursive`, stop after creating only the immediate child level.</critical>
   <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
   <critical>If a teammate reports a permission error or infrastructure failure, STOP and report to the user via AskUserQuestion. Do NOT attempt workarounds.</critical>
   <critical>Address ALL review findings. Do NOT categorize findings as minor and skip them. If the writer believes a finding is wrong, it must justify via SendMessage to the reviewer, not silently ignore.</critical>
   <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. Agent frontmatter is authoritative — the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
-  <important>Spawn ONE persistent reviewer for the whole run (per-child reviews only). Spawn ONE writer per level; shut down old writer before spawning a new one when recursing. For the cross-sibling review (step 9a), spawn a FRESH reviewer teammate — never reuse the persistent reviewer — and shut it down on approval.</important>
+  <important>Spawn ONE persistent reviewer for the whole run (per-child reviews only). Spawn ONE writer per level; shut down the old writer before spawning a new one when continuing to a deeper level. For the cross-sibling review (step 9a), spawn a FRESH reviewer teammate — never reuse the persistent reviewer — and shut it down on approval.</important>
   <important>Default to coarser-grained issues at the current level — fewer, larger children. Do NOT ask about granularity.</important>
   <important>Use unique, stable teammate names (e.g., `writer-epics`, `writer-features`, `reviewer`) so SendMessage routing is unambiguous.</important>
   <important>Author review tasks with an explicit dependency on their paired creation task so the reviewer only unblocks after the writer completes.</important>
