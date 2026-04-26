@@ -11,6 +11,7 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - Task
+  - Skill
   - Glob
   - Grep
   - Read
@@ -44,7 +45,7 @@ Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
 
 ### 2. Research and Planning Phase
 
-#### Attachment consultation (mandatory — not skipped on any path)
+#### Attachment consultation (mandatory)
 
 Before researching the codebase, check the task body for an `## Attachments` section. If one is present:
 
@@ -55,49 +56,27 @@ Before researching the codebase, check the task body for an `## Attachments` sec
    - If an existing stylesheet or asset is referenced as reusable → reuse it; do not recreate it.
 3. If your implementation deviates from an attached source file, explain why in the `complete_task` summary. Unexplained deviations are treated as defects by the implementation reviewer.
 
-#### Step 1: Check for an Implementation Plan
+#### Plan-generation decision
 
-After consulting attachments, check the claimed task body for an `## Implementation Plan` section. This determines which path to take:
+After consulting attachments, evaluate the skip heuristic. **Skip plan generation only when ALL of the following are true:**
 
-- **Plan present** → Trust-the-plan path (default)
-- **Plan absent or marked `_Skipped_`** → Fallback research path
+1. Single file touched
+2. ≤ ~15 lines of net change
+3. No new exported symbols introduced
+4. No cross-cutting concerns (auth, migrations, routing, public APIs, schema changes)
+5. Non-coding work (docs-only edits, prompt-only changes that don't touch runtime code paths, single-value config changes)
 
-#### Trust-the-Plan Path (default when plan is present)
+When in doubt, generate the plan.
 
-When the task body contains an `## Implementation Plan` section (and it is not a skip marker):
+**Generate path (default):** Read the parent feature/epic via `get_issue` to ground the brief, then invoke:
 
-1. **Spot-check the plan** (mandatory — takes 1–2 minutes):
-   - Verify 2–3 named file paths from the plan actually exist on disk.
-   - Confirm one named symbol, class, or pattern is present where stated.
-   - Check that any referenced imports or dependencies are real.
-2. If the spot-check passes, proceed directly to §4 Implementation following the plan's `### File Modifications` and `### Implementation Order` sections as the primary guide.
-3. Attachment consultation (from above) is STILL mandatory on this path — do not skip it.
+```
+Skill(skill="planning:create-implementation-plan", args="<brief>")
+```
 
-#### Fallback Research Path (when plan is absent or skipped)
+Where `<brief>` is the task title, the full task body, the parent feature/epic IDs and titles, and any attachment paths. The skill returns an `## Implementation Plan` block. Use its `### File Modifications` and `### Implementation Order` as the primary guide for §4 Implementation. Do **not** write the returned plan back to the Trellis task — it is for your use in this run only.
 
-When the task body has no `## Implementation Plan` section, or it contains only a skip marker (e.g., `_Skipped — …_`), perform the full research-and-plan workflow:
-
-- Read parent issues for context via `get_issue` on the parent feature.
-- Search for similar implementations, conventions, and patterns in the codebase.
-- Plan the approach: identify files to modify, patterns to follow, dependencies.
-- Spot-check findings: verify 2–3 key file paths exist, confirm at least one pattern, check referenced imports are real.
-
-#### Three-Tier Deviation Ladder
-
-Apply this ladder whenever the plan's description diverges from codebase reality:
-
-**Tier 1 — Minor deviation** (renamed file, shifted line numbers, minor naming drift that does not change the approach):
-- Adapt silently and continue.
-- Note the adaptation in the `complete_task` summary.
-
-**Tier 2 — Non-trivial deviation** (plan names a module/pattern that does not exist; plan prescribes an approach the current codebase contradicts; plan omits a file that clearly must also change; spot-check fails in a way that casts doubt on the whole plan):
-- **STOP**. Do not attempt to silently re-plan.
-- Call `append_issue_log` on the Trellis task describing the specific mismatch.
-- Send a `SendMessage` to the lead with a short paragraph describing the deviation.
-- Wait for user direction before proceeding. The lead decides whether to route back for re-planning, proceed with a revised approach, or abandon the task.
-
-**Tier 3 — Plan absent** (task body has no `## Implementation Plan` section, or it is a skip marker):
-- Use the Fallback Research Path above.
+**Skip path:** Perform a lightweight research pass — read the parent feature, verify 2–3 file paths exist, then proceed.
 
 ### 3. Clarify Before Implementing
 

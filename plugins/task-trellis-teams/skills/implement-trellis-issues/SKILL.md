@@ -195,7 +195,7 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 **Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Task` tool when spawning teammates.** The `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
 
-Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Task`. The implementation reviewer stays on its frontmatter-declared `opus[1m]`. If a coding task genuinely needs deeper reasoning, it should be reflected in a more detailed `## Implementation Plan` in the task body (produced by `planning:create-implementation-plan` at task-authoring time), not in a stronger developer model at implementation time.
+Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Task`. The implementation reviewer stays on its frontmatter-declared `opus[1m]`. If a coding task genuinely needs deeper reasoning, the developer's `planning:create-implementation-plan` invocation at claim time will run on Opus (per that skill's frontmatter) and return a detailed plan to drive the Sonnet developer — do not reach for a stronger developer model.
 
 ### 3. Pair executes autonomously
 

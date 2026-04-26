@@ -1,6 +1,6 @@
 ---
 name: create-implementation-plan
-description: Generates a detailed, actionable implementation plan for a non-trivial coding task. Use when asked to "generate implementation plan" or "plan coding task". Invoked by the trellis-issue-writer when authoring a Trellis Task that involves code changes and is not obviously trivial. Produces an ## Implementation Plan block suitable for inlining directly into the task description — not as an attachment or standalone file.
+description: Generates a detailed, actionable implementation plan for a non-trivial coding task. Invoked by the implementer (issue-implementation skill) at claim time when the claimed task does not meet the trivial-edit skip criteria. Returns an ## Implementation Plan block consumed directly by the developer — not stored on the Trellis task.
 model: opus
 effort: xhigh
 context: fork
@@ -16,16 +16,16 @@ allowed-tools:
 
 # Create Implementation Plan
 
-Generate a detailed, actionable `## Implementation Plan` block for a Trellis coding task. The plan is inlined verbatim into the task description so that a downstream developer can implement the task without independent research.
+Generate a detailed, actionable `## Implementation Plan` block for a Trellis coding task that has just been claimed for implementation. The plan is consumed by the developer in the same run; it is not written back to the Trellis task body.
 
 ## Input Contract
 
-The caller provides:
+The caller (the developer who just claimed the task) provides:
 
-- **Task title** — the title of the Trellis task being authored
-- **Scope / acceptance-criteria paragraph** — the draft description written by the issue writer, including what the change achieves and how success is measured
+- **Task title** — the title of the claimed Trellis task
+- **Task body** — the full claimed task description, including scope and acceptance criteria
 - **Parent feature/epic IDs and titles** — for context on motivation and scope boundaries
-- **Relevant attachment paths** — any files forwarded as primary source material; read these first, before researching the codebase
+- **Relevant attachment paths** — any files referenced in the task's `## Attachments` section; read these first, before researching the codebase
 - **Repo root** — the working directory for all file lookups (defaults to the current working directory if not provided)
 
 ## Research Phase (mandatory before producing any output)
@@ -62,7 +62,7 @@ Before naming any file in the plan, confirm it exists (for MODIFY/DELETE) or tha
 
 ## Output Template
 
-Produce the following block and nothing else. Inline it verbatim into the task body under `## Implementation Plan` — do not save it as a file or attachment.
+Produce the following block and nothing else. The developer who invoked this skill will read it directly to drive implementation — do not save it to a file, write it back to the Trellis task, or attach it.
 
 ```markdown
 ## Implementation Plan
@@ -116,4 +116,4 @@ Verify before finalizing the plan:
 
 ## Closing Guidance
 
-The plan you produce is the blueprint. The downstream developer trusts it unless direct evidence contradicts it — they will not re-research unless the plan demonstrably conflicts with what they find on disk. Precision matters more than breadth: a plan that names the exact function and line range beats a plan that lists ten vaguely relevant files.
+The plan you produce is the blueprint. The developer who invoked you trusts it unless direct evidence contradicts it — they will not re-research unless the plan demonstrably conflicts with what they find on disk. Precision matters more than breadth: a plan that names the exact function and line range beats a plan that lists ten vaguely relevant files.
