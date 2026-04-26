@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Reminder: stop-orchestration-team has been called. Disarm any and all Monitor instances that may still be armed for this orchestration run.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}
