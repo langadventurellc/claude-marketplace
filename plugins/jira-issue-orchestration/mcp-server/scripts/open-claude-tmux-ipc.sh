@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Fire-and-forget launcher: opens a new iTerm window attached via `tmux -CC`
-# to a fresh tmux session running `claude --dangerously-skip-permissions`,
-# with an IPC preamble instructing the sub-instance to tail a conductor->sub
-# log file via the Monitor tool and to send replies by appending to a
-# sub->conductor log file.
+# Fire-and-forget launcher: starts a detached tmux session running
+# `claude --dangerously-skip-permissions` with an IPC preamble, then opens
+# a new terminal window attached to that session by writing a `.command`
+# wrapper and handing it to macOS `open`. Terminal.app is the default
+# handler; the user can rebind `.command` to any terminal of their choice.
 #
-# Usage: open-claude-iterm-ipc.sh <channel-id> <user-prompt> <session-name> <c2s-log> <s2c-log>
+# Usage: open-claude-tmux-ipc.sh <channel-id> <user-prompt> <session-name> <c2s-log> <s2c-log>
 #
 # IPC log paths are passed in by the MCP server (which owns path layout under
 # ~/.trellis/jira-issue-orchestration). This script does not derive them itself.
@@ -38,14 +38,14 @@ else
 fi
 
 plugin_data="$HOME/.trellis/jira-issue-orchestration"
-log_file="${plugin_data}/logs/open-claude-iterm.log"
-mkdir -p "$(dirname "$log_file")"
+log_file="${plugin_data}/logs/open-claude-tmux.log"
+cmd_dir="${plugin_data}/cmds"
+mkdir -p "$(dirname "$log_file")" "$cmd_dir"
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >>"$log_file"; }
 
-# Resolve tmux to an absolute path. iTerm's `command "..."` parameter inherits
-# a PATH that does not always include /opt/homebrew/bin (notably when iTerm is
-# already running), so passing a bare `tmux` causes the spawned window to die
-# with "tmux: command not found" and close immediately.
+# Resolve tmux to an absolute path so the .command wrapper does not depend on
+# the spawned terminal's PATH (Terminal.app inherits a login PATH, but we
+# already know tmux's location — avoid the surprise).
 tmux_bin="$(command -v tmux || true)"
 if [[ -z "$tmux_bin" ]]; then
   echo "ERROR: tmux not found on PATH" >&2
@@ -86,13 +86,18 @@ EOF
   fi
   log "Started tmux session=$session channel=$channel_id preamble_len=${#preamble} tmux_bin=$tmux_bin"
 
-  osascript >>"$log_file" 2>&1 <<APPLESCRIPT
-tell application "iTerm"
-    activate
-    create window with default profile command "${tmux_bin} -CC attach -t ${session}"
-end tell
-APPLESCRIPT
-  log "Dispatched iTerm window for session=$session channel=$channel_id"
+  cmd_file="${cmd_dir}/${session}.command"
+  cat >"$cmd_file" <<CMD
+#!/usr/bin/env bash
+exec "${tmux_bin}" attach -t "${session}"
+CMD
+  chmod +x "$cmd_file"
+
+  if ! open "$cmd_file" >>"$log_file" 2>&1; then
+    log "ERROR: \`open\` failed for $cmd_file"
+    exit 1
+  fi
+  log "Dispatched terminal window via $cmd_file for session=$session channel=$channel_id"
 } >/dev/null 2>&1 &
 
 disown

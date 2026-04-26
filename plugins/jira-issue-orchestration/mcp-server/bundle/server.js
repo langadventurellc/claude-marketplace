@@ -20966,7 +20966,7 @@ var TOOL_DEFINITIONS = [
   },
   {
     name: "launch-orchestration-team",
-    description: "Launch a sub Claude instance in a new iTerm/tmux window for the given channel. Fails if the channel is unknown or a sub is already active. PREREQUISITE: arm Monitor on s2cLogPath first.",
+    description: "Launch a sub Claude instance in a new terminal/tmux window for the given channel. Fails if the channel is unknown or a sub is already active. PREREQUISITE: arm Monitor on s2cLogPath first.",
     inputSchema: {
       type: "object",
       properties: {
@@ -21117,7 +21117,7 @@ function launchOrchestrationTeam(args) {
     );
   }
   const sessionName = generateTmuxSessionName();
-  const scriptPath = path2.resolve(import.meta.dirname, "../scripts/open-claude-iterm-ipc.sh");
+  const scriptPath = path2.resolve(import.meta.dirname, "../scripts/open-claude-tmux-ipc.sh");
   if (!fs2.existsSync(scriptPath)) {
     return toolError(`Launcher script missing at ${scriptPath}`);
   }

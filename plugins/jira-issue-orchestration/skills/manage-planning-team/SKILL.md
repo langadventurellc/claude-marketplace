@@ -14,7 +14,7 @@ Internal skill that executes inside the planning sub-session. It is not user-inv
 
 ## Context
 
-This skill runs in a freshly spawned Claude Code sub-instance in its own iTerm/tmux window. The sub's `Monitor` (watching `c2s.log`) is **already armed by the IPC preamble** injected by the launcher. Do NOT arm a Monitor here — doing so is unnecessary and may interfere with the preamble's tail.
+This skill runs in a freshly spawned Claude Code sub-instance in its own terminal/tmux window. The sub's `Monitor` (watching `c2s.log`) is **already armed by the IPC preamble** injected by the launcher. Do NOT arm a Monitor here — doing so is unnecessary and may interfere with the preamble's tail.
 
 The launcher preamble contains a `CHANNEL_ID=<value>` line. Extract this value and pass it as `channelId` to `send-message-to-conductor`.
 
@@ -51,7 +51,7 @@ This is not optional and is not contingent on anything. Do not pause to ask the 
 
 ### 3. Clarify if needed
 
-If the investigation surfaced ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's iTerm window** using `AskUserQuestion`.
+If the investigation surfaced ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's terminal window** using `AskUserQuestion`.
 
 - Do NOT relay questions to the conductor via IPC.
 - The user is watching this window; ask here and wait for their answer.

@@ -106,7 +106,7 @@ This kills only the active sub (sends `__peer_exit__`, kills the tmux session) w
 ## Critical Constraints
 
 - **Never send IPC before `hello`.** Steps 3 → 4 ordering is non-negotiable. Any message sent before `hello` arrives will be dropped by the sub's unarmed Monitor.
-- **Inject manage-\*-team skills as the prompt.** These skills own user interaction (asking clarifying questions directly in the sub's iTerm window) and the `done`-signal contract. Bypassing them breaks the completion-detection protocol.
+- **Inject manage-\*-team skills as the prompt.** These skills own user interaction (asking clarifying questions directly in the sub's terminal window) and the `done`-signal contract. Bypassing them breaks the completion-detection protocol.
 - **Completion signal contains `done`.** The conductor matches any incoming IPC message that contains `done` as a substring (e.g. `planning done: trellis issues created`, `implementation done: PR opened at <url>`). Forward the full message to the caller.
 - **Single-line IPC messages only.** Newlines (`\n`, `\r`) in a message split it across Monitor events. Never embed newlines; use JSONL if a structured multi-line payload is required.
 - **Teardown is always required.** Run `terminate-sub({ channelId })` in all exit paths, including errors. This skill does not call `stop-orchestration-team` — that belongs to the caller.
