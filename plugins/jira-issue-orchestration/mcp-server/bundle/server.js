@@ -20844,7 +20844,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-var PLUGIN_DATA_ROOT = process.env.CLAUDE_PLUGIN_DATA ?? path.join(os.homedir(), ".claude", "plugins", "data", "jira-issue-orchestration");
+var PLUGIN_DATA_ROOT = process.env.CLAUDE_PLUGIN_DATA ?? path.join(os.homedir(), ".trellis", "jira-issue-orchestration");
 var IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
 var CONFIG_ROOT = path.join(PLUGIN_DATA_ROOT, "configs");
 var CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;

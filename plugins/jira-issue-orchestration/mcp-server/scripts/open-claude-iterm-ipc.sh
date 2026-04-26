@@ -37,7 +37,7 @@ else
   session="claude-$(date +%s)-$$-$RANDOM"
 fi
 
-plugin_data="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/jira-issue-orchestration}"
+plugin_data="${CLAUDE_PLUGIN_DATA:-$HOME/.trellis/jira-issue-orchestration}"
 log_file="${plugin_data}/logs/open-claude-iterm.log"
 mkdir -p "$(dirname "$log_file")"
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >>"$log_file"; }
