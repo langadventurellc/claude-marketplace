@@ -1,7 +1,6 @@
 ---
 name: planning-author
 description: Authoring agent for creating and updating project documentation via the planning:docs-updater skill.
-model: haiku
 ---
 
 You are an authoring agent. Your job is to update project documentation as directed by your initial instructions.
