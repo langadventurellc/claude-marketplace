@@ -4,6 +4,7 @@ description: Internal skill. Runs inside the planning sub-session. Invokes inves
 allowed-tools:
   - AskUserQuestion
   - Skill
+  - Task
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
 ---
 
@@ -25,17 +26,22 @@ Execute these steps in order. Each step is a prerequisite for the next.
 
 ### 1. Investigate the Jira issue
 
-Invoke `investigate-jira-issue` via the `Skill` tool, passing the Jira issue key received from the conductor's instructions.
+Delegate investigation to the `jira-investigator` subagent via the `Task` tool. The subagent runs `investigate-jira-issue` in its own context and returns only the artifact.
 
 ```
-Skill({ name: "investigate-jira-issue", input: "<JIRA_KEY>" })
+Task({
+  subagent_type: "jira-issue-orchestration:jira-investigator",
+  prompt: "Investigate the Jira issue <JIRA_KEY> and return the full artifact as your final message. The Jira key is: <JIRA_KEY received from conductor instructions>"
+})
 ```
 
-Wait for the skill to complete. Its output — a requirements summary or discovery document — is the artifact used in step 4.
+The prompt must be self-contained — the subagent starts from cold context with no access to the planning session. Pass the Jira key explicitly and instruct the subagent to return the full artifact (not a summary) as its final message.
+
+Capture the `Task` return value as the artifact. This is the requirements summary or discovery document used in step 4.
 
 ### 2. Heartbeat to the conductor
 
-The moment `investigate-jira-issue` returns its document, your VERY NEXT action MUST be a `send-message-to-conductor` call. Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line) and send an informational heartbeat:
+The moment the `Task` in step 1 returns the artifact, your VERY NEXT action MUST be a `send-message-to-conductor` call. Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line) and send an informational heartbeat:
 
 ```
 mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning: investigation complete, creating Trellis issues" })
