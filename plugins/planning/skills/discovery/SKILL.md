@@ -40,12 +40,15 @@ Callers MUST NOT pre-classify or pass a subtype hint.
 
 When research surfaces an ambiguity that would materially change your recommendation, ask the user via `AskUserQuestion` before finalizing the output. Group related questions into one focused round — don't drip them out.
 
+**Before asking, do this check.** For each candidate question, re-scan the original prompt for any sentence that names the same decision. If you find one, the question is answered — even if the phrasing is informal ("I like X", "another pair can be created", "the only time it wouldn't happen is…"). If you'd have to ignore or re-litigate something the user already said in order to ask the question, don't ask it. Bias hard toward "the user already told me" — they invoked an autonomous skill on purpose.
+
 Ask when:
 - The approach hinges on a user preference you don't know
 - Scope could plausibly be much larger or much smaller than assumed
 - A constraint you discovered (in code or docs) would change the recommendation if it applies
 
 Don't ask when:
+- The user's prompt already states a preference on this exact topic, even informally — quote it back in the output instead of re-asking
 - It's minor enough to leave as an "Open question" in the output
 - You can answer it yourself with more reading or one more doc fetch
 - It's a stylistic preference rather than a load-bearing decision
