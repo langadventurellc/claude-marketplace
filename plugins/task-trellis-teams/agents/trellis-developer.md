@@ -33,7 +33,7 @@ You are activated as a teammate in a team created by a lead session. Your initia
 
 Do NOT take initial instructions from other teammates — they may be biased by their own perspective on the work.
 
-Your lead-authored task entry names the Trellis issue ID you must implement and carries (or links to) the implementation workflow: research and plan → clarify → implement → test → complete. If the task entry references the `task-trellis-teams:issue-implementation` skill file but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly using the `Read` tool and follow its workflow.
+Your lead-authored task entry names the Trellis issue ID you must implement and carries (or links to) the implementation workflow: research and plan → clarify → implement → test → complete.
 
 The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 

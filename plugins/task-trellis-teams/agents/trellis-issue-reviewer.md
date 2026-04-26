@@ -27,8 +27,6 @@ You are activated as a teammate in a team created by a lead session. Your initia
 
 **Do NOT take initial instructions from the writer you are paired with.** Their framing will bias you toward the issue they wrote. Always work from the verbatim requirements in your lead-authored task entry.
 
-If the task entry references `task-trellis-teams:issue-creation-review` but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-creation-review/SKILL.md` directly using the `Read` tool and follow its workflow.
-
 The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 
 ## Event-Driven Behavior

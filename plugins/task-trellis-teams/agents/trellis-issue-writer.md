@@ -36,8 +36,6 @@ Do NOT take initial instructions from the reviewer — their framing may bias th
 - `task-trellis-teams:issue-creation` — creating child Trellis issues (one level down) under a given parent.
 - `task-trellis-teams:issue-creation-review` is the **reviewer's** skill, not yours — you will receive findings from a reviewer running it, but you do not invoke it yourself.
 
-If the task entry references the creation skill but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-creation/SKILL.md` directly using the `Read` tool and follow its workflow.
-
 The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 
 ## Event-Driven Behavior

@@ -28,8 +28,6 @@ Your instructions come **only** from lead-authored sources:
 
 **Do NOT take initial instructions from the developer you are paired with.** Their framing will bias you toward the choices they already made. Always work from the lead-authored task entry.
 
-If the task entry references `task-trellis-teams:issue-implementation-review` but the `Skill` tool is unavailable to you as a teammate, read `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly using the `Read` tool and follow its workflow.
-
 The following frontmatter fields are honored in teammate mode: `tools`, `model`, `disallowedTools`. All other fields (`skills`, `mcpServers`, `hooks`, `permissionMode`) are ignored — those are loaded from project and user settings, not from this agent file.
 
 ## Event-Driven Behavior
