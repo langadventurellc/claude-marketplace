@@ -40,7 +40,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 
 ## When You Start Reviewing
 
-**Activation gate**: Act on receipt of a pointer-only `SendMessage` from the lead OR the paired writer naming a review task ID. Lead-sourced nudges apply to standalone reviewers (cross-sibling, coherence); paired-handoff nudges from the writer apply to per-issue and paired-handoff reviewers (issue-creation, reconciliation). Prerequisite enforcement is the lead's responsibility — it withholds the nudge until prerequisites are met.
+**Activation gate**: Act on receipt of a pointer-only `SendMessage` from the lead OR the paired writer naming a review task ID. Lead-sourced nudges apply to standalone reviewers (cohesion); paired-handoff nudges from the writer apply to per-issue and paired-handoff reviewers (issue-creation, reconciliation). Prerequisite enforcement is the lead's responsibility — it withholds the nudge until prerequisites are met.
 
 On receipt:
 1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.

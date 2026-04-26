@@ -143,21 +143,23 @@ Evaluate for over-engineering:
 
 **Exception**: Expanded scope is acceptable if explicitly requested (e.g., "comprehensive" or "future-proofed" solution).
 
-## Cross-Sibling Review (when invoked for a sibling set)
+## Cohesion Review (parent + children)
 
-When your task is a cross-sibling review (not a single-issue review), the input is a list of sibling issue IDs rather than one issue ID. Apply this rubric instead of the standard single-issue verification process.
+When your task is a cohesion review (not a single-issue review), the input is a parent issue ID plus a list of child issue IDs. Apply this rubric instead of the standard single-issue verification process.
 
-**Step 1 — Fetch all siblings.** Call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each sibling ID. Also fetch the parent issue to understand the intended scope boundary.
+**Step 1 — Fetch the parent issue and all children.** Call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for the parent ID and for each child ID. Both are required inputs to the rubric, not just context.
 
-**Step 2 — Scope overlap scan.** For each pair of siblings, compare their descriptions and acceptance criteria. Flag overlap when two siblings describe responsibility for the same functional area, file, or subsystem. Cite the exact language from each sibling that creates the conflict.
+**Step 2 — Alignment check.** Do the children, taken as a whole, deliver what the parent issue says it needs? Walk each parent acceptance criterion and scope clause and confirm at least one child addresses it. List any parent requirement not addressed by any child.
 
-**Step 3 — Coverage gap scan.** Map each requirement from the verbatim product requirements to at least one sibling. List any requirement with no owning sibling.
+**Step 3 — Scope overlap scan.** For each pair of siblings, compare their descriptions and acceptance criteria. Flag overlap when two siblings describe responsibility for the same functional area, file, or subsystem. Cite the exact language from each sibling that creates the conflict. (No-op when only one child exists.)
 
-**Step 4 — Prerequisite coherence check.** For each sibling, read its `prerequisites` field. Identify: (a) logical dependencies implied by the sibling descriptions that are not expressed as prerequisites, and (b) listed prerequisites that do not correspond to logical dependencies.
+**Step 4 — Coverage gap scan.** Map each requirement from the verbatim product requirements to at least one child. List any requirement with no owning child.
 
-**Step 5 — Attachment consistency check.** Verify that the sibling set as a whole respects the attachment custody rules: attachments reside on the shared parent (not duplicated across siblings), every sibling that depends on an attachment has a correctly formatted `## Attachments` section, and no sibling holds a redundant copy of a file already on the parent.
+**Step 5 — Prerequisite coherence check.** For each child, read its `prerequisites` field. Identify: (a) logical dependencies implied by the child descriptions that are not expressed as prerequisites, and (b) listed prerequisites that do not correspond to logical dependencies. (No-op when only one child exists.)
 
-**Step 6 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (overlap, gaps, prerequisite issues, attachment issues). If no issues, mark the cross-sibling review task done.
+**Step 6 — Attachment consistency check.** Verify that the child set as a whole respects the attachment custody rules: attachments reside on the shared parent (not duplicated across children), every child that depends on an attachment has a correctly formatted `## Attachments` section, and no child holds a redundant copy of a file already on the parent.
+
+**Step 7 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (alignment gaps, overlap, coverage gaps, prerequisite issues, attachment issues). If no issues, mark the cohesion review task done.
 
 ## Teammate Mode
 
