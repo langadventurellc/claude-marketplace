@@ -45,6 +45,12 @@ claude-marketplace/
 
 > **`jira-issue-orchestration`** bundles its `issue-orchestration-mcp` MCP server inside the plugin — no companion repo or manual MCP registration required. Install the plugin and it self-registers.
 
+## Skill Override Pattern (`TT_*` env vars)
+
+Skills in this marketplace can expose a per-install override hook by replacing a swappable section of `SKILL.md` with a [dynamic-context-injection block](https://code.claude.com/docs/en/skills#inject-dynamic-context) that calls a bundled script. The script reads an env var; if set and pointing to a readable file, it emits that file's contents (wrapped in a "follow this verbatim" frame) — otherwise it `cat`s a sibling default doc. Canonical example: `plugins/planning/skills/discovery/` (script + `default-router.md` + injection block in `SKILL.md`).
+
+Env var naming: **`TT_{NAME}`**. The `TT_` prefix namespaces all override knobs in this marketplace to the Task Trellis family (e.g. `TT_DISCOVERY_PLAYBOOK`). Use it for any future override variable.
+
 ## User Installation
 
 ```
