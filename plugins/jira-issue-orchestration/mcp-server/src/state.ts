@@ -17,9 +17,7 @@ export interface ConfigState {
   values: Record<string, string>;
 }
 
-const PLUGIN_DATA_ROOT =
-  process.env.CLAUDE_PLUGIN_DATA ??
-  path.join(os.homedir(), ".trellis", "jira-issue-orchestration");
+const PLUGIN_DATA_ROOT = path.join(os.homedir(), ".trellis", "jira-issue-orchestration");
 const IPC_ROOT = path.join(PLUGIN_DATA_ROOT, "ipc");
 const CONFIG_ROOT = path.join(PLUGIN_DATA_ROOT, "configs");
 const CHANNEL_ID_REGEX = /^\d+-[0-9a-f]+$/;

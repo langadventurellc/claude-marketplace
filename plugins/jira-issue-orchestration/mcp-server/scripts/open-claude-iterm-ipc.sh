@@ -7,8 +7,8 @@
 #
 # Usage: open-claude-iterm-ipc.sh <channel-id> <user-prompt> <session-name> <c2s-log> <s2c-log>
 #
-# IPC log paths are passed in by the MCP server (which owns path layout via
-# ${CLAUDE_PLUGIN_DATA}). This script does not derive them itself.
+# IPC log paths are passed in by the MCP server (which owns path layout under
+# ~/.trellis/jira-issue-orchestration). This script does not derive them itself.
 
 set -u
 
@@ -37,7 +37,7 @@ else
   session="claude-$(date +%s)-$$-$RANDOM"
 fi
 
-plugin_data="${CLAUDE_PLUGIN_DATA:-$HOME/.trellis/jira-issue-orchestration}"
+plugin_data="$HOME/.trellis/jira-issue-orchestration"
 log_file="${plugin_data}/logs/open-claude-iterm.log"
 mkdir -p "$(dirname "$log_file")"
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >>"$log_file"; }
