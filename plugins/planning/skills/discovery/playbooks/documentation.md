@@ -8,25 +8,31 @@ Audit existing documentation for drift between docs and code, missing surfaces, 
 2. **Map docs to code** — for each doc claim, use `Glob`/`Grep` to verify the corresponding code exists and matches.
 3. **Find missing surfaces** — identify code paths, exported APIs, skills, hooks, or agents that docs don't mention but should.
 4. **Flag stale references** — find links, file paths, tool names, or commands that no longer match reality.
-5. **Research external references** — when docs link to external URLs or reference external tools, use any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch) to verify they are current (only when relevant).
+5. **Verify external references** — when docs link to external URLs or reference external tools, use any available information-gathering tool (Perplexity, Gemini, context7, WebSearch/WebFetch) to confirm they are current — only when relevant.
 
 ## Output
 
-```
-## Documentation Audit: [Scope]
+Keep it tight. Each table has its own Fix column, so don't repeat fixes elsewhere. Omit any section with nothing real to say — empty headings are noise.
 
-### Drift
+```
+## Drift
 | Doc file:line | Claim | Reality | Fix |
 |---|---|---|---|
 
-### Missing Surfaces
+## Missing surfaces
 | Code path | Doc that should mention it | Fix |
 |---|---|---|
 
-### Stale References
+## Stale references
 | Doc file:line | Dead reference | Fix |
 |---|---|---|
 
-### Files Reviewed
-[Bulleted list of docs and code files examined]
+## Recommendation
+[1–3 sentences: which fixes to do first and why. If everything is equal-priority, say so.]
+
+## Open questions
+[Doc decisions still needed. Omit entirely if none.]
+
+## Bottom line
+[One or two sentences: how bad is the drift, what's the headline.]
 ```

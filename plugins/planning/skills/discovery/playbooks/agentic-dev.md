@@ -4,7 +4,7 @@ Investigate a proposed change to Claude Code surfaces: skills, hooks, agents, pl
 
 ## Process
 
-1. **Fetch current docs first** — before inspecting any code, use `WebFetch` to load the relevant Claude Code documentation:
+1. **Fetch current docs** — `WebFetch` only the pages relevant to the surfaces in scope:
    - https://code.claude.com/docs/en/plugins
    - https://code.claude.com/docs/en/plugins-reference
    - https://code.claude.com/docs/en/plugin-marketplaces
@@ -12,35 +12,27 @@ Investigate a proposed change to Claude Code surfaces: skills, hooks, agents, pl
    - https://code.claude.com/docs/en/hooks
    - https://code.claude.com/docs/en/sub-agents
 
-   Fetch the pages relevant to the surfaces in scope. Record the doc citations — they are required in the output.
+2. **Inspect affected files** — `Glob`/`Grep`/`Read` the relevant `plugin.json`, `marketplace.json`, `SKILL.md`, `hooks.json`, agent `.md`, `.mcp.json`, `.lsp.json`. MCP plugin tool naming: `mcp__plugin_<plugin>_<server>__<tool>`.
 
-2. **Inspect affected files** — use `Glob`, `Grep`, and `Read` to examine `plugin.json`, `marketplace.json`, `SKILL.md`, `hooks.json`, agent `.md` files, `.mcp.json`, `.lsp.json`. Note the MCP tool-naming convention: `mcp__plugin_<plugin-name>_<server-name>__<tool-name>`.
-
-3. **Research additional context** — for anything not covered by the Claude Code docs, use any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch).
-
-4. **Identify what changes** — for each affected surface, state which file changes, what field or section changes, and cite the doc that defines the constraint.
+3. **Decide and write up** — pick the best approach. Cite docs and files inline; do not collect them in a separate section.
 
 ## Output
 
+Keep it tight. Cite inline (`(per https://...)` or `path/to/file:42`). Omit any section with nothing real to say — empty headings are noise.
+
 ```
-## Agentic Dev Discovery: [Title]
+## Affected surfaces
+- `path/to/file` — one line on what changes
 
-### Summary
-[2–3 sentences on what the change touches and key constraints]
+## Risks
+[Frontmatter quirks, tool-naming gotchas, lifecycle order, breaking changes. Omit entirely if none.]
 
-### Affected Surfaces
-| File path | Surface type | What changes | Doc citation |
-|---|---|---|---|
+## Recommendation
+[1–3 sentences: exactly what to change and the doc-anchored reason. Cite the constraint inline.]
 
-### Doc Citations
-[URLs fetched, with one-line summary of what each confirmed]
+## Open questions
+[Decisions that block progress. Omit entirely if none.]
 
-### Risks
-[Frontmatter constraints, lifecycle quirks, tool-naming pitfalls, breaking changes]
-
-### Recommendations
-[How to make the change; preferred approach with rationale]
-
-### Files Reviewed
-[Bulleted list of files examined]
+## Bottom line
+[One or two sentences the reader should walk away with.]
 ```

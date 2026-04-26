@@ -5,26 +5,23 @@ Fallback for questions that don't fit any other discovery type.
 ## Process
 
 1. **Frame the question** — clarify what's being asked and what a useful answer looks like.
-2. **Gather** — use any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch), `Read`, `Glob`, `Grep`, or `Task` as appropriate.
+2. **Gather** — use any available information-gathering tool (Perplexity, Gemini, context7, WebSearch/WebFetch), `Read`, `Glob`, `Grep`, or `Task` as appropriate.
 3. **Synthesize** — distill findings into a clear, actionable answer.
 
 ## Output
 
+Keep it tight. Cite sources inline (URLs or `path/to/file:line`). Omit any section with nothing real to say — empty headings are noise.
+
 ```
-## Discovery: [Title]
+## Findings
+[Evidence and observations, with citations inline.]
 
-### Summary
-[Key finding in 2–3 sentences]
+## Recommendation
+[1–3 sentences: suggested next steps or the answer.]
 
-### Findings
-[Evidence and observations]
+## Open questions
+[Unresolved decisions. Omit entirely if none.]
 
-### Recommendations
-[Suggested next steps or answers]
-
-### Open Questions
-[Unresolved decisions — omit if none]
-
-### Sources
-[URLs or files consulted]
+## Bottom line
+[One or two sentences the reader should walk away with.]
 ```
