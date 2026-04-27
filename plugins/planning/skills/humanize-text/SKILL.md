@@ -50,7 +50,7 @@ Test fake that stands in for `Kafka` in tests. Captures `send_message/2` and
 behavior without a live Kafka broker.
 
 Consolidates the behavior previously split across
-`InventoryIngestion.TestKafka`, `InventoryApi.TestKafka`, and
+`NotesIngestion.TestKafka`, `NotesApi.TestKafka`, and
 `Kafka.DummyFailedKafkaClient`.
 
 ## Storage
@@ -128,12 +128,12 @@ Restores success mode.
 **Before**:
 
 ```
-_Outcome_ Kubernetes gates traffic to carburetor's {{inventory-api}} pods based on actual application readiness rather than just container start. The deployment declares {{readinessProbe}} and {{livenessProbe}} that hit the existing {{InventoryApiWeb.ProbeController}} endpoints, so Kong only sees pods that have finished booting Phoenix, and pods whose BEAM has hung get restarted.
+_Outcome_ Kubernetes gates traffic to lattice's {{notes-api}} pods based on actual application readiness rather than just container start. The deployment declares {{readinessProbe}} and {{livenessProbe}} that hit the existing {{NotesApiWeb.HealthController}} endpoints, so the gateway only sees pods that have finished booting Phoenix, and pods whose BEAM has hung get restarted.
 
 _Acceptance / Test Notes_
-– Routes for {{/probes/liveness}} and {{/probes/readiness}} (or equivalent) wired up in {{apps/inventory_api/lib/inventory_api_web/router.ex}}
-– {{readinessProbe}} and {{livenessProbe}} added to {{infrastructure/kubernetes/bases/inventory_api/deployment-inventory-api.yaml}}, matching the EIP probe configuration (initialDelaySeconds, periodSeconds, failureThreshold)
-– Local verification: curl the probe endpoints and confirm 200 OK
+– Routes for {{/health/live}} and {{/health/ready}} (or equivalent) wired up in {{apps/notes_api/lib/notes_api_web/router.ex}}
+– {{readinessProbe}} and {{livenessProbe}} added to {{infrastructure/kubernetes/bases/notes_api/deployment-notes-api.yaml}}, matching the platform probe defaults (initialDelaySeconds, periodSeconds, failureThreshold)
+– Local verification: curl the health endpoints and confirm 200 OK
 – Staging verification: {{kubectl describe pod}} shows probes configured; pods only transition to Ready after Phoenix boot
 – No regression in pod startup time
 ```
@@ -141,11 +141,11 @@ _Acceptance / Test Notes_
 **After**:
 
 ```
-_Outcome_ Kubernetes gates traffic to carburetor's {{inventory-api}} pods based on actual application readiness rather than just container start. The deployment declares {{readinessProbe}} and {{livenessProbe}} that hit the existing {{InventoryApiWeb.ProbeController}} endpoints, so Kong only sees pods that have finished booting Phoenix, and pods whose BEAM has hung get restarted.
+_Outcome_ Kubernetes gates traffic to lattice's {{notes-api}} pods based on actual application readiness rather than just container start. The deployment declares {{readinessProbe}} and {{livenessProbe}} that hit the existing {{NotesApiWeb.HealthController}} endpoints, so the gateway only sees pods that have finished booting Phoenix, and pods whose BEAM has hung get restarted.
 
 _Acceptance / Test Notes_
-– Routes for {{/probes/liveness}} and {{/probes/readiness}} are wired up
-– {{readinessProbe}} and {{livenessProbe}} configured in Terraform, matching the EIP probe configuration
+– Routes for {{/health/live}} and {{/health/ready}} are wired up
+– {{readinessProbe}} and {{livenessProbe}} configured in Terraform, matching the platform probe defaults
 ```
 
 Notes on this example: the JIRA `{{...}}` markup around identifiers is preserved verbatim because that's how the destination renders code. The acceptance bullets are trimmed to the load-bearing facts; verification recipes and file paths are dropped.

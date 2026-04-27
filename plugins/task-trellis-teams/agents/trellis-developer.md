@@ -226,8 +226,8 @@ function initDatabase(): void
 ```elixir
 @moduledoc """
 Test fake that stands in for `Kafka` in tests. Consolidates the behavior
-previously split across `InventoryIngestion.TestKafka`,
-`InventoryApi.TestKafka`, and `Kafka.DummyFailedKafkaClient`.
+previously split across `NotesIngestion.TestKafka`,
+`NotesApi.TestKafka`, and `Kafka.DummyFailedKafkaClient`.
 
 Messages are stored as 4-tuples in a `:duplicate_bag` ETS table named
 `:kafka_fake_client_messages`. For `send_message/2` body and metadata are
