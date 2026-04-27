@@ -10,9 +10,7 @@ allowed-tools:
 
 # conduct-orchestration-team
 
-Internal skill. Manages the full lifecycle of one planning or implementation sub-session: launches the sub, exchanges the `hello` handshake, sends instructions, waits for the completion signal, then tears down.
-
-> **Not user-invokable.** Called only by `orchestrate-jira-issue` via the `Skill` tool.
+Manages the full lifecycle of one planning or implementation sub-session: launches the sub, exchanges the `hello` handshake, sends instructions, waits for the completion signal, then tears down.
 
 ## Usage
 

@@ -13,7 +13,7 @@ allowed-tools:
 
 # Create Pull Request
 
-Collapse the usual commit → push → open-PR-with-template dance into one invocation. Draft PR by default. Enforces the team's title format (`{JIRA-ID}: {outcome}`) and PR body template. Halts before committing/pushing if the staged set looks suspicious.
+Collapse the usual commit → push → open-PR-with-template dance into one invocation. Draft PR by default. Enforces the title format (`{JIRA-ID}: {outcome}`) and PR body template. Halts before committing/pushing if the staged set looks suspicious.
 
 ## Configuration
 
@@ -229,21 +229,6 @@ Append a 4th line `Jira: <primary key>` if one was used, or omit if not. Append 
 
 Do not echo the body back — the user can click the URL.
 
-### 10. Offer Slack announcement (non-draft only)
-
-If `--no-draft` was passed (and the PR was actually created as non-draft in step 8), offer to announce the PR in the team Slack channel. Otherwise — draft PRs, or any failure path above — skip this step entirely.
-
-Call `AskUserQuestion` with:
-
-- Question: `Announce this PR in #team-report-export?`
-- Options:
-  - `Yes, announce it (Recommended)` — invoke the `announce-pr` skill via the `Skill` tool with `--pr <url>`.
-  - `No` — stop. No Slack message.
-
-On "Yes", hand off to `announce-pr`. That skill drafts the message, re-confirms with the user, and posts. Do not draft the Slack message here — `announce-pr` owns its own template and confirmation flow.
-
-If the user cancels inside `announce-pr`, that's fine — no cleanup needed.
-
 ## Examples
 
 ### Minimal happy path
@@ -286,7 +271,6 @@ Jira: ACME-1234
 7. Push with `-u`.
 8. `gh pr create --title ... --body-file ... --base main` (no `--draft`).
 9. Report.
-10. Non-draft → `AskUserQuestion`: "Announce this PR in #team-report-export?" — on Yes, hand off to the `announce-pr` skill with `--pr <url>`.
 
 **Output:**
 
@@ -316,7 +300,6 @@ No commit, no push, no PR.
 ## Notes on behavior
 
 - **Draft by default.** The team defaults to draft PRs so CI runs without pinging reviewers prematurely. Only pass `--no-draft` when the user explicitly wants it.
-- **Non-draft PRs offer a Slack announcement.** After a successful `--no-draft` PR creation, the final step prompts to hand off to the `announce-pr` skill (which posts a short message to `#team-report-export`). Draft PRs never trigger this offer — draft is the "don't page reviewers yet" signal.
 - **Don't generate the commit message yourself.** `git:commit` handles it. Avoids two skills fighting over conventional-commit format.
 - **Don't force-push.** Ever. If the branch has diverged, stop and let the user resolve.
 - **Don't set reviewers, assignees, or labels.** CODEOWNERS / team norms handle the rest.
