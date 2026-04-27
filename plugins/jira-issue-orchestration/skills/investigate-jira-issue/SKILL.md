@@ -3,32 +3,23 @@ name: investigate-jira-issue
 description: Investigate a Jira issue and turn it into a requirements or discovery document ready for implementation or Trellis issue creation. Use when the user asks to "investigate", "analyze", "look into", "scope", "break down", or "plan work for" a Jira ticket by key (e.g. ACME-1234). The skill fetches the ticket, pulls relevant linked context, then routes automatically to `planning:requirements-creation` (for ambiguous/underspecified tickets) or `planning:discovery` (for well-specified work needing research and analysis).
 allowed-tools:
   - AskUserQuestion
-  - Bash
   - Skill
-  - Read
-  - Glob
-  - Grep
-  - Task
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
   - mcp__plugin_atlassian_atlassian__getJiraIssue
   - mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks
   - mcp__plugin_atlassian_atlassian__getConfluencePage
-  - mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql
-  - mcp__plugin_atlassian_atlassian__search
 ---
 
 # Investigate Jira Issue
 
 Turn a Jira ticket into an actionable design artifact — either a **requirements summary** (when the ticket is ambiguous and the user needs to be interrogated) or a **technical discovery document** (when the ticket is well-specified and the work is research/analysis). This skill is a router: it fetches the ticket, gathers relevant context, decides which downstream planning skill fits, and invokes it with the right payload.
 
-## Configuration
-
-Tenanty values (`cloudId`, Atlassian base URL) are loaded via the `issue-orchestration` MCP server's `get-config` tool in the preflight step below. Ticket URL format is `<BASE_URL>/browse/<KEY>`.
-
 ## Input
 
 - **Required**: a Jira issue key (e.g. `ACME-1234`).
 - **Optional**: any additional user instructions to forward verbatim to the downstream planning skill (focus areas, specific files to inspect, constraints, deadlines, etc.).
+
+Ticket URL format: `<BASE_URL>/browse/<KEY>`.
 
 If the user didn't supply an issue key, ask for one with `AskUserQuestion` before doing anything else.
 
@@ -36,7 +27,7 @@ If the user didn't supply an issue key, ask for one with `AskUserQuestion` befor
 
 ### 0. Preflight: load configuration
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl` and `CLOUD_ID` from `values.atlassianCloudId`. If either is missing or empty, stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl` and `CLOUD_ID` from `values.atlassianCloudId`.
 
 ### 1. Fetch the ticket
 
@@ -131,7 +122,7 @@ After the document is produced, decide how to hand off based on your invocation 
 - **Respect overrides.** If the user's additional instructions say "just do discovery" or "just gather requirements", honor that instead of auto-deciding.
 - **One ticket per invocation** unless the user asks for multiple. If multiple keys are given, fetch in parallel, but still decide the route per ticket — different tickets can route differently.
 - **Be honest about gaps.** If the ticket is too thin to route sensibly even after fetching links, say so and ask the user for a one-paragraph framing before invoking a planning skill.
-- **A long document is not a turn-end.** When the chosen planning skill emits its multi-section document, that is the deliverable but NOT the end of your turn. If your invocation context specifies what to do next, your VERY NEXT action MUST be the next tool call in that chain — not a stop. Do not let the visual finality of the document trick you into ending the turn.
+- **A long document is not a turn-end.** The planning skill's document is the deliverable, not a stopping point. If your invocation context specifies a next step, immediately make that next tool call — do not let the visual finality of the document trick you into stopping.
 
 ## Example
 
