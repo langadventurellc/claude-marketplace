@@ -1,6 +1,7 @@
 ---
 name: manage-planning-team
 description: Internal skill. Runs inside the planning sub-session. Invokes investigate-jira-issue to produce a requirements artifact, then invokes create-trellis-issues to create Trellis issues from it. Signals completion to the conductor when done.
+user-invocable: false
 allowed-tools:
   - AskUserQuestion
   - Skill
@@ -10,7 +11,7 @@ allowed-tools:
 
 # manage-planning-team
 
-Internal skill that executes inside the planning sub-session. It is not user-invokable — it is injected as the sub's prompt by `conduct-orchestration-team --team-type planning` via the `launch-orchestration-team` MCP tool's `prompt` argument.
+Internal skill that executes inside the planning sub-session.
 
 ## Context
 
@@ -41,7 +42,7 @@ Capture the `Task` return value as the artifact. This is the requirements summar
 
 ### 2. Heartbeat to the conductor
 
-The moment the `Task` in step 1 returns the artifact, your VERY NEXT action MUST be a `send-message-to-conductor` call. Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line) and send an informational heartbeat:
+The moment the `Task` in step 1 returns the artifact, immediately call `send-message-to-conductor` with an informational heartbeat:
 
 ```
 mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning: investigation complete, creating Trellis issues" })
@@ -63,16 +64,16 @@ If the investigation surfaced ambiguity or missing information that must be reso
 Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact produced in step 1 (and incorporating any clarifications from step 3).
 
 ```
-Skill({ name: "task-trellis-teams:create-trellis-issues", input: "<artifact from step 1>" })
+Skill({ skill: "task-trellis-teams:create-trellis-issues", args: "<artifact from step 1>" })
 ```
 
-A planning run produces **exactly one root Trellis issue** for the Jira ticket — typically a feature (`F-…`), but may be an epic (`E-…`) or project (`P-…`) for larger work. Multi-root output is not a valid outcome of this skill; if `create-trellis-issues` somehow produces more than one top-level issue, stop and surface the error to the user.
+A planning run produces **exactly one root Trellis issue** for the Jira ticket — typically a feature (`F-…`), but may be an epic (`E-…`) or project (`P-…`) for larger work.
 
 Wait for `create-trellis-issues` to complete, then capture the **root Trellis issue ID** from its summary (the "Parent" entry in its `## Issue Creation Complete` block, or the topmost issue in `### Created Issues` when the run created the root itself). Bind it as `TRELLIS_SCOPE` for step 5.
 
 ### 5. Signal completion
 
-Extract `channelId` from the launcher preamble (`CHANNEL_ID=<value>` line), then call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with a single-line done message that carries `TRELLIS_SCOPE` in the format `scope=<id>`:
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with the bound `channelId` and a single-line done message that carries `TRELLIS_SCOPE` in the format `scope=<id>`:
 
 ```
 mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning done: trellis issues created scope=<TRELLIS_SCOPE>" })
