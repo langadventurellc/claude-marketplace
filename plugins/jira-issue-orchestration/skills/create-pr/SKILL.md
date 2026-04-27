@@ -13,27 +13,17 @@ allowed-tools:
 
 # Create Pull Request
 
-Collapse the usual commit → push → open-PR-with-template dance into one invocation. Draft PR by default. Enforces the title format (`{JIRA-ID}: {outcome}`) and PR body template. Halts before committing/pushing if the staged set looks suspicious.
-
 ## Configuration
 
-Tenanty values (Jira project prefix, Atlassian base URL, Atlassian cloud ID) are loaded via the `issue-orchestration` MCP server's `get-config` tool in the preflight step below. Jira URL format is `<BASE_URL>/browse/<KEY>`.
-
-Inline constants (not in the config file):
-
-| Field | Value |
-|---|---|
-| Default draft state | `draft` |
+Tenancy values (Jira project prefix, Atlassian base URL, Atlassian cloud ID) are loaded via the `issue-orchestration` MCP server's `get-config` tool in step 0. Jira URL format is `<BASE_URL>/browse/<KEY>`.
 
 ## Flags
 
-Parse these from the invocation arguments before doing anything else:
+Parse from invocation arguments before doing anything else:
 
 | Flag | Effect |
 |---|---|
 | `--no-draft` | Create a non-draft PR. Default is draft. |
-
-Unknown flags → stop and ask the user what they meant via `AskUserQuestion`. Don't silently ignore.
 
 ## Workflow
 
@@ -48,15 +38,11 @@ Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with
 Fire all of these in parallel via `Bash`:
 
 - `git status --porcelain=v1 -b` — branch name, ahead/behind, dirty state
-- `git rev-parse --abbrev-ref HEAD` — current branch
 - `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — repo default branch
 - `git log --oneline -20` — recent commits on this branch
 - `git diff --stat` and `git diff --cached --stat` — unstaged and staged change summary
 
-**Hard stops after step 1:**
-
-- **Current branch is the repo default** (main/master/etc.) → stop. Emit: `Refusing to create a PR from the default branch ('<name>'). Switch to a feature branch first.` Do not offer to create a branch — that's a separate operation.
-- **Not in a git repo / gh not authed** → surface the raw error and stop.
+**Hard stop:** if the current branch is the repo default (main/master/etc.), stop. Emit: `Refusing to create a PR from the default branch ('<name>'). Switch to a feature branch first.` Do not offer to create a branch.
 
 ### 2. Halt-trigger scan on the pending change set
 
@@ -97,16 +83,14 @@ Run both sources in parallel and dedupe:
 Results:
 
 - **Zero IDs found** → ask the user via `AskUserQuestion`: "No Jira ID detected in branch or commits. Provide one?" Options: `<best-guess if any>` / `No Jira ticket (skip)`. Auto-"Other" covers a freeform key.
-- **Exactly one ID** → use it silently. No confirmation prompt — the user approves it implicitly when they approve the full draft in step 5 (the ID is in the title). Adding a second prompt here is redundant friction.
+- **Exactly one ID** → use it silently.
 - **Multiple distinct IDs** → `AskUserQuestion` to pick the **primary** (goes in title + Jira ticket section). List up to 3 top candidates (branch-matched first, then most-recent-commit order) + `No Jira ticket`. All detected IDs still get linked in the PR body's Jira ticket section — primary first, others on following lines.
-
-If the user passed `--jira <KEY>` or said "use ACME-5678" in the invocation, skip detection and use that directly.
 
 ### 4. Gather PR context
 
 Fire the following in parallel; each is optional and degrades gracefully if empty/failing.
 
-- **Primary Jira ticket**: call `mcp__plugin_atlassian_atlassian__getJiraIssue` directly with `CLOUD_ID` (bound from `atlassianCloudId` in step 0) and `issueIdOrKey` set to the primary key from step 3. Use `responseContentFormat: "markdown"` for simpler parsing. (The `get-jira-issue` skill wraps this same MCP call — calling the MCP directly is one hop instead of two and avoids re-entering the skill machinery.) Use the returned summary + description to inform the PR's What/Why.
+- **Primary Jira ticket**: call `mcp__plugin_atlassian_atlassian__getJiraIssue` with `CLOUD_ID` (bound from `atlassianCloudId` in step 0) and `issueIdOrKey` set to the primary key from step 3. Use `responseContentFormat: "markdown"`. Use the returned summary + description to inform the PR's What/Why.
 - **Trellis issues**: scan both **commit messages** and the **branch name** for Trellis issue IDs. Patterns: `\b[TPEF]-[a-f0-9]{6,}\b` (task/project/epic/feature) and `\b[TPEF]-[a-z0-9-]+\b` for human-readable slugs like `F-return-failed-job-status-on`. If a pattern matches, call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each in parallel. If the branch name matches but no commit does, that's fine — still look it up. If no patterns match anywhere, skip silently.
 - **Diff content**: `git diff <default-branch>...HEAD` (full patch, but cap to the first ~500 lines when reading — for summarization purposes only). Pair with `git log <default-branch>..HEAD --format="%h %s%n%b"` for commit messages and bodies.
 
@@ -156,13 +140,11 @@ Use this template verbatim. Every section appears — use `N/A` for sections tha
 
 **Drafting rules:**
 
-- **What is plain-English prose. No bullet list, no "Key changes" block.** Describe the outcome a reader gains from the PR landing. Length follows the change — a small PR gets a sentence; a bigger one gets a short paragraph. Implementation specifics (file paths, function names, flag names, tool-call identifiers) don't belong here unless leaving them out would mislead the reader.
-- Build the What from the diff + commits. If a Jira/Trellis description is available, use it to confirm intent and adjust wording — but don't just paste the ticket.
-- **Why answers "why this whole branch?", not "why each decision."** A specific incident, ticket, or failed job is usually the *reason this work got prioritized*, not the *reason the change is worth making*. Ask: what capability does this add, what class of problems does it prevent, what contract does it establish, or what risk does it remove? Don't rationalize individual implementation choices — that's what the diff is for. The triggering incident can be mentioned briefly for context. Ground the framing in Jira/Trellis context and commit bodies — don't fabricate strategic narrative, but don't stop at the surface event either.
-- If Jira/Trellis context is unavailable, derive Why from commit bodies and the diff. If still bare, write a short Why grounded in what the code change enables (e.g. "Establishes a failure-reporting contract so upstream pollers can detect permanent failures instead of waiting on a status that will never change.").
-- **Steps to Validate** only gets content when you can actually infer it (e.g. new API endpoint → `curl` example; new env var → mention setting it; new UI route → mention the URL). Don't fabricate steps.
-- **Additional Notes** is for info a reviewer or future maintainer needs that isn't obvious from the diff — config flags required at deploy, env-var changes, deployment ordering, follow-up tickets, known divergences from similar code, non-obvious runtime impacts. It can also capture a technical specific dropped during the humanize step if a reviewer genuinely needs it — but don't re-add everything the humanizer removed; most PRs leave this section as `N/A`, same as most human-written ones do. **Never include development-process chronology** — no Trellis issue IDs/trees, no "wave N" references, no per-task scope adjustments, no narrative of what was decided during implementation. If a note would only make sense to someone who watched the PR get written, drop it.
-- If a section would be padding, write `N/A`. Don't invent content.
+- **What**: plain-English prose, outcome-focused. No bullets, no "Key changes" block. Length follows change size. Implementation specifics (file paths, function names, flags) don't belong unless omitting them would mislead. Build from diff + commits; use Jira/Trellis to confirm intent, not to paste from.
+- **Why**: branch-level value (capability added, problem class prevented, contract established, risk removed) — not per-decision rationale. The triggering ticket or incident is *context*, not the answer. If Jira/Trellis context is unavailable, derive from commit bodies and the diff.
+- **Steps to Validate**: only when you can actually infer it (new endpoint → `curl` example; new env var → mention setting it). Don't fabricate.
+- **Additional Notes**: info a reviewer needs that isn't obvious from the diff — deploy flags, env vars, ordering, follow-ups, non-obvious runtime impacts. **Never include development-process chronology** (Trellis IDs/trees, "wave N", per-task scope adjustments, implementation narrative). Most PRs leave this `N/A`.
+- If a section would be padding, write `N/A`.
 
 #### Humanize What and Why
 
@@ -175,9 +157,7 @@ Use each returned rewrite verbatim in the PR body. If the humanizer dropped a co
 
 #### Show the draft to the user
 
-Before committing or pushing, print the draft as normal assistant text so the user sees what's about to ship. Do **not** ask for approval — proceed directly to step 6 after printing. The user can edit the PR after creation via `gh pr edit` or the web UI.
-
-Emit a single assistant text block containing:
+Print the draft before committing/pushing so the user sees what's about to ship. Do not ask for approval — continue to step 6.
 
 ```
 **Title:** <title>
@@ -185,8 +165,6 @@ Emit a single assistant text block containing:
 **Body:**
 <full body verbatim>
 ```
-
-Then continue to step 6.
 
 ### 6. Commit if needed
 
@@ -201,7 +179,7 @@ After `git:commit` returns, re-run `git status --porcelain` to verify the tree i
 Determine push need from the step-1 status. The `git status --porcelain=v1 -b` first line is the signal:
 
 - **No upstream set** — `## <branch>` with no `...` separator: `git push -u origin <branch>`.
-- **Up to date** — `## <branch>...origin/<branch>` with **no** `[ahead N]` **and no** `[behind N]` suffix at all. The absence of any bracketed suffix *is* the in-sync signal — skip push.
+- **Up to date** — `## <branch>...origin/<branch>` with no `[ahead N]` or `[behind N]` suffix: skip push.
 - **Ahead of upstream** — `## <branch>...origin/<branch> [ahead N]`: `git push`.
 - **Behind upstream** — `## <branch>...origin/<branch> [behind N]`: stop and alert. `Branch is behind origin/<branch> by N commits. Pull/rebase locally before I open the PR.` Do not auto-pull.
 - **Diverged** — `[ahead N, behind M]`: stop and alert. Do not force-push, do not rebase silently. Tell the user: `Branch has diverged from origin/<branch> (ahead N, behind M). Resolve locally before I open the PR.`
@@ -225,84 +203,11 @@ Title: <title>
 Base: <default branch>
 ```
 
-Append a 4th line `Jira: <primary key>` if one was used, or omit if not. Append a 5th line noting any graceful fallbacks that happened (e.g. `Note: get-jira-issue failed (404) — body drafted from diff only.`).
+Append a 4th line `Jira: <primary key>` if one was used.
 
 Do not echo the body back — the user can click the URL.
 
-## Examples
-
-### Minimal happy path
-
-**User:** `/create-pr` (on branch `ACME-1234-circuit-breaker-warehouse`, one commit `add circuit breaker around warehouse fetch`)
-
-**You silently:**
-
-1. Pre-flight clean, branch is not default.
-2. No halt triggers.
-3. `ACME-1234` detected in branch — single match, use silently (no confirmation prompt).
-4. Fetch ACME-1234 via the Atlassian MCP (`getJiraIssue`).
-5. Print title + body as assistant text.
-6. Working tree clean, skip commit.
-7. Push (branch has no upstream).
-8. `gh pr create --draft --title "..." --body-file /tmp/pr-body.md --base main`.
-9. Report.
-
-**Output:**
-
-```
-Opened draft PR https://github.com/acmecorp/report-export-svc/pull/4421
-Title: ACME-1234: Prevent cascading timeouts during warehouse CDN flaps
-Base: main
-Jira: ACME-1234
-```
-
-### `--no-draft` on dirty tree
-
-**User:** `/create-pr --no-draft`
-
-**You silently:**
-
-1. Pre-flight clean.
-2. No halt triggers.
-3. Jira ID resolved.
-4. Context gathered.
-5. Print title + body as assistant text.
-6. Delegate to `git:commit` — new commit lands.
-7. Push with `-u`.
-8. `gh pr create --title ... --body-file ... --base main` (no `--draft`).
-9. Report.
-
-**Output:**
-
-```
-Opened PR https://github.com/acmecorp/report-export-svc/pull/4422
-Title: ACME-1234: Prevent cascading timeouts during warehouse CDN flaps
-Base: main
-Jira: ACME-1234
-```
-
-### Halt on suspected secret
-
-**User:** `/create-pr`
-
-**You:**
-
-```
-Pre-flight check found issues — stopping before commit/push:
-
-  • Secret suspected in src/config/aws.ts:14 — AWS access key pattern (AKIA...)
-
-Remove or move this to env before I continue.
-```
-
-No commit, no push, no PR.
-
 ## Notes on behavior
 
-- **Draft by default.** The team defaults to draft PRs so CI runs without pinging reviewers prematurely. Only pass `--no-draft` when the user explicitly wants it.
-- **Don't generate the commit message yourself.** `git:commit` handles it. Avoids two skills fighting over conventional-commit format.
-- **Don't force-push.** Ever. If the branch has diverged, stop and let the user resolve.
 - **Don't set reviewers, assignees, or labels.** CODEOWNERS / team norms handle the rest.
-- **One PR per invocation.** If the user wants multiple PRs (e.g. atomized branches), they should run the skill once per branch.
 - **Respect overrides.** If the user says "skip the pre-flight check, just create it" or "use this title: ...", honor it. The halt triggers are a default, not a policy.
-- **Keep the body short.** Padding is worse than `N/A`. Reviewers already have the diff.
