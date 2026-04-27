@@ -152,38 +152,4 @@ Feature Summary:
 
 ### 7. STOP - Do Not Continue
 
-**After creating the features, STOP.** Do not automatically create tasks.
-
-- Report the created features to the user
-- Wait for the user to explicitly request the next level of decomposition
-- Do not suggest or offer to create tasks unless asked
-
-Creating child issues (tasks) requires a separate user request.
-
-## Simplicity Principles
-
-When creating features, follow these guidelines:
-
-### Keep It Simple:
-
-- **No over-engineering** - Create only the features needed for the epic
-- **No extra features** - Don't add functionality that wasn't requested
-- **Choose straightforward approaches** - Simple feature structure over complex designs
-- **Solve the actual problem** - Don't anticipate future requirements
-
-### Forbidden Patterns:
-
-- **NO premature optimization** - Don't optimize feature structure unless requested
-- **NO feature creep** - Stick to the specified epic requirements
-- **NO complex dependencies** - Keep feature relationships simple and clear
-- **NO unnecessary abstractions** - Choose direct, maintainable approaches
-- **NO pure research/analysis features** - Every feature must produce actual code, configuration, or tangible deliverables
-- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
-
-### Modular Architecture:
-
-- **Clear boundaries** - Each feature should have distinct, well-defined responsibilities
-- **Minimal coupling** - Features should interact through clean interfaces, not internal dependencies
-- **High cohesion** - Related functionality should be grouped within the same feature
-- **Avoid big ball of mud** - Prevent tangled cross-dependencies between features
-- **Clean interfaces** - Define clear contracts between features for data and functionality exchange
+**After creating, STOP.** Do not automatically create tasks — that requires a separate user request.

@@ -1,16 +1,15 @@
 ---
 name: issue-implementation
-description: This skill should be used when the user asks to "implement task", "claim task", "work on task", or mentions implementing a single task in Trellis. For features (which orchestrate multiple tasks), use issue-implementation-orchestration instead.
+description: Claims a single Trellis task and runs a plan-then-implement workflow — researches the task and parent feature, generates or skips an implementation plan via planning:create-implementation-plan, writes the code, calls complete_task, and hands off to the paired reviewer teammate. Leaves changes uncommitted for review. Use when the user asks to "implement task", "claim task", or "work on task" by ID or scope. For multi-task feature orchestration, use task-trellis-teams:implement-trellis-issues instead.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__claim_task
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__get_next_available_issue
   - mcp__plugin_task-trellis-teams_task-trellis__complete_task
-  - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
   - mcp__plugin_task-trellis-teams_task-trellis__append_modified_files
-  - mcp__plugin_task-trellis-teams_task-trellis__update_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
-  - Task
+  - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
+  - TaskUpdate
+  - TaskList
+  - SendMessage
   - Skill
   - Glob
   - Grep
@@ -39,7 +38,7 @@ Claim and implement a single task from the Trellis task management system using 
 
 ### 1. Claim Task
 
-Use `claim_task` to claim the task. Tasks are managed in the `.trellis` folder.
+Use `claim_task` to claim the task.
 
 `claim_task` returns the full task body; do NOT call `get_issue` on the claimed task ID again — that is a redundant round-trip.
 
@@ -82,22 +81,9 @@ Where `<brief>` is the task title, the full task body, the parent feature/epic I
 
 **When in doubt, ask.** Use AskUserQuestion to clarify requirements or approach. Agents tend to be overconfident about what they can infer—a human developer would ask more questions, not fewer. If you're making assumptions, stop and ask instead.
 
-Ask questions when:
-
-- Requirements are ambiguous or incomplete
-- Multiple valid approaches exist
-- You're unsure about architectural decisions
-- The task scope seems unclear
-
 ### 4. Implementation Phase
 
-**Execute the plan with progress updates:**
-
-- **Write clean code**: Follow project conventions and best practices
-- **Implement incrementally**: Build and test small pieces before moving on
-- **Run quality checks frequently**: Format, lint, and test after each major change
-- **Write purposeful tests**: Only test logic with meaningful complexity
-- **Handle errors gracefully**: Include proper error handling
+Execute the plan from step 2.
 
 ### 5. Finalize (run steps in this exact order)
 
@@ -128,20 +114,8 @@ Fix these before sending the reviewer nudge — re-calling `complete_task` and `
 
 ### 6. Final Response
 
-**Always include the resulting task status in your final message.** Report the task's current status (e.g., `done`, `in-progress`, `open`) so the caller knows the outcome. If you completed the task normally, the status will be `done`. If you had to exit early due to errors, blockers, or user direction, report whatever status the task is in (e.g., still `in-progress` or `open`).
+Include the task's resulting status (`done`, `in-progress`, or `open`) in your final message so the caller knows the outcome.
 
 ### 7. Do NOT Commit
 
-**Your changes must be reviewed before committing.**
-
-- **Do not run git commit** - Leave all changes uncommitted
-- **Do not use the /commit skill** - This will be done after review
-- **Leave changes staged or unstaged** - The reviewer needs to see the diff
-- A separate agent or developer will review your implementation and commit if approved
-
-## Key Constraints
-
-- **Do NOT commit changes** - Leave all changes uncommitted for review by the orchestration skill or another agent
-- **Only implement planned work** - Do not create new tasks during implementation
-- **Respect dependencies** - Only start work when all prerequisites are completed
-- **Stop on errors** - When encountering failures, stop and ask the user how to proceed
+**Do not commit your changes.** Leave files uncommitted (staged or unstaged) so the reviewer can see the diff; a separate reviewer/agent will commit after review. Do not invoke `/commit` or run `git commit` yourself.

@@ -125,43 +125,4 @@ Epic Summary:
 
 ### 7. STOP - Do Not Continue
 
-**After creating the epics, STOP.** Do not automatically create features or tasks.
-
-- Report the created epics to the user
-- Wait for the user to explicitly request the next level of decomposition
-- Do not suggest or offer to create features unless asked
-
-Creating child issues (features) requires a separate user request.
-
-## Simplicity Principles
-
-When creating epics, follow these guidelines:
-
-### Keep It Simple:
-
-- **No over-engineering** - Create only the epics needed for the project
-- **No extra features** - Don't add functionality that wasn't requested
-- **Choose straightforward approaches** - Simple epic structure over complex hierarchies
-- **Solve the actual problem** - Don't anticipate future requirements
-
-### Forbidden Patterns:
-
-- **NO premature optimization** - Don't optimize epic structure unless requested
-- **NO feature creep** - Stick to the specified project requirements
-- **NO complex dependencies** - Keep epic relationships simple and clear
-
-### Forbidden Patterns:
-
-- **NO premature optimization** - Don't optimize epic structure unless requested
-- **NO feature creep** - Stick to the specified project requirements
-- **NO complex dependencies** - Keep epic relationships simple and clear
-- **NO unnecessary technical debt** - Choose maintainable approaches
-- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
-
-### Modular Architecture:
-
-- **Clear boundaries** - Each epic should have distinct, well-defined responsibilities
-- **Minimal coupling** - Epics should interact through clean interfaces, not internal dependencies
-- **High cohesion** - Related functionality should be grouped within the same epic
-- **Avoid big ball of mud** - Prevent tangled cross-dependencies between epics
-- **Clean interfaces** - Define clear contracts between epics for data and functionality exchange
+**After creating, STOP.** Do not automatically create features or tasks — that requires a separate user request.

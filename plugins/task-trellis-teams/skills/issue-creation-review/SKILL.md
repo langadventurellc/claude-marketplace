@@ -2,13 +2,13 @@
 name: issue-creation-review
 description: Verifies Trellis issues against original requirements for completeness, correctness, and appropriate scope. Use when asked to "verify issue", "validate trellis issue", "check issue completeness", or "review created issue".
 allowed-tools:
+  - AskUserQuestion
   - Glob
   - Grep
   - Read
-  - WebFetch
-  - WebSearch
+  - SendMessage
+  - TaskUpdate
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
 ---
 
 # Issue Creation Review
@@ -21,53 +21,28 @@ Verify that a created Trellis issue accurately reflects original requirements wi
 - **Created Issue**: The issue ID or full issue details
 - **Additional Context** (optional): Clarifications or decisions made during creation
 
-## Handling Missing Information
-
-**This skill runs as a sub-agent and cannot ask questions directly.** If required inputs are missing or unclear, you must return a structured response requesting clarification instead of proceeding with assumptions.
-
-When information is missing or ambiguous, return the following structure:
-
-```
-## Clarification Needed
-
-### Questions
-1. [Specific question about missing/unclear information]
-2. [Additional questions as needed]
-
-### Context Collected So Far
-- [Summary of what you've already determined]
-- [Relevant codebase findings]
-- [Partial analysis completed]
-
-### Instructions for Caller
-1. Gather answers to the questions above from the user
-2. Re-invoke this skill with the original inputs plus the following additional context:
-   - Answers to questions: [list the questions by number]
-   - Previously collected context: [reference this section]
-```
-
-**Do not make assumptions** about requirements, scope decisions, or implementation details when critical information is missing.
+If any required input is missing or unclear, ask the user before proceeding. Do not make assumptions about requirements, scope decisions, or implementation details.
 
 ## Verification Process
 
 ### 1. Research Codebase Context
 
-Before evaluating, investigate the existing system:
+Before evaluating, investigate the existing system so findings are grounded, not speculative:
 
-- Search for similar implementations to verify consistency
-- Check architectural patterns used in the codebase
-- Identify existing utilities/libraries that should be leveraged
-- Verify integration points mentioned are valid
+- Search for similar existing implementations (`Grep`, `Glob`, `Read`) to verify the issue's proposed approach matches the codebase's patterns.
+- Check architectural conventions the issue should be consistent with.
+- Identify existing utilities or libraries the issue should reuse instead of reinventing.
+- Verify every file, path, or symbol the issue references actually exists. **The codebase is the source of truth, not the issue body.** If the issue cites something that no longer exists (or never did), that is a finding — even if the parent issue makes the same reference.
 
 ### 2. Completeness Check
 
-Verify all required elements are present.
+Verify against the **original user requirements verbatim** in your inputs, not a paraphrase of them.
 
 **Common to all issue types:**
 
-- All functional requirements from input are addressed
-- Acceptance criteria are measurable and complete
-- Dependencies/integration points are identified
+- All functional requirements from the verbatim requirements are addressed.
+- Acceptance criteria are measurable and complete — specific, testable conditions, not vague language like "should work correctly."
+- Dependencies/integration points are identified.
 
 **Type-specific additions:**
 
@@ -75,15 +50,15 @@ Verify all required elements are present.
 | ------- | ---------------------------------------------------- |
 | Project | Technical architecture specified                     |
 | Epic    | Clear scope boundaries, logical feature grouping     |
-| Feature | Specific user-facing capability, feature integration |
+| Feature | Specific user-facing capability, integration points  |
 | Task    | Implementable scope, clear technical specifications  |
 
 ### 3. Correctness Check
 
-- **Technical Accuracy**: Proposed solutions align with codebase patterns
-- **Requirement Alignment**: Interpretation matches user intent
-- **Feasibility**: Approach is technically viable
-- **Consistency**: Aligns with existing system architecture
+- **Technical accuracy**: Proposed solutions align with actual codebase patterns, back-verified via step 1 research.
+- **Requirement alignment**: The issue's interpretation matches the verbatim requirements — not a paraphrase that drifts from intent.
+- **Feasibility**: The approach is technically viable in this codebase with the libraries and patterns already in use.
+- **Consistency**: Aligns with existing system architecture and neighbor issues under the same parent.
 
 ### 4. Attachment Verification
 
@@ -137,11 +112,11 @@ Use these contextual signals to detect suspected omissions:
 
 Evaluate for over-engineering:
 
-- Identify additions beyond the original request
-- Flag unnecessary complexity or premature optimization
-- Ensure abstractions are justified by actual requirements
+- Flag additions beyond what the verbatim requirements asked for.
+- Flag unnecessary abstractions or premature optimization.
+- Flag speculative content ("we might also want to...") that isn't anchored in the requirements.
 
-**Exception**: Expanded scope is acceptable if explicitly requested (e.g., "comprehensive" or "future-proofed" solution).
+**Exception**: Expanded scope is acceptable if the requirements explicitly asked for it (e.g., the words "comprehensive" or "future-proofed" appear verbatim).
 
 ## Cohesion Review (parent + children)
 
@@ -170,14 +145,17 @@ When running as a teammate inside an agent team:
 
 ## Output
 
-Provide a verification report covering:
+Output format depends on invocation context:
 
-1. **Issue Details**: Type, ID, title
-2. **Completeness**: Complete/Partial/Incomplete with specific gaps
-3. **Correctness**: Correct/Issues Found with specific findings and codebase alignment
-4. **Attachments**: Verified/Findings — holder placement, duplication, section format, child references, and any suspected omissions
-5. **Scope**: Appropriate/Over-engineered with analysis of what was requested vs. created
-6. **Recommendations**: Critical issues and suggested improvements
-7. **Verdict**: APPROVED / NEEDS REVISION / REJECTED with summary
+- **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is silence + `TaskUpdate({ status: "done" })` — do NOT send a "looks good" message. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
+- **Direct invocation** (e.g., user-invoked via `/issue-creation-review`): produce a verification report with these sections:
+
+  1. **Issue Details**: Type, ID, title
+  2. **Completeness**: Complete/Partial/Incomplete with specific gaps
+  3. **Correctness**: Correct/Issues Found, with codebase evidence
+  4. **Attachments**: Verified/Findings — holder placement, duplication, section format, child references, suspected omissions
+  5. **Scope**: Appropriate/Over-engineered, with what was requested vs. created
+  6. **Recommendations**: Critical issues and suggested improvements
+  7. **Verdict**: APPROVED / NEEDS REVISION / REJECTED
 
 Use codebase evidence to support findings. Flag over-engineering only when it adds complexity without benefit.

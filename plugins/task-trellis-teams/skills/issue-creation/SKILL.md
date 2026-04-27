@@ -1,17 +1,15 @@
 ---
 name: issue-creation
-description: This skill should be used when the user asks to create Trellis issues including "create a project", "create epics", "create features", "create tasks", "new project", "new epic", "new feature", "new task", "break down project into epics", "break down epic into features", "break down feature into tasks", "decompose project", "decompose epic", "decompose feature", or mentions creating any type of issue in Trellis.
+description: Creates Trellis issues — projects, epics, features, or tasks — one hierarchy level at a time. Use when the user asks to create, decompose, or break down a project, epic, feature, or task in Trellis (e.g. "create a project", "create epics for P-…", "break down feature F-… into tasks", "decompose epic E-…"). Routes to the type-specific creation flow for the requested level only and stops there — does not auto-recurse to child levels.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__create_issue
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__update_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
-  - mcp__plugin_task-trellis-teams_task-trellis__remove_attachment
-  - Task
+  - mcp__plugin_task-trellis-teams_task-trellis__get_ui_info
+  - Read
   - Glob
   - Grep
-  - Read
   - Write
   - AskUserQuestion
 ---
@@ -56,12 +54,7 @@ Based on the user's request, determine which issue type to create:
 
    If planning output exists only as in-chat text, save it to a temp file (e.g., `/tmp/trellis-<timestamp>-requirements.md`) using `Write` before attaching. The type-specific file below specifies holder placement rules and `## Attachments` format.
 3. **Validate the provided inputs** against the current codebase (see below)
-4. **Read the appropriate type-specific file** for detailed creation instructions:
-   - For projects: Read [project.md](project.md)
-   - For epics: Read [epic.md](epic.md)
-   - For features: Read [feature.md](feature.md)
-   - For tasks: Read [task.md](task.md)
-5. **Follow the detailed process** in that file to create the issue(s)
+4. **Read the type-specific file** (per the table above) and follow it.
 
 ## Validate Inputs
 
@@ -95,9 +88,8 @@ The codebase is the source of truth.
 
 All issue types share these principles:
 
-- **Create only what was requested** - If asked to create a project, create the project only. Do not also create epics, features, or tasks unless explicitly asked.
 - **Default to coarser granularity** - Prefer fewer, larger issues that are easier for AI agents to orchestrate. Don't create many tiny issues.
 - **Ask questions only when necessary** - Only ask when requirements are genuinely ambiguous, critical information is missing, or decisions have significant irreversible consequences.
 - **Include acceptance criteria** - All issues should have measurable success criteria.
-- **Keep it simple** - Follow KISS, YAGNI principles. Don't over-engineer the structure.
 - **Create sequentially** - When creating multiple issues, do them one at a time, not in parallel.
+- **No integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input.

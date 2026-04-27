@@ -2,6 +2,7 @@
 name: issue-implementation-review
 description: Reviews code changes from a completed task implementation for correctness, completeness, and simplicity. Use when asked to "review implementation", "review task code", "code review", "verify implementation", or after completing an issue implementation.
 allowed-tools:
+  - AskUserQuestion
   - Glob
   - Grep
   - Read
@@ -24,44 +25,7 @@ Provide a thorough code review of task implementation changes, ensuring the code
 - **Task ID**: The Trellis task ID that was implemented (e.g., "T-add-user-validation")
 - **Additional Context** (optional): Any decisions or constraints from implementation
 
-## When You Need Clarification
-
-This skill runs as a subagent and cannot ask the user questions directly. If you encounter situations where clarification is needed before proceeding effectively, **return early** with:
-
-1. **Questions**: List each question that needs to be answered
-2. **Context Collected**: Summarize what you've learned so far (task details, files examined, findings to date)
-3. **Instructions for Caller**: Tell the caller to:
-   - Get answers to the listed questions from the user
-   - Re-invoke this skill with the original inputs plus the answers
-
-### Example Early Return Format
-
-```
-## Clarification Needed
-
-I need additional information before I can complete this review effectively.
-
-### Questions
-1. [First question that needs an answer]
-2. [Second question if applicable]
-
-### Context Collected So Far
-- **Task**: [Task ID and title if retrieved]
-- **Files Identified**: [List of files found]
-- **Preliminary Findings**: [Any observations made before hitting the blocker]
-
-### Next Steps
-To continue this review:
-1. Get answers to the questions above from the user
-2. Re-run this skill with: `/issue-implementation-review [Task ID] --context "[answers and any additional context]"`
-```
-
-### When to Return Early
-
-- Task ID is missing or invalid
-- Multiple tasks match ambiguous criteria
-- Implementation approach is unclear and critical to the review
-- You find conflicting requirements that need human judgment
+If the task ID is missing or ambiguous, multiple tasks match, the implementation approach is unclear and critical to the review, or you find conflicting requirements that need human judgment, ask the user before proceeding. Do not make assumptions.
 
 ## Review Process
 

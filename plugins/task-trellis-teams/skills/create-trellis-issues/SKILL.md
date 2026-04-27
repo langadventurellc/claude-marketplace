@@ -1,11 +1,8 @@
 ---
 name: create-trellis-issues
-description: Orchestrates Trellis issue creation using Claude Code Agent Teams. Use when asked to "create trellis issues", "create and review issues", "create verified issues", or when you want issues created by a writer teammate and automatically reviewed by a reviewer teammate with direct-message fix loops. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
+description: Orchestrates Trellis issue creation using Claude Code Agent Teams. Use when asked to "create trellis issues", "create and review issues", "create verified issues", or when you want issues created by a writer teammate and automatically reviewed by a reviewer teammate with direct-message fix loops.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
-  - mcp__plugin_task-trellis-teams_task-trellis__list_issues
-  - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
-  - mcp__plugin_task-trellis-teams_task-trellis__remove_attachment
   - TeamCreate
   - TeamDelete
   - Task
@@ -13,9 +10,9 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - SendMessage
-  - Skill
   - AskUserQuestion
   - Read
+  - Write
   - Grep
   - Bash
 ---
@@ -62,8 +59,6 @@ All remaining text in `$ARGUMENTS` is the **original user requirements** and MUS
 ### 1. Preflight
 
 Before doing anything else, **fetch the parent issue** via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
-
-If the preflight check fails, STOP and report to the user. Do NOT attempt workarounds.
 
 ### 2. Capture Original Input Verbatim
 
@@ -114,14 +109,12 @@ Resolve the level in this order:
 
    Nothing else to decide; proceed to step 4.
 
-2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), the lead authors a root creation task + review task pair on the shared task list using the step 5a/5b templates verbatim (omit the parent field from the creation task description; the authoring guide for the root comes from the matching `issue-creation/<type>.md` file). Create the agent team (step 4), spawn the writer/reviewer pair for the root level (step 6), send the pointer nudge for the root creation task (step 8), and wait for root approval before proceeding to child-level task authoring (step 5 for children).
+2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), the lead authors a root creation task + review task pair on the shared task list using the step 5a/5b templates verbatim (omit the parent field from the creation task description; the authoring guide for the root comes from the matching `issue-creation/<type>.md` file). Create the agent team (step 4), spawn the writer/reviewer pair for the root level (step 6), send the pointer nudge for the root creation task (step 7), and wait for root approval before proceeding to child-level task authoring (step 5 for children).
 
 3. **No parent and no level guidance** — read [`determine-starting-level.md`](determine-starting-level.md) in this skill directory and follow its decision procedure. That doc covers:
    - Picking the correct root level from scope signals.
    - Authoring root creation+review task pairs when applicable.
    - The narrow conditions under which you should escalate to the user.
-
-   When that doc's action block says the lead creates a root issue, the lead instead authors root creation+review task pairs (step 5a/5b templates) and spawns a writer. Do NOT call `create_issue` from the lead.
 
    Do NOT ask the user for the level as a first move — only ask when `determine-starting-level.md` says the decision is genuinely ambiguous.
 
@@ -129,7 +122,7 @@ Resolve the level in this order:
 
 ### 4. Create the Agent Team
 
-> **Note on experimental API.** The Agent Teams tool schemas used below (`TeamCreate`, `TeamDelete`, `Task`, `TaskCreate`, `TaskUpdate`, `TaskList`, `SendMessage`) were verified against the live schema at the time of writing, but Agent Teams is still experimental and may evolve. If a call fails schema validation, consult the tool's parameter description at runtime and https://code.claude.com/docs/en/agent-teams. Key conventions you'll use below: `TaskCreate` returns an opaque task ID (persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls), `TaskUpdate` identifies tasks by `taskId` (not subject), `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string, and `TeamDelete` takes no parameters.
+> **Tool conventions used below:** `TaskCreate` returns an opaque task ID (persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls). `TaskUpdate` identifies tasks by `taskId` (not subject). `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string. `TeamDelete` takes no parameters.
 
 Use `TeamCreate` to create the team:
 
@@ -215,6 +208,8 @@ Spawn one writer AND one reviewer for the current sibling set. Both are scoped t
 
 **Naming rule (mandatory):** Teammate names MUST include the parent ID, not just the level — e.g. `writer-tasks-f-auth` / `reviewer-tasks-f-auth`, not `writer-tasks` / `reviewer`. This is required for unambiguous `SendMessage` routing when multiple pairs run in parallel at the same depth.
 
+**Do NOT pass a `model` parameter to `Task`.** Agent frontmatter is authoritative; the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.
+
 Spawn the reviewer:
 
 ```
@@ -239,7 +234,7 @@ Task({
 })
 ```
 
-### 8. Run the Loop (Teammates Work)
+### 7. Run the Loop (Teammates Work)
 
 Once the creation/review task pairs are on the shared task list, the writer and reviewer coordinate directly:
 
@@ -252,7 +247,7 @@ Once the creation/review task pairs are on the shared task list, the writer and 
    For subsequent creation tasks in the same level, the lead sends a new pointer nudge naming the next task ID after the previous review task completes.
 2. Writer claims a creation task via `TaskUpdate` (via its normal claim mechanism).
 3. Writer creates the child issue, marks the creation task done.
-4. Writer sends a pointer-only activation nudge to `reviewer-<level>-<parent-id>` via `SendMessage`. See `PROTOCOL.md` §Reviewer activation gate.
+4. Writer sends a pointer-only activation nudge to `reviewer-<level>-<parent-id>` via `SendMessage`. See `plugins/task-trellis-teams/PROTOCOL.md` §Reviewer activation gate.
 5. Reviewer picks up the now-unblocked review task.
 6. Reviewer either:
    - **Approves** → marks review task done via `TaskUpdate`.
@@ -421,18 +416,14 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
 
 | Situation | Action |
 |-----------|--------|
-| `TeamCreate` fails | STOP, report the exact error to user |
 | Teammate spawn fails | STOP, clean up any created team, report to user |
 | Teammate reports permission / MCP error | Surface to user via `AskUserQuestion`, do NOT retry automatically |
 | Fix loop exceeds 3 rounds on the same finding | Interrupt both teammates via `SendMessage`; escalate to the user via `AskUserQuestion` for a decision before allowing a 4th round |
 | Teammate goes silent / stalls | Check `TaskList` state; if stuck, send `SendMessage` nudge; if still stuck, escalate to user |
 
-**Do NOT** categorize review findings as "minor" and skip them. Every finding is the writer's responsibility to address or justify. If the writer believes a finding is wrong, it must say so via `SendMessage` to the reviewer and let the reviewer confirm or escalate to the lead.
-
 ## References
 
 - Agent Teams docs: https://code.claude.com/docs/en/agent-teams
-- Existing subagent-based equivalent: `plugins/task-trellis/skills/issue-creation-orchestration/SKILL.md` (read for autonomous-operation and verbatim-preservation semantics)
 - Worker skills used by teammates:
   - `task-trellis-teams:issue-creation` (writer's authoring guide)
   - `task-trellis-teams:issue-creation-review` (reviewer's review guide)

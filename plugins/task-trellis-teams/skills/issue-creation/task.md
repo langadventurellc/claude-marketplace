@@ -179,13 +179,7 @@ Note: Tests are included within tasks only where meaningful complexity exists. S
 
 ### 7. STOP - Do Not Continue
 
-**After creating the tasks, STOP.** Tasks are the lowest level of the hierarchy.
-
-- Report the created tasks to the user
-- Wait for further instructions
-- Do not begin implementing any tasks unless explicitly asked
-
-Task implementation requires a separate user request.
+**After creating, STOP.** Tasks are the lowest level. Do not begin implementing them unless explicitly asked.
 
 ## Task Creation Guidelines
 
@@ -204,33 +198,3 @@ Common task patterns:
 - **Frontend Component**: Create with interactivity and state handling
 - **Security**: Input validation, authorization, rate limiting
 
-## Simplicity Principles
-
-When creating tasks, follow these guidelines:
-
-### Keep It Simple:
-
-- **No over-engineering** - Create only the tasks needed for the feature
-- **No extra features** - Don't add functionality that wasn't requested
-- **Choose straightforward approaches** - Simple task structure over complex designs
-- **Solve the actual problem** - Don't anticipate future requirements
-
-### Forbidden Patterns:
-
-- **NO premature optimization** - Don't optimize task structure unless requested
-- **NO feature creep** - Stick to the specified feature requirements
-- **NO complex dependencies** - Keep task relationships simple and clear
-- **NO unnecessary abstractions** - Choose direct, maintainable approaches
-- **NO integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input
-
-### Modular Architecture:
-
-- **Clear boundaries** - Each task should have distinct, well-defined responsibilities
-- **Minimal coupling** - Tasks should create components that interact through clean interfaces
-- **High cohesion** - Related functionality should be grouped within the same task/component
-- **Avoid big ball of mud** - Prevent tangled cross-dependencies between components
-- **Clean interfaces** - Create clear contracts between components for data and functionality exchange
-
-<rules>
-  <important>Always include "Out of scope" in task descriptions to prevent scope creep</important>
-</rules>
