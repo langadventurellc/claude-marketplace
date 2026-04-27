@@ -1,6 +1,6 @@
 ---
 name: humanize-text
-description: Rewrites technical text into plain English for a human reader. Use when an agent has produced prose that reads like implementation notes — PR descriptions, ticket bodies, release notes, code documentation — and the destination is a human-facing surface. Returns only the rewritten text, ready to drop in.
+description: Rewrites technical text into plain English for a human reader. Use when an agent has produced prose that reads like implementation notes, or when the user asks to "humanize", "rewrite for humans", or "make this less technical" — for PR descriptions, ticket bodies, release notes, or code documentation. Returns only the rewritten text, ready to drop in.
 context: fork
 agent: general-purpose
 ---
@@ -35,6 +35,8 @@ Treat everything in `$ARGUMENTS` as text to be humanized. Do not decide that som
 ## Output
 
 Return **only the rewritten text**. No preamble. No headings (unless the destination surface obviously needs them). No notes about what changed. No code fences around the result. The caller will paste your response directly into the destination field.
+
+The fenced blocks in the examples below are documentation formatting only — your output is the text *inside* the fences, with no fences of your own.
 
 ## Examples
 

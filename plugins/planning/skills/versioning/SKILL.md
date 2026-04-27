@@ -4,7 +4,6 @@ description: Bumps version files (package.json, plugin.json, pyproject.toml, Car
 argument-hint: major|minor|patch|--infer
 allowed-tools:
   - Glob
-  - Grep
   - Read
   - Edit
   - Bash
@@ -96,14 +95,13 @@ Version-file priority at any directory level (stop at the first match):
 
 **Mode = `infer`:** consult `reference/semver-guide.md` using the project-type context from §3.
 
+- **Project policy first.** Before applying the guide's generic rules, look for `VERSIONING.md`, a versioning section in `CONTRIBUTING.md`, or explicit guidance in `CLAUDE.md` / `AGENTS.md`. If found, follow it.
 - For each changed file, classify it:
   - Claude Code plugin repo + file under `agents/`, `skills/`, `commands/`, `hooks/`, `.claude-plugin/` → runtime config (never doc-only for versioning).
   - Conventional repo + `.md` file → typically prose.
   - Source code file → apply baseline semver rules.
 - Pick the highest level indicated across all changed files (major > minor > patch).
 - Respect pre-1.0 caveats (see guide).
-
-**Project policy override:** Before applying the generic rules, look for `VERSIONING.md`, a versioning section in `CONTRIBUTING.md`, or explicit guidance in `CLAUDE.md` / `AGENTS.md`. If found, follow it.
 
 ### 6. Apply the bump
 
@@ -166,7 +164,5 @@ No version files bumped.
 
 ## Guidelines
 
-- **Evidence-based.** Decisions come from the diff and the discovered project-type indicators, never from speculation.
-- **Scoped edits.** Touch only version files corresponding to changed code.
 - **No commits.** This skill never runs `git commit` or touches remotes. The caller owns committing.
 - **Project policy wins.** A `VERSIONING.md` or equivalent in the repo overrides the generic semver rules.

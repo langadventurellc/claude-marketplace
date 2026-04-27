@@ -3,7 +3,6 @@ name: docs-updater
 description: Reviews completed work and updates project documentation (README, CLAUDE.md, AGENTS.md, docs/) to prevent stale docs. Invoked at the end of an implementation workflow with a base ref; diffs the working tree against that base to capture every change on the branch — committed and uncommitted.
 allowed-tools:
   - Glob
-  - Grep
   - Read
   - Edit
   - Write
@@ -16,7 +15,7 @@ Keep project documentation in sync with the code. Invoked at the end of an imple
 
 ## Input
 
-A **base ref** (commit SHA or branch ref) supplied by the caller. The skill diffs the working tree against this base to see every change on the branch — committed and uncommitted — relative to that base.
+A **base ref** (commit SHA or branch ref) supplied by the caller. The skill diffs the working tree against it.
 
 **Version bumps are out of scope for this skill.** Use `planning:versioning` separately when a version bump is needed.
 
@@ -57,7 +56,7 @@ Treat `CLAUDE.md` and `AGENTS.md` as peers — updates to one usually need mirro
 
 For each file that needs changes:
 
-- Read the file first to match its tone, structure, and level of detail.
+- Read the file first to match its tone, voice, structure, heading depth, and code-block conventions.
 - Make targeted edits — touch only what the change affects.
 - When editing `CLAUDE.md` or `AGENTS.md`, consult `reference/agent-instructions-guide.md` for authoring conventions.
 - Do not add placeholders, TODOs, or "this section may need expansion" notes.
@@ -97,7 +96,5 @@ No updates needed.
 ## Guidelines
 
 - **Evidence-based**: base updates on the diff, not on what you think the change might have done.
-- **Minimal edits**: touch only the sections directly affected.
-- **Style match**: preserve the file's voice, heading depth, and code-block conventions.
 - **Don't bloat agent-instruction files**: `CLAUDE.md` and `AGENTS.md` should stay actionable. Link to deeper docs instead of inlining.
 - **One change at a time**: if the diff contains multiple unrelated changes, handle each in order and report them as distinct entries.

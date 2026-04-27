@@ -4,6 +4,7 @@ description: Generates a detailed, actionable implementation plan for a non-triv
 model: opus
 effort: xhigh
 context: fork
+agent: Plan
 allowed-tools:
   - Read
   - Glob
@@ -11,7 +12,6 @@ allowed-tools:
   - Bash
   - WebFetch
   - WebSearch
-  - AskUserQuestion
 ---
 
 # Create Implementation Plan
@@ -54,7 +54,7 @@ Use `Glob`, `Grep`, `Read`, and `Bash` to:
 - Trace dependencies and call chains for affected components
 - Check for relevant configuration, tests, and build artifacts
 
-Use WebSearch, WebFetch, or any MCP info-source present in the session to look up current library docs, API schemas, or external specifications when the task touches external dependencies.
+Use WebSearch and WebFetch to look up current library docs, API schemas, or external specifications when the task touches external dependencies.
 
 ### Step 4 — Verify file locations
 
@@ -98,7 +98,7 @@ Produce the following block and nothing else. The developer who invoked this ski
 
 - Actual code — unless a brief pattern example is essential to disambiguate an ambiguous change
 - Generic best-practice advice (error handling, testing philosophy, etc.) unless it is specific to this task
-- Philosophical discussion or motivation beyond what fits in the Overview
+- Philosophical discussion or motivational framing — motivation comes from the parent task and doesn't belong in the plan
 - Speculation about future changes outside this task's scope
 
 Be prescriptive. A vague plan is a broken plan.
