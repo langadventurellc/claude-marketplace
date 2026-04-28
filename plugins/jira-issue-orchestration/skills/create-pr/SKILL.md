@@ -38,7 +38,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/collect-pr-context.sh"
 
 ### 1. Pre-flight: sanity-check the working tree
 
-Read the injected runtime context above. Default branch is in `## Default branch`. Branch name, ahead/behind status, dirty state, recent commits, and change summary are in `## Working tree status`, `## Recent commits`, `## Pending change summary`.
+Read the injected runtime context above. Default branch is in `## Default branch`. Branch name, ahead/behind status, and dirty state are in `## Working tree status`. Change summary is in `## Pending change summary`. Branch-scoped commits are in `## Commit messages with bodies`.
 
 **Hard stop:** if the current branch is the repo default (main/master/etc.), stop. Emit: `Refusing to create a PR from the default branch ('<name>'). Switch to a feature branch first.` Do not offer to create a branch.
 

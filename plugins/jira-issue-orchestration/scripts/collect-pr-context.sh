@@ -9,24 +9,25 @@ printf "## Default branch\n\n"
 printf "%s\n\n" "$DEFAULT_BRANCH"
 
 printf "## Working tree status\n\n"
+printf '```text\n'
 git status --porcelain=v1 -b
-printf "\n"
-
-printf "## Recent commits\n\n"
-git log --oneline -20
-printf "\n"
+printf '```\n\n'
 
 printf "## Pending change summary\n\n"
+printf '```text\n'
+git diff "$DEFAULT_BRANCH"...HEAD --stat
 git diff --stat
 git diff --cached --stat
-printf "\n"
+printf '```\n\n'
 
 printf "## Files in the PR's change set\n\n"
+printf '```text\n'
 git diff "$DEFAULT_BRANCH"...HEAD --name-only
 git status --porcelain=v1
-printf "\n"
+printf '```\n\n'
 
 printf "## Full diff vs. default branch\n\n"
+printf '```diff\n'
 _tmp=$(mktemp)
 git diff "$DEFAULT_BRANCH"...HEAD > "$_tmp"
 head -n 500 "$_tmp"
@@ -35,8 +36,9 @@ rm -f "$_tmp"
 if [ "$_total" -gt 500 ]; then
   printf "\n[diff truncated at 500 lines — %d total]\n" "$_total"
 fi
-printf "\n"
+printf '```\n\n'
 
 printf "## Commit messages with bodies\n\n"
+printf '```text\n'
 git log "$DEFAULT_BRANCH"..HEAD --format='%h %s%n%b%n---'
-printf "\n"
+printf '```\n'
