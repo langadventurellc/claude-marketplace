@@ -2,6 +2,7 @@
 name: manage-planning-team
 description: Internal skill. Runs inside the planning sub-session. Invokes investigate-jira-issue to produce a requirements artifact, then invokes create-trellis-issues to create Trellis issues from it. Signals completion to the conductor when done.
 user-invocable: false
+effort: medium
 allowed-tools:
   - AskUserQuestion
   - Skill

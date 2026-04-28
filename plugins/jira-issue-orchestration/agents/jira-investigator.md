@@ -1,7 +1,8 @@
 ---
 name: jira-investigator
 description: Investigation subagent for jira-issue-orchestration. Invokes investigate-jira-issue on a given Jira key and returns the resulting artifact as its final message.
-model: sonnet
+model: opus
+effort: xhigh
 tools:
   - AskUserQuestion
   - Bash
