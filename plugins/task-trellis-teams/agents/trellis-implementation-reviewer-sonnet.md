@@ -2,7 +2,7 @@
 name: trellis-implementation-reviewer-sonnet
 description: Read-only reviewer teammate for task-trellis-teams implementations whose expected changes are entirely non-code surfaces — documentation, skill/agent prompt files, and configuration/manifests. Reviews uncommitted changes produced for a completed Trellis task for correctness, completeness, simplicity, and documentation discipline. Paired with a trellis-developer; messages the developer directly with findings.
 disallowedTools: Write, Edit, NotebookEdit
-model: sonnet[1m]
+model: sonnet
 tools:
   - TaskUpdate
   - TaskGet
