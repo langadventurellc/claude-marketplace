@@ -44,7 +44,7 @@ Runs a single command to autonomously take a Jira issue all the way to an open d
 
 - `/orchestrate-jira-issue <JIRA-ID>` — validates the issue, spawns a planning sub-session that investigates the ticket and creates Trellis tasks, then spawns an implementation sub-session that implements those tasks and opens a draft PR. Both sub-sessions communicate with the conductor over IPC log files managed by the `issue-orchestration` MCP server.
 - `/investigate-jira-issue <JIRA-ID>` — standalone investigation step. Fetches the ticket, pulls linked context, then routes to `planning:requirements-creation` (underspecified) or `planning:discovery` (well-specified) to produce a requirements artifact.
-- `/create-pr` — commit, push, and open a draft GitHub PR with Jira context auto-detected. Enforces `{JIRA-ID}: {outcome}` title format; halts on suspicious staged content.
+- `/create-pr` — commit, push, and open a draft GitHub PR with Jira context auto-detected. Enforces `{JIRA-ID}: {outcome}` title format; halts on suspicious staged content. Set `TT_PR_TEMPLATE` to a readable file path to swap the default PR body template for your team's template for the rest of the session.
 
 **Prerequisites:** `task-trellis-teams` must also be installed (it is a declared plugin dependency). The MCP server is bundled in the plugin and self-registers — no manual setup required. Requires Claude Code v2.1.98+, macOS + iTerm2 + tmux, and Node ≥ 22.
 
