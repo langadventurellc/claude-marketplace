@@ -4,7 +4,6 @@ description: Commit (if needed), push (if needed), and open a GitHub pull reques
 allowed-tools:
   - AskUserQuestion
   - Bash
-  - Write
   - Skill
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
@@ -33,25 +32,19 @@ Follow these steps in order. Each step's output is required for the next.
 
 Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl`, `PROJECT_KEY` from `values.jiraProjectKey`, and `CLOUD_ID` from `values.atlassianCloudId`. If any are missing or empty, stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
 
+```!
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/collect-pr-context.sh"
+```
+
 ### 1. Pre-flight: sanity-check the working tree
 
-Fire all of these in parallel via `Bash`:
-
-- `git status --porcelain=v1 -b` — branch name, ahead/behind, dirty state
-- `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — repo default branch
-- `git log --oneline -20` — recent commits on this branch
-- `git diff --stat` and `git diff --cached --stat` — unstaged and staged change summary
+Read the injected runtime context above. Default branch is in `## Default branch`. Branch name, ahead/behind status, dirty state, recent commits, and change summary are in `## Working tree status`, `## Recent commits`, `## Pending change summary`.
 
 **Hard stop:** if the current branch is the repo default (main/master/etc.), stop. Emit: `Refusing to create a PR from the default branch ('<name>'). Switch to a feature branch first.` Do not offer to create a branch.
 
 ### 2. Halt-trigger scan on the pending change set
 
-The "pending change set" = everything that will be in the PR: uncommitted changes (staged + unstaged) **plus** commits on this branch that aren't on the default branch yet. Get it via:
-
-```
-git diff <default-branch>...HEAD --name-only   # committed-but-unpushed/unmerged
-git status --porcelain=v1                       # uncommitted
-```
+The "pending change set" = everything that will be in the PR: uncommitted changes (staged + unstaged) **plus** commits on this branch that aren't on the default branch yet. Read it from the injected `## Files in the PR's change set` section (which contains both `git diff $DEFAULT_BRANCH...HEAD --name-only` output and `git status --porcelain=v1` output).
 
 Scan the combined file list and (where relevant) the diff content for any of the following. If **any** trigger fires, **halt** and alert the user in-chat with what was found and where. Do not auto-commit, do not push. Wait for the user to either fix it, explicitly override (`"proceed anyway"` / `"it's fine"`), or cancel.
 
@@ -77,8 +70,8 @@ Fix these or confirm they're intentional before I continue.
 
 Run both sources in parallel and dedupe:
 
-- **Branch name**: regex `\b(<PROJECT_KEY>-\d+)\b` (substitute `PROJECT_KEY` from step 0) against the current branch.
-- **Commit messages**: same regex against `git log <default-branch>..HEAD --format=%B`.
+- **Branch name**: regex `\b(<PROJECT_KEY>-\d+)\b` (substitute `PROJECT_KEY` from step 0) against the injected branch name (available in `## Working tree status`).
+- **Commit messages**: same regex against the injected `## Commit messages with bodies` section.
 
 Results:
 
@@ -91,8 +84,8 @@ Results:
 Fire the following in parallel; each is optional and degrades gracefully if empty/failing.
 
 - **Primary Jira ticket**: call `mcp__plugin_atlassian_atlassian__getJiraIssue` with `CLOUD_ID` (bound from `atlassianCloudId` in step 0) and `issueIdOrKey` set to the primary key from step 3. Use `responseContentFormat: "markdown"`. Use the returned summary + description to inform the PR's What/Why.
-- **Trellis issues**: scan both **commit messages** and the **branch name** for Trellis issue IDs. Patterns: `\b[TPEF]-[a-f0-9]{6,}\b` (task/project/epic/feature) and `\b[TPEF]-[a-z0-9-]+\b` for human-readable slugs like `F-return-failed-job-status-on`. If a pattern matches, call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each in parallel. If the branch name matches but no commit does, that's fine — still look it up. If no patterns match anywhere, skip silently.
-- **Diff content**: `git diff <default-branch>...HEAD` (full patch, but cap to the first ~500 lines when reading — for summarization purposes only). Pair with `git log <default-branch>..HEAD --format="%h %s%n%b"` for commit messages and bodies.
+- **Trellis issues**: scan both the injected `## Commit messages with bodies` section and the injected branch name for Trellis issue IDs. Patterns: `\b[TPEF]-[a-f0-9]{6,}\b` (task/project/epic/feature) and `\b[TPEF]-[a-z0-9-]+\b` for human-readable slugs like `F-return-failed-job-status-on`. If a pattern matches, call `mcp__plugin_task-trellis-teams_task-trellis__get_issue` for each in parallel. If the branch name matches but no commit does, that's fine — still look it up. If no patterns match anywhere, skip silently.
+- **Diff content**: read from the injected `## Full diff vs. default branch` section (capped at 500 lines with truncation marker) and `## Commit messages with bodies` section.
 
 If the Jira lookup fails (auth, 404, etc.), fall back to a plain link in the Jira ticket section and don't use Jira context for What/Why drafting. Mention the fallback in the final report.
 
@@ -115,27 +108,8 @@ Rules (same spirit as `create-jira-ticket`):
 
 Use this template verbatim. Every section appears — use `N/A` for sections that legitimately don't apply. Keep each section tight; reviewers know the problem space.
 
-```
-## What
-
-<Plain English prose describing what this PR accomplishes. Written to sound like a human dev wrote it — outcome-focused, minimal jargon, no implementation play-by-play. Length follows the change: a small PR gets a sentence; a bigger one gets a short paragraph. See the humanize step below — this text is passed through `planning:humanize-text` before emit.>
-
-## Why
-
-<The branch-level value this change delivers — what capability it adds, what class of problems it prevents, what contract it establishes. Answers "why do we want this whole branch?", not "why each implementation decision." Reference the triggering incident/ticket only as context, not as the answer. Also passed through `planning:humanize-text`.>
-
-## Jira ticket
-
-[<PRIMARY-KEY>](<BASE_URL>/browse/<PRIMARY-KEY>)
-<additional detected keys on subsequent lines, same link format, one per line — omit entirely if none>
-
-## Steps to Validate/Verify
-
-<what the reviewer does locally to verify. Bullet list preferred. URLs, commands, seeds, env vars. If genuinely nothing beyond normal CI / code review, write "N/A — covered by automated tests and code review.">
-
-## Additional Notes
-
-<forward-looking info a reviewer/maintainer needs that isn't obvious from the diff — flags, deploy ordering, follow-ups, non-obvious runtime impacts. Write "N/A" if none.>
+```!
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/load-pr-template.sh" "${CLAUDE_SKILL_DIR}/default-template.md"
 ```
 
 **Drafting rules:**
@@ -176,7 +150,7 @@ After `git:commit` returns, re-run `git status --porcelain` to verify the tree i
 
 ### 7. Push if needed
 
-Determine push need from the step-1 status. The `git status --porcelain=v1 -b` first line is the signal:
+Re-run `git status --porcelain=v1 -b` via Bash before deciding push action — the snapshotted status from skill load is pre-commit and stale here. The first line is the signal:
 
 - **No upstream set** — `## <branch>` with no `...` separator: `git push -u origin <branch>`.
 - **Up to date** — `## <branch>...origin/<branch>` with no `[ahead N]` or `[behind N]` suffix: skip push.
@@ -210,4 +184,4 @@ Do not echo the body back — the user can click the URL.
 ## Notes on behavior
 
 - **Don't set reviewers, assignees, or labels.** CODEOWNERS / team norms handle the rest.
-- **Respect overrides.** If the user says "skip the pre-flight check, just create it" or "use this title: ...", honor it. The halt triggers are a default, not a policy.
+- **Respect overrides.** If the user says "skip the halt-trigger scan, just create it" or "use this title: ...", honor it. The halt triggers are a default, not a policy.
