@@ -29,7 +29,7 @@ Execute these steps in order. Each step is a prerequisite for the next.
 
 Run investigation as a transient single-teammate team so the investigator can interact with the user directly via `AskUserQuestion`. The team is created, used, and torn down entirely within this step before any other team is created.
 
-Bind `JIRA_KEY` from the conductor instructions and derive `ARTIFACT_PATH = "investigations/<JIRA_KEY>.md"`. This path is the agreed contract between the lead and the teammate.
+Bind `JIRA_KEY` from the conductor instructions and derive `ARTIFACT_FILENAME = "investigation-<JIRA_KEY>.md"`. The Trellis project file store is a flat namespace — `write_project_file` rejects path separators, so this is a filename, not a path. This filename is the agreed contract between the lead and the teammate.
 
 **1a. Create the investigation team.**
 
@@ -50,7 +50,7 @@ Task({
   subagent_type: "jira-issue-orchestration:jira-investigator",
   name: "investigator-<JIRA_KEY>",
   description: "Investigation teammate for <JIRA_KEY>",
-  prompt: "Investigate Jira issue <JIRA_KEY>. Write the full artifact via mcp__plugin_task-trellis-teams_task-trellis__write_project_file to path '<ARTIFACT_PATH>'. When the file is written, SendMessage({ to: 'team-lead', summary: 'investigation complete', message: 'artifact written to <ARTIFACT_PATH>' }) and then wait for shutdown_request. If a load-bearing ambiguity arises, ask the user directly via AskUserQuestion in your own window — do not relay through the lead."
+  prompt: "Investigate Jira issue <JIRA_KEY>. Write the full artifact via mcp__plugin_task-trellis-teams_task-trellis__write_project_file with filename '<ARTIFACT_FILENAME>'. When the file is written, SendMessage({ to: 'team-lead', summary: 'investigation complete', message: 'artifact written to <ARTIFACT_FILENAME>' }) and then wait for shutdown_request. If a load-bearing ambiguity arises, ask the user directly via AskUserQuestion in your own window — do not relay through the lead."
 })
 ```
 
@@ -63,7 +63,7 @@ If the teammate instead reports a blocker via `SendMessage` (missing access, amb
 **1d. Read the artifact.**
 
 ```
-mcp__plugin_task-trellis-teams_task-trellis__read_project_file({ path: "<ARTIFACT_PATH>" })
+mcp__plugin_task-trellis-teams_task-trellis__read_project_file({ filename: "<ARTIFACT_FILENAME>" })
 ```
 
 Bind the file contents as the artifact for step 3. If the read fails or returns empty, `SendMessage` the teammate to retry the write before proceeding to teardown.
