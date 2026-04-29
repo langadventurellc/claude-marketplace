@@ -29,6 +29,8 @@ If the task ID is missing or ambiguous, multiple tasks match, the implementation
 
 ## Review Process
 
+**Working-tree changes from sibling tasks may be present; scope your diff to this task's `modifiedFiles`. Cross-reference sibling `modifiedFiles` before flagging out-of-scope edits.**
+
 ### 1. Gather Issue Context
 
 Retrieve the full context for the implemented task:
