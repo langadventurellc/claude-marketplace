@@ -1,13 +1,16 @@
 ---
 name: manage-planning-team
-description: Internal skill. Runs inside the planning sub-session. Invokes investigate-jira-issue to produce a requirements artifact, then invokes create-trellis-issues to create Trellis issues from it. Signals completion to the conductor when done.
+description: Internal skill. Runs inside the planning sub-session. Spawns a single-teammate investigation team to run investigate-jira-issue, then invokes create-trellis-issues to create Trellis issues from the artifact. Signals completion to the conductor when done.
 user-invocable: false
 effort: medium
 allowed-tools:
-  - AskUserQuestion
   - Skill
   - Task
+  - TeamCreate
+  - TeamDelete
+  - SendMessage
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
+  - mcp__plugin_task-trellis-teams_task-trellis__read_project_file
 ---
 
 # manage-planning-team
@@ -26,24 +29,62 @@ The Jira issue key is provided in the instructions delivered by the conductor at
 
 Execute these steps in order. Each step is a prerequisite for the next.
 
-### 1. Investigate the Jira issue
+### 1. Investigate the Jira issue (single-teammate team)
 
-Delegate investigation to the `jira-investigator` subagent via the `Task` tool. The subagent runs `investigate-jira-issue` in its own context and returns only the artifact.
+Run investigation as a transient single-teammate team so the investigator can interact with the user directly via `AskUserQuestion` (a subagent cannot — only a teammate can). The team is created, used, and torn down entirely within this step before any other team is created.
+
+Bind `JIRA_KEY` from the conductor instructions and derive `ARTIFACT_PATH = "investigations/<JIRA_KEY>.md"`. This path is the agreed contract between the lead and the teammate.
+
+**1a. Create the investigation team.**
 
 ```
-Task({
-  subagent_type: "jira-issue-orchestration:jira-investigator",
-  prompt: "Investigate the Jira issue <JIRA_KEY> and return the full artifact as your final message. The Jira key is: <JIRA_KEY received from conductor instructions>"
+TeamCreate({
+  team_name: "jira-investigation-<JIRA_KEY>",
+  description: "Single-teammate investigation team for <JIRA_KEY> — runs investigate-jira-issue and persists the artifact to a Trellis project file."
 })
 ```
 
-The prompt must be self-contained — the subagent starts from cold context with no access to the planning session. Pass the Jira key explicitly and instruct the subagent to return the full artifact (not a summary) as its final message.
+**1b. Spawn the investigator teammate.**
 
-Capture the `Task` return value as the artifact. This is the requirements summary or discovery document used in step 4.
+Do NOT pass a `model` parameter to `Task`. Agent frontmatter is authoritative; the `Task`-tool `model` enum strips the `[1m]` context-window variant declared in frontmatter and silently downgrades the teammate.
+
+```
+Task({
+  team_name: "jira-investigation-<JIRA_KEY>",
+  subagent_type: "jira-issue-orchestration:jira-investigator",
+  name: "investigator-<JIRA_KEY>",
+  description: "Investigation teammate for <JIRA_KEY>",
+  prompt: "Investigate Jira issue <JIRA_KEY>. Write the full artifact via mcp__plugin_task-trellis-teams_task-trellis__write_project_file to path '<ARTIFACT_PATH>'. When the file is written, SendMessage({ to: 'team-lead', summary: 'investigation complete', message: 'artifact written to <ARTIFACT_PATH>' }) and then wait for shutdown_request. If a load-bearing ambiguity arises, ask the user directly via AskUserQuestion in your own window — do not relay through the lead."
+})
+```
+
+**1c. Wait for the teammate's completion signal.**
+
+Block until `SendMessage` arrives from `investigator-<JIRA_KEY>` containing `artifact written`. While you wait, the teammate may surface `AskUserQuestion` prompts directly to the user — that is intended; do not intervene.
+
+If the teammate instead reports a blocker via `SendMessage` (missing access, ambiguous Jira key, etc.), surface it to the user via `AskUserQuestion`, reply to the teammate via `SendMessage`, and continue waiting.
+
+**1d. Read the artifact.**
+
+```
+mcp__plugin_task-trellis-teams_task-trellis__read_project_file({ path: "<ARTIFACT_PATH>" })
+```
+
+Bind the file contents as the artifact for step 3. If the read fails or returns empty, `SendMessage` the teammate to retry the write before proceeding to teardown.
+
+**1e. Shut down and tear down.**
+
+```
+SendMessage({ to: "investigator-<JIRA_KEY>", message: { type: "shutdown_request" } })
+// wait for shutdown_response
+TeamDelete()
+```
+
+`TeamDelete` takes no parameters and resolves the team from session context. The investigation team **must be fully torn down here** — `create-trellis-issues` in step 3 calls `TeamCreate` itself, and only one team can be active in this session at a time.
 
 ### 2. Heartbeat to the conductor
 
-The moment the `Task` in step 1 returns the artifact, immediately call `send-message-to-conductor` with an informational heartbeat:
+Immediately after the investigation team is torn down, call `send-message-to-conductor` with an informational heartbeat:
 
 ```
 mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning: investigation complete, creating Trellis issues" })
@@ -51,28 +92,19 @@ mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conduc
 
 This is not optional and is not contingent on anything. Do not pause to ask the user about the handoff — that decision is already made by this skill. The heartbeat is purely informational; the conductor does not act on it. After the heartbeat returns, proceed to step 3.
 
-### 3. Clarify if needed
+### 3. Create Trellis issues
 
-If the investigation surfaced ambiguity or missing information that must be resolved before creating Trellis issues, ask the user **directly in this sub's terminal window** using `AskUserQuestion`.
-
-- Do NOT relay questions to the conductor via IPC.
-- The user is watching this window; ask here and wait for their answer.
-- If there are no blocking ambiguities, skip this step.
-- Only proceed to step 4 once all blocking ambiguities are resolved.
-
-### 4. Create Trellis issues
-
-Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact produced in step 1 (and incorporating any clarifications from step 3).
+Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact bound in step 1d.
 
 ```
-Skill({ skill: "task-trellis-teams:create-trellis-issues", args: "<artifact from step 1>" })
+Skill({ skill: "task-trellis-teams:create-trellis-issues", args: "<artifact from step 1d>" })
 ```
 
 A planning run produces **exactly one root Trellis issue** for the Jira ticket — typically a feature (`F-…`), but may be an epic (`E-…`) or project (`P-…`) for larger work.
 
-Wait for `create-trellis-issues` to complete, then capture the **root Trellis issue ID** from its summary (the "Parent" entry in its `## Issue Creation Complete` block, or the topmost issue in `### Created Issues` when the run created the root itself). Bind it as `TRELLIS_SCOPE` for step 5.
+Wait for `create-trellis-issues` to complete, then capture the **root Trellis issue ID** from its summary (the "Parent" entry in its `## Issue Creation Complete` block, or the topmost issue in `### Created Issues` when the run created the root itself). Bind it as `TRELLIS_SCOPE` for step 4.
 
-### 5. Signal completion
+### 4. Signal completion
 
 Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with the bound `channelId` and a single-line done message that carries `TRELLIS_SCOPE` in the format `scope=<id>`:
 
@@ -87,6 +119,7 @@ The message **must not contain embedded newlines** (`\n` or `\r`). The tool reje
 ## Key Constraints
 
 - **No Monitor arming.** The sub's `c2s.log` Monitor is already armed by the IPC preamble. This skill does not use the `Monitor` tool.
-- **Ask users directly.** All clarification questions go to the user in this window via `AskUserQuestion` — never through the conductor via IPC.
+- **One team at a time.** The investigation team in step 1 must be deleted before step 3 invokes `create-trellis-issues` (which creates its own team). `TeamDelete` resolves the team from session context, so leaving the investigation team active will collide.
+- **Teammate, not subagent.** Investigation runs as a teammate so the user can answer `AskUserQuestion` prompts in real time. Do not revert step 1 to a `Task` subagent invocation — a subagent cannot interact with the user.
 - **Single-line IPC messages.** `send-message-to-conductor` rejects any message containing `\n` or `\r`. Keep the completion signal on one line.
 - **Do not modify `create-trellis-issues`.** Invoke it as-is; it is out of scope.
