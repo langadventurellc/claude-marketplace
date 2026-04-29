@@ -8,8 +8,6 @@ allowed-tools:
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor
 ---
 
-# manage-implementation-team
-
 ## Context
 
 This skill is injected as the sub's user prompt by `conduct-orchestration-team --team-type implementation`. The sub's `Monitor` (watching `c2s.log`) is already armed by the IPC preamble before this skill runs — **do not arm a Monitor here**.
@@ -59,4 +57,3 @@ The message must contain **no embedded newlines** (`\n` or `\r`). Encode everyth
 - **Single-line IPC messages.** `send-message-to-conductor` rejects messages with embedded newlines. Keep the completion message on one line.
 - **No separate testing step.** `implement-trellis-issues` runs its own tests. Do not invoke a QA or testing team.
 - **No Jira issue updates.** Do not call any Jira MCP tools.
-- **Do not modify `implement-trellis-issues` or `create-pr`.** Invoke them as-is.

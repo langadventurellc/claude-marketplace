@@ -13,10 +13,6 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__read_project_file
 ---
 
-# manage-planning-team
-
-Internal skill that executes inside the planning sub-session.
-
 ## Context
 
 This skill runs in a freshly spawned Claude Code sub-instance in its own terminal/tmux window. The sub's `Monitor` (watching `c2s.log`) is **already armed by the IPC preamble** injected by the launcher. Do NOT arm a Monitor here — doing so is unnecessary and may interfere with the preamble's tail.
@@ -31,7 +27,7 @@ Execute these steps in order. Each step is a prerequisite for the next.
 
 ### 1. Investigate the Jira issue (single-teammate team)
 
-Run investigation as a transient single-teammate team so the investigator can interact with the user directly via `AskUserQuestion` (a subagent cannot — only a teammate can). The team is created, used, and torn down entirely within this step before any other team is created.
+Run investigation as a transient single-teammate team so the investigator can interact with the user directly via `AskUserQuestion`. The team is created, used, and torn down entirely within this step before any other team is created.
 
 Bind `JIRA_KEY` from the conductor instructions and derive `ARTIFACT_PATH = "investigations/<JIRA_KEY>.md"`. This path is the agreed contract between the lead and the teammate.
 
@@ -82,17 +78,7 @@ TeamDelete()
 
 `TeamDelete` takes no parameters and resolves the team from session context. The investigation team **must be fully torn down here** — `create-trellis-issues` in step 3 calls `TeamCreate` itself, and only one team can be active in this session at a time.
 
-### 2. Heartbeat to the conductor
-
-Immediately after the investigation team is torn down, call `send-message-to-conductor` with an informational heartbeat:
-
-```
-mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor({ channelId: "<channelId>", message: "planning: investigation complete, creating Trellis issues" })
-```
-
-This is not optional and is not contingent on anything. Do not pause to ask the user about the handoff — that decision is already made by this skill. The heartbeat is purely informational; the conductor does not act on it. After the heartbeat returns, proceed to step 3.
-
-### 3. Create Trellis issues
+### 2. Create Trellis issues
 
 Invoke `create-trellis-issues` (from the `task-trellis-teams` plugin dependency) via the `Skill` tool, passing the artifact bound in step 1d.
 
@@ -104,7 +90,7 @@ A planning run produces **exactly one root Trellis issue** for the Jira ticket �
 
 Wait for `create-trellis-issues` to complete, then capture the **root Trellis issue ID** from its summary (the "Parent" entry in its `## Issue Creation Complete` block, or the topmost issue in `### Created Issues` when the run created the root itself). Bind it as `TRELLIS_SCOPE` for step 4.
 
-### 4. Signal completion
+### 3. Signal completion
 
 Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-conductor` with the bound `channelId` and a single-line done message that carries `TRELLIS_SCOPE` in the format `scope=<id>`:
 
@@ -120,6 +106,5 @@ The message **must not contain embedded newlines** (`\n` or `\r`). The tool reje
 
 - **No Monitor arming.** The sub's `c2s.log` Monitor is already armed by the IPC preamble. This skill does not use the `Monitor` tool.
 - **One team at a time.** The investigation team in step 1 must be deleted before step 3 invokes `create-trellis-issues` (which creates its own team). `TeamDelete` resolves the team from session context, so leaving the investigation team active will collide.
-- **Teammate, not subagent.** Investigation runs as a teammate so the user can answer `AskUserQuestion` prompts in real time. Do not revert step 1 to a `Task` subagent invocation — a subagent cannot interact with the user.
 - **Single-line IPC messages.** `send-message-to-conductor` rejects any message containing `\n` or `\r`. Keep the completion signal on one line.
 - **Do not modify `create-trellis-issues`.** Invoke it as-is; it is out of scope.
