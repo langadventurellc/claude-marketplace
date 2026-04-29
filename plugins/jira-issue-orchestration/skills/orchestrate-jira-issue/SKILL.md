@@ -7,7 +7,6 @@ allowed-tools:
   - Monitor
   - Skill
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config
-  - mcp__plugin_jira-issue-orchestration_issue-orchestration__set-config
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor
   - mcp__plugin_jira-issue-orchestration_issue-orchestration__stop-orchestration-team
   - mcp__plugin_atlassian_atlassian__getJiraIssue
@@ -33,14 +32,13 @@ If `<issue_id>` is not provided, ask for it with `AskUserQuestion` before procee
 
 ## Workflow
 
-### Phase 0 — Configuration setup
+### Phase 0 — Configuration check
 
 Required keys: `atlassianBaseUrl`, `atlassianCloudId`, `jiraProjectKey`.
 
-1. Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Read the returned `values` object.
-2. For each required key missing or empty in `values`, ask the user with `AskUserQuestion` to provide it.
-3. If any keys were collected from the user, persist them in a single `mcp__plugin_jira-issue-orchestration_issue-orchestration__set-config` call: `{ values: { <collected keys> } }`.
-4. Bind `CLOUD_ID` ← `atlassianCloudId` for the `getJiraIssue` call in Phase 1.
+1. Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments.
+2. If any of `atlassianBaseUrl`, `atlassianCloudId`, or `jiraProjectKey` is missing or empty in the returned `values`, stop with: `Config missing or incomplete. Run /configure-jira-orchestration to set it up, then re-run this skill.`
+3. Bind `CLOUD_ID` ← `atlassianCloudId` for the `getJiraIssue` call in Phase 1.
 
 ### Phase 1 — Initialization
 
