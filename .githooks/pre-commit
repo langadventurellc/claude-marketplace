@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Rebuild the jira-issue-orchestration MCP bundle when its sources are staged,
-# then add the bundle to the same commit if it changed.
+# Pre-commit:
+#   1. Run Prettier on staged TS/Markdown/JSON files; restage anything it rewrites.
+#   2. Rebuild the jira-issue-orchestration MCP bundle when its sources are staged,
+#      then add the bundle to the same commit if it changed.
 
 set -euo pipefail
 
@@ -9,6 +11,22 @@ BUNDLE_PATH="$MCP_DIR/bundle/server.js"
 TRIGGER_REGEX="^$MCP_DIR/(src/|package(-lock)?\.json$)"
 
 staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+# --- Prettier on staged files ---
+fmt_files="$(grep -E '\.(ts|md|json)$' <<<"$staged" || true)"
+if [ -n "$fmt_files" ]; then
+  if [ ! -x "node_modules/.bin/prettier" ]; then
+    echo "[pre-commit] prettier not found in root node_modules. Run:" >&2
+    echo "  npm install" >&2
+    exit 1
+  fi
+  echo "[pre-commit] Running prettier on staged files..."
+  # --ignore-unknown silently skips paths matched by .prettierignore.
+  tr '\n' '\0' <<<"$fmt_files" | xargs -0 node_modules/.bin/prettier --write --ignore-unknown
+  # Restage only the files we handed to prettier.
+  tr '\n' '\0' <<<"$fmt_files" | xargs -0 git add --
+fi
+
 if ! grep -qE "$TRIGGER_REGEX" <<<"$staged"; then
   exit 0
 fi
