@@ -55,14 +55,7 @@ Env var naming: **`TT_{NAME}`**. The `TT_` prefix namespaces all override knobs 
 
 Files under `plugins/*/skills/`, `plugins/*/agents/`, `plugins/*/commands/`, `plugins/*/hooks/`, and `plugins/*/.claude-plugin/` are **runtime code**, not documentation. They define what the plugin does at runtime — adding one is shipping a new entry point, not writing about one.
 
-Apply SemVer accordingly to the affected plugin's `plugin.json`:
-
-- **Minor bump** — adding a new skill, agent, command, hook, or MCP tool. New entry point = new feature.
-- **Major bump** — removing or breaking-changing an existing skill/agent/command/hook (renaming, changing required args, removing tool calls callers depend on).
-- **Patch bump** — tweaking wording, fixing a typo, refining instructions inside an existing skill/agent/command/hook without changing its surface.
-- **README.md / CLAUDE.md / other prose docs** — these are real documentation; edits to them do not require a version bump.
-
-**Default to invoking `planning:versioning` rather than picking a number by hand** — it's project-type aware and already encodes the rule above. Hand-picking versions tends to anchor on the last commit's bump level instead of classifying the actual change.
+**Invoke `planning:versioning` if the user requests a version bump**
 
 ## User Installation
 

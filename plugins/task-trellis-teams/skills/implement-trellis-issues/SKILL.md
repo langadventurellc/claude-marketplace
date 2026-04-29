@@ -34,7 +34,7 @@ Prohibited lead actions:
 Enforcement heuristic: If you find yourself about to call `Edit`, `Write`, or `update_issue` on a child — STOP and ask: is this a teammate's job? It almost certainly is.
 </critical>
 
-Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's experimental **Agent Teams** feature. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
+Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's **Agent Teams** API. The lead MUST call `TeamCreate` once at the start of the run; pair spawns and `SendMessage` routing depend on the team being live. A bare `Task` call with a `name` parameter does NOT join the team — it spawns a detached subagent that will appear to work (its name resolves for `SendMessage`) but is outside the team's coordination guarantees. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
 
 ## Goal
 
@@ -111,7 +111,17 @@ Stash the captured SHA on the run — it is passed into the docs-updater task bo
 
 ## Team Creation
 
-Create an agent team for this run. Use a short, scope-descriptive team name (e.g., `impl-F-add-user-auth`). The team lives for the duration of the run and is torn down at the end.
+Call `TeamCreate` exactly once at the start of the run, before any pair spawn. The team lives for the duration of the run and is torn down by `TeamDelete()` in §3 cleanup.
+
+```
+TeamCreate({
+  team_name: "impl-<scope-id>",       // e.g. "impl-F-add-user-auth"
+  agent_type: "team-lead",
+  description: "Implementation run for <scope-id>"
+})
+```
+
+Use a short, scope-descriptive `team_name` (e.g., `impl-F-add-user-auth`). Every later `Task` spawn for a teammate in this run MUST pass `team_name: "impl-<scope-id>"` so the spawn joins this team rather than running detached.
 
 Team size: lead plus up to the maximum number of concurrent pairs you plan to run. Because each pair is two teammates, two concurrent pairs need four teammate slots plus the lead.
 
@@ -172,6 +182,8 @@ Persist the name→ID map for the run so you can reference these tasks in later 
 This dependency blocks the review task-list entry until the impl entry is marked `completed`, so the reviewer cannot claim it early.
 
 ### 2. Spawn a fresh pair
+
+<critical>Each `Task` spawn here MUST pass `team_name: "impl-<scope-id>"` (the team created in §Team Creation). Omitting `team_name` falls back to a detached subagent — `SendMessage` to a `name`d subagent will succeed regardless, so a working `SendMessage` is NOT evidence that you are operating inside the team.</critical>
 
 Spawn two teammates tied to this one task:
 
