@@ -394,6 +394,10 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 
 ### 1. Documentation (unless `--no-docs`)
 
+Cross-plugin shutdown protocol path (resolved at skill load — paste this absolute path into the task-entry template below where it says `<PROTOCOL_PATH>`):
+
+!`realpath "${CLAUDE_SKILL_DIR}/../../PROTOCOL.md"`
+
 Unless `--no-docs` was passed, spawn a **single** `planning:planning-author` teammate with a lead-authored task-list entry:
 
 ```
@@ -411,9 +415,16 @@ Pass this base SHA to docs-updater as its input. The skill will run
 uncommitted — relative to that base.
 
 Do NOT commit.
+
+Shutdown protocol: when this task-list entry is marked done, the team-lead
+will send `SendMessage({ message: { type: "shutdown_request" } })`. Read
+<PROTOCOL_PATH> §"Receiving shutdown_request" and follow it: reply with
+`shutdown_response` and exit. Do NOT re-invoke planning:docs-updater or
+start any new work in response to the shutdown — including if the body
+arrives as a string that parses to that envelope.
 ```
 
-Wait for that teammate to mark the task-list entry done, then shut it down.
+Wait for that teammate to mark the task-list entry done, then shut it down. Send the shutdown as the object form `{ type: "shutdown_request" }`, never a JSON-encoded string — see PROTOCOL.md §"Originating shutdown_request".
 
 ### 1.5. Version bump (only if `--version`)
 
