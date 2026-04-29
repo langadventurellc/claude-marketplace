@@ -1,6 +1,6 @@
 ---
 name: create-jira-issue
-description: Creates a Jira issue in the project's configured Jira instance from a free-form description. Use when the user says "create a Jira ticket", "file a Jira issue", "open a Jira ticket", "log a bug in Jira", "make a new Jira ticket", or "report this in Jira". Drafts an outcome-focused summary and a structured description, humanizes the prose sections, shows the draft, and waits for explicit user confirmation before submitting. Reads the project key, base URL, and cloud ID from the per-project configuration persisted by `/orchestrate-jira-issue`.
+description: Creates a Jira issue in the project's configured Jira instance from a free-form description. Use when the user says "create a Jira ticket", "file a Jira issue", "open a Jira ticket", "log a bug in Jira", "make a new Jira ticket", or "report this in Jira". Drafts an outcome-focused summary and a structured description, humanizes the prose sections, shows the draft, and waits for explicit user confirmation before submitting.
 allowed-tools:
   - AskUserQuestion
   - Skill
@@ -26,7 +26,13 @@ Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with
 
 ### 1. Gather input
 
-Required: a free-form description of what the issue is about — what's broken, what needs to be built, what change is wanted. If the user invoked the skill with no payload, ask once via `AskUserQuestion` for the description before doing anything else.
+Required: a free-form description of what the issue is about — what's broken, what needs to be built, what change is wanted.
+
+Source the description in this order:
+
+1. If the skill was invoked with explicit instructions/payload, use that.
+2. Otherwise, derive it from the current conversation — the issue the user has been discussing, the bug just diagnosed, the feature just scoped. The conversation *is* the input; do not pre-confirm.
+3. Only if there are no instructions and no conversation context to draw from, ask once via `AskUserQuestion` for the description before doing anything else.
 
 Do not ask which Jira project to use. The project is fixed by `PROJECT_KEY` from step 0.
 
