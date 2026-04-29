@@ -17,8 +17,6 @@ Keep project documentation in sync with the code. Invoked at the end of an imple
 
 A **base ref** (commit SHA or branch ref) supplied by the caller. The skill diffs the working tree against it.
 
-**Version bumps are out of scope for this skill.** Use `planning:versioning` separately when a version bump is needed.
-
 ## Process
 
 ### 1. Establish what changed

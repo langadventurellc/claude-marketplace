@@ -44,9 +44,11 @@ Retrieve the full context for the implemented task:
 
 In a multi-task run the working tree may contain changes from sibling tasks on the same branch. Scope your review to the files this task actually changed:
 
-1. Run `git diff --stat <base-branch>...HEAD` to see the full branch diff. Compare this output against the task's `modifiedFiles` list.
-2. For each file in `modifiedFiles`: run `git diff <base-branch>...HEAD -- <file>` to see only that file's changes, then `Read` the full file for context.
+1. Run `git diff --stat <base-branch>` to see the full branch diff. Compare this output against the task's `modifiedFiles` list.
+2. For each file in `modifiedFiles`: run `git diff <base-branch> -- <file>` to see only that file's changes, then `Read` the full file for context.
 3. **Flag mismatches**: If a file appears in `git diff --stat` output but is absent from `modifiedFiles`, that is a blocking finding — the developer self-report is incomplete. If a file is in `modifiedFiles` but has no diff, note it (may indicate a no-op or stale entry).
+
+These commands cover tracked-file changes whether committed or not. The three-dot `<base>...HEAD` form skips the working tree and returns empty when the developer left changes uncommitted — do not use it. Run `git status --short` and `Read` any untracked files directly; `git diff` does not list them.
 
 Do NOT review files outside `modifiedFiles` as part of this task's correctness check. Off-scope files may have been changed by sibling tasks and are not your responsibility here.
 

@@ -161,7 +161,7 @@ Scope: <brief, lead-authored scope for this child>.
 
 Requirements: `TaskGet taskId="<requirementsTaskId>"` — single source of truth; read before creating.
 
-Skill: `task-trellis-teams:issue-creation` (or read `plugins/task-trellis-teams/skills/issue-creation/SKILL.md` directly).
+Skill: `task-trellis-teams:issue-creation`
 
 After creating:
 1. Store the created ID: `TaskUpdate({ taskId: <THIS_TASK_ID>, metadata: { createdIssueId: "<T-xxx>" } })`
@@ -193,7 +193,7 @@ Issue ID: `TaskGet(<CREATE_TASK_ID>)` → `metadata.createdIssueId`.
 
 Requirements: `TaskGet taskId="<requirementsTaskId>"` — single source of truth; read before reviewing.
 
-Skill: `task-trellis-teams:issue-creation-review` (or read `plugins/task-trellis-teams/skills/issue-creation-review/SKILL.md` directly).
+Skill: `task-trellis-teams:issue-creation-review`
 
 Paired writer: `writer-<level>-<parent-id>`.
 

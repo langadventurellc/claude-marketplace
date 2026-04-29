@@ -134,7 +134,7 @@ Claim and read the task body in one call: `mcp__plugin_task-trellis-teams_task-t
 
 If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on any path.
 
-Skill: `task-trellis-teams:issue-implementation` (or read `plugins/task-trellis-teams/skills/issue-implementation/SKILL.md` directly).
+Skill: `task-trellis-teams:issue-implementation`
 
 Paired reviewer: <reviewer teammate name>. Send them a pointer-only `SendMessage` naming the review task-list task ID when done.
 
@@ -148,7 +148,7 @@ Review implementation of Trellis task T-<task-id> (<task title>).
 
 Parent feature: F-<feature-id> (<feature title>)
 
-Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly).
+Skill: `task-trellis-teams:issue-implementation-review`
 
 Paired developer: <developer teammate name>.
 
@@ -339,7 +339,7 @@ Perform a Cross-Task Coherence Review for the sibling tasks implemented under <f
 
 Implemented task IDs: <comma-separated list of T-xxx IDs>
 
-Skill: `task-trellis-teams:issue-implementation-review` (or read `plugins/task-trellis-teams/skills/issue-implementation-review/SKILL.md` directly).
+Skill: `task-trellis-teams:issue-implementation-review`
 
 Follow the "Cross-Task Coherence Review" section of that skill. Read each implemented task via `get_issue`, examine all modified files across the sibling set, and produce findings in `## Review Findings` format.
 
@@ -376,7 +376,7 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
    - The paired developer teammate name (e.g., `dev-reconcile-<scope>`).
    - The coherence review findings being resolved (copy the findings inline or reference the coherence review task entry).
    - The list of files expected to be touched (same list as the developer entry), plus the base branch to diff against.
-   - **Review procedure (reconciliation carve-out):** Review the changes by running `git diff <base-branch>...HEAD -- <file1> <file2> ...` against the findings enumerated in the developer entry. Read each changed file for context. Verify each finding is resolved in the diff. Do NOT call `get_issue`, `claim_task`, `complete_task`, or `append_modified_files` — there is no corresponding Trellis task for this pass. Do NOT rely on `modifiedFiles` metadata.
+   - **Review procedure (reconciliation carve-out):** Review the changes by running `git diff <base-branch> -- <file1> <file2> ...` against the findings enumerated in the developer entry. The reconciliation developer applies fixes directly to the working tree without committing, so use `git diff <base-branch>` (no `...HEAD`) — the three-dot form skips uncommitted changes and returns empty here. Run `git status --short` and `Read` any untracked files directly; `git diff` does not list them. Read each changed file for context. Verify each finding is resolved in the diff. Do NOT call `get_issue`, `claim_task`, `complete_task`, or `append_modified_files` — there is no corresponding Trellis task for this pass. Do NOT rely on `modifiedFiles` metadata.
    - **Carve-out note (named exception to the standard reviewer blocking-guard):** For a reconciliation-pass review, an empty/absent `modifiedFiles` list and a non-`done` Trellis task status are NOT blocking findings — the standard blocking-guard from `task-trellis-teams:issue-implementation` §5 (which blocks review when `modifiedFiles` is empty or the Trellis task is not `done`) does NOT apply here.
    - **Approval / findings flow:** If there are no blocking findings, mark this task-list entry `completed` via `TaskUpdate`. On findings, send a single `SendMessage` to the paired developer with findings grouped by severity (standard fix-cycle pattern) and wait for the developer's fix-ready nudge before re-reviewing.
 3. Spawn a fresh developer and reviewer pair (same model selection rules as per-issue pairs). Name them clearly (e.g., `dev-reconcile-<scope>`, `rev-reconcile-<scope>`).
@@ -410,13 +410,7 @@ Pass this base SHA to docs-updater as its input. The skill will run
 `git diff <base>` to see every change on the branch — committed and
 uncommitted — relative to that base.
 
-If the `Skill` tool is unavailable to you as a teammate, open
-`plugins/planning/skills/docs-updater/SKILL.md` directly and follow it.
-
-Do NOT commit. The lead owns the commit step.
-
-Do NOT bump any version files. The lead invokes `planning:versioning`
-separately in §1.5 if `--version` was passed.
+Do NOT commit.
 ```
 
 Wait for that teammate to mark the task-list entry done, then shut it down.

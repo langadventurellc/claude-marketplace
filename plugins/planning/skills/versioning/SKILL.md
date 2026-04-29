@@ -44,8 +44,6 @@ Determine the base branch and capture the change set:
 git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'
 ```
 
-Fall back to `main`, then `master` if the symbolic-ref command fails.
-
 Then:
 
 ```bash

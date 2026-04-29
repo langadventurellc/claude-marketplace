@@ -17,8 +17,6 @@ Skill(skill="planning:docs-updater", args="<identifier, description, or git ref 
 
 Do not read files, search code, or analyze anything before invoking the skill — the skill contains your complete workflow.
 
-If the `Skill` tool is unavailable in your context, read the skill file directly with the `Read` tool (at `<plugin-root>/plugins/planning/skills/docs-updater/SKILL.md` in the repo, or the installed plugin path) and follow its workflow.
-
 ## Error Handling
 
 If you encounter errors (permission denied, skill not found, tool unavailable) while invoking the skill or completing the work, **STOP** and report the exact error back to your caller. Do NOT attempt workarounds. Do NOT try to perform the task without the required skill or permissions.
