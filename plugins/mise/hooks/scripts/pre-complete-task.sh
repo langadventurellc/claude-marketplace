@@ -4,10 +4,10 @@
 # Runs quality checks and tests before completing tasks
 
 set -euo pipefail
-trap 'rc=$?; echo "" >&2; echo "❌ Mise hook script failed unexpectedly (exit $rc near line $LINENO)." >&2; echo "There is a problem with the hooks themselves — not with your code changes." >&2; echo "STOP IMMEDIATELY, inform the user, and wait for direction before continuing." >&2; exit 2' ERR
+trap 'rc=$?; echo "" >&2; echo "❌ Mise hook script failed unexpectedly (exit $rc near line $LINENO)." >&2; echo "There is a problem with the hooks themselves — not with your code changes." >&2; echo "stop immediately, inform the user, and wait for direction before continuing." >&2; exit 2' ERR
 
 # Limit output to prevent overwhelming the context window
-MAX_LINES=100
+MAX_LINES=25
 
 # Only run in git repos with mise configured
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
@@ -36,7 +36,7 @@ print_failure() {
     {
         echo "❌ ${check_name} failed."
         echo "  • Consider fixing the issues before continuing — they may be caused by your recent changes."
-        echo "  • If the problem persists or seems unrelated to your changes, STOP IMMEDIATELY, inform the user, and wait for direction."
+        echo "  • If the problem persists or seems unrelated to your changes, stop immediately, inform the user, and wait for direction."
         echo "  • After fixing, continue with your original task — do not stop just because this hook fired."
     } >&2
 }
