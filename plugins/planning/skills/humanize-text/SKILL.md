@@ -27,16 +27,17 @@ Treat everything in `$ARGUMENTS` as text to be humanized. Do not decide that som
   - It only names a file path or location and adds no new fact ("change wired up in `path/to/file.ex`").
   - It's a generic non-regression statement ("no regression in startup time", "existing tests still pass").
   - It restates something already implied by another bullet you're keeping.
-  - It describes test-suite plumbing rather than a user-visible outcome ("unit test added in `test/foo_test.exs`" — drop unless the *kind* of test coverage is itself the point).
+  - It describes test-suite plumbing rather than a user-visible outcome ("unit test added in `test/foo_test.exs`" — drop unless the _kind_ of test coverage is itself the point).
 
   Keep a bullet when it establishes a distinct capability, behavior, or outcome the reader needs to know about. When in doubt, drop — a tighter list is more useful than an exhaustive one.
+
 - **No invented facts.** Don't add details that aren't in the source. If something is unclear, leave it out rather than guess.
 
 ## Output
 
 Return **only the rewritten text**. No preamble. No headings (unless the destination surface obviously needs them). No notes about what changed. No code fences around the result. The caller will paste your response directly into the destination field.
 
-The fenced blocks in the examples below are documentation formatting only — your output is the text *inside* the fences, with no fences of your own.
+The fenced blocks in the examples below are documentation formatting only — your output is the text _inside_ the fences, with no fences of your own.
 
 ## Examples
 

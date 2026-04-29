@@ -33,7 +33,7 @@ Orchestrates issue creation and implementation through Claude Code's Agent Teams
 
 The skills that make the orchestration land cleanly. Useful on their own; depended on by `task-trellis-teams`.
 
-- `discovery` — router-style read-only investigation skill. Classifies the request into a discovery type (technical-code, agentic-dev, tool-research, documentation, or general) and runs the matching playbook. Produces an impact-and-recommendations report instead of code. Run this *before* asking for issues; well-scoped specs come out the other side. Set `TT_DISCOVERY_PLAYBOOK` to a readable file path to swap the type router for your own playbook for the rest of the session.
+- `discovery` — router-style read-only investigation skill. Classifies the request into a discovery type (technical-code, agentic-dev, tool-research, documentation, or general) and runs the matching playbook. Produces an impact-and-recommendations report instead of code. Run this _before_ asking for issues; well-scoped specs come out the other side. Set `TT_DISCOVERY_PLAYBOOK` to a readable file path to swap the type router for your own playbook for the rest of the session.
 - `requirements-creation` — turns a vague change request into structured What / Where / Why / Done requirements through focused conversation.
 - `create-implementation-plan` — generates a detailed `## Implementation Plan` block for a Trellis coding task, called by the issue-writer agent so the eventual developer can implement without re-deriving the approach.
 - `docs-updater` — reviews a body of work (git ref range, ticket, or description) and updates README, CLAUDE.md, AGENTS.md, and `docs/` so they don't drift behind the code.
@@ -95,14 +95,14 @@ The `install-hooks` step points git at `.githooks/`, which contains a pre-commit
 
 All tasks delegate to npm scripts in `plugins/jira-issue-orchestration/mcp-server/`:
 
-| Task | Description |
-|------|-------------|
-| `mise run lint` | ESLint on `src/**/*.ts` in `mcp-server/` |
-| `mise run type-check` | TypeScript type check (`tsc --noEmit`) in `mcp-server/` |
-| `mise run quality` | Aggregates `lint` + `type-check` |
-| `mise run test` | Vitest (`--passWithNoTests`) in `mcp-server/` |
-| `mise run bundle` | esbuild-bundle the MCP server to `mcp-server/bundle/server.js` |
-| `mise run install-hooks` | Point git at `.githooks/` so commit-time bundling runs |
+| Task                     | Description                                                    |
+| ------------------------ | -------------------------------------------------------------- |
+| `mise run lint`          | ESLint on `src/**/*.ts` in `mcp-server/`                       |
+| `mise run type-check`    | TypeScript type check (`tsc --noEmit`) in `mcp-server/`        |
+| `mise run quality`       | Aggregates `lint` + `type-check`                               |
+| `mise run test`          | Vitest (`--passWithNoTests`) in `mcp-server/`                  |
+| `mise run bundle`        | esbuild-bundle the MCP server to `mcp-server/bundle/server.js` |
+| `mise run install-hooks` | Point git at `.githooks/` so commit-time bundling runs         |
 
 ### Marketplace mise plugin automation
 

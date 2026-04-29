@@ -1,0 +1,8 @@
+{
+  "name": "claude-marketplace",
+  "private": true,
+  "description": "Tooling-only manifest for repo-wide formatting. Plugin packages live under plugins/.",
+  "devDependencies": {
+    "prettier": "^3.7.0"
+  }
+}

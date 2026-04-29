@@ -13,9 +13,17 @@ run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run type-check"
 description = "Run all tests"
 run = "npm --prefix plugins/jira-issue-orchestration/mcp-server run test"
 
+[tasks.format]
+description = "Format TS, Markdown, and JSON across the repo"
+run = "npx prettier --write \"**/*.{ts,md,json}\""
+
+[tasks.format-check]
+description = "Check formatting without writing changes"
+run = "npx prettier --check \"**/*.{ts,md,json}\""
+
 [tasks.quality]
-description = "Aggregate quality gate (lint + type-check)"
-depends = ["lint", "type-check"]
+description = "Aggregate quality gate (lint + type-check + format-check)"
+depends = ["lint", "type-check", "format-check"]
 
 [tasks.bundle]
 description = "Bundle the MCP server into a single self-contained JS file"

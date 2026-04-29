@@ -2,9 +2,7 @@
   "mcpServers": {
     "issue-orchestration": {
       "command": "node",
-      "args": [
-        "${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle/server.js"
-      ]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle/server.js"]
     }
   }
 }

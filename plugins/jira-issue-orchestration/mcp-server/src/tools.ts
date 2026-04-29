@@ -3,11 +3,18 @@ import * as path from "node:path";
 import { spawn, execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
-  readMeta, writeMeta, deleteMeta, listChannels,
-  generateChannelId, validateChannelId,
-  ipcDir, c2sLogPath, s2cLogPath,
+  readMeta,
+  writeMeta,
+  deleteMeta,
+  listChannels,
+  generateChannelId,
+  validateChannelId,
+  ipcDir,
+  c2sLogPath,
+  s2cLogPath,
   type ChannelMeta,
-  readConfig, writeConfig,
+  readConfig,
+  writeConfig,
 } from "./state.ts";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -15,7 +22,11 @@ import {
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
 function toolOk(payload: string | object): ToolResult {
-  return { content: [{ type: "text", text: typeof payload === "string" ? payload : JSON.stringify(payload) }] };
+  return {
+    content: [
+      { type: "text", text: typeof payload === "string" ? payload : JSON.stringify(payload) },
+    ],
+  };
 }
 
 function toolError(message: string): ToolResult {
@@ -43,7 +54,10 @@ export const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        label: { type: "string", description: "Optional human-readable label for this channel (e.g. \"KAN-1\")." },
+        label: {
+          type: "string",
+          description: 'Optional human-readable label for this channel (e.g. "KAN-1").',
+        },
       },
       additionalProperties: false,
     },
@@ -56,7 +70,10 @@ export const TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         channelId: { type: "string", description: "Channel ID returned by claim-conductor." },
-        prompt: { type: "string", description: "Optional user prompt to pass to the sub instance." },
+        prompt: {
+          type: "string",
+          description: "Optional user prompt to pass to the sub instance.",
+        },
       },
       required: ["channelId"],
       additionalProperties: false,
@@ -83,7 +100,10 @@ export const TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         channelId: { type: "string", description: "Channel ID to send the message to." },
-        message: { type: "string", description: "Single-line message to send to the orchestration team." },
+        message: {
+          type: "string",
+          description: "Single-line message to send to the orchestration team.",
+        },
       },
       required: ["channelId", "message"],
       additionalProperties: false,
@@ -155,16 +175,26 @@ export async function handleToolCall(
   args: Record<string, unknown> | undefined
 ): Promise<ToolResult> {
   switch (name) {
-    case "claim-conductor":                    return claimConductor(args);
-    case "launch-orchestration-team":          return launchOrchestrationTeam(args);
-    case "stop-orchestration-team":            return stopOrchestrationTeam(args);
-    case "send-message-to-orchestration-team": return sendMessageToOrchestrationTeam(args);
-    case "send-message-to-conductor":          return sendMessageToConductor(args);
-    case "terminate-sub":                      return terminateSub(args);
-    case "list-channels":                      return listChannelsHandler();
-    case "get-config":                         return getConfigHandler();
-    case "set-config":                         return setConfigHandler(args);
-    default:                                   return toolError(`Unknown tool: ${name}`);
+    case "claim-conductor":
+      return claimConductor(args);
+    case "launch-orchestration-team":
+      return launchOrchestrationTeam(args);
+    case "stop-orchestration-team":
+      return stopOrchestrationTeam(args);
+    case "send-message-to-orchestration-team":
+      return sendMessageToOrchestrationTeam(args);
+    case "send-message-to-conductor":
+      return sendMessageToConductor(args);
+    case "terminate-sub":
+      return terminateSub(args);
+    case "list-channels":
+      return listChannelsHandler();
+    case "get-config":
+      return getConfigHandler();
+    case "set-config":
+      return setConfigHandler(args);
+    default:
+      return toolError(`Unknown tool: ${name}`);
   }
 }
 
@@ -216,11 +246,10 @@ function launchOrchestrationTeam(args: Record<string, unknown> | undefined): Too
   if (!fs.existsSync(scriptPath)) {
     return toolError(`Launcher script missing at ${scriptPath}`);
   }
-  const child = spawn(
-    scriptPath,
-    [chId, prompt, sessionName, meta.c2sLogPath, meta.s2cLogPath],
-    { detached: true, stdio: "ignore" }
-  );
+  const child = spawn(scriptPath, [chId, prompt, sessionName, meta.c2sLogPath, meta.s2cLogPath], {
+    detached: true,
+    stdio: "ignore",
+  });
   child.unref();
   writeMeta(chId, { ...meta, tmuxSession: sessionName });
   return toolOk({ tmuxSession: sessionName, channelId: chId, prompt });
@@ -231,13 +260,29 @@ function stopOrchestrationTeam(args: Record<string, unknown> | undefined): ToolR
   if (typeof chId !== "string") return chId;
   const meta = readMeta(chId);
   if (meta === null) {
-    return toolOk({ stopped: false, channelId: chId, reason: "channel not found; nothing to stop." });
+    return toolOk({
+      stopped: false,
+      channelId: chId,
+      reason: "channel not found; nothing to stop.",
+    });
   }
-  try { fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n"); } catch { /* swallow */ }
+  try {
+    fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n");
+  } catch {
+    /* swallow */
+  }
   if (meta.tmuxSession) {
-    try { execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" }); } catch { /* already gone */ }
+    try {
+      execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" });
+    } catch {
+      /* already gone */
+    }
   }
-  try { fs.rmSync(ipcDir(chId), { recursive: true, force: true }); } catch { /* swallow */ }
+  try {
+    fs.rmSync(ipcDir(chId), { recursive: true, force: true });
+  } catch {
+    /* swallow */
+  }
   deleteMeta(chId);
   return toolOk({ stopped: true, channelId: chId, tmuxSession: meta.tmuxSession });
 }
@@ -279,12 +324,24 @@ function terminateSub(args: Record<string, unknown> | undefined): ToolResult {
   if (typeof chId !== "string") return chId;
   const meta = readMeta(chId);
   if (meta === null) {
-    return toolOk({ terminated: false, channelId: chId, reason: "channel not found; nothing to terminate." });
+    return toolOk({
+      terminated: false,
+      channelId: chId,
+      reason: "channel not found; nothing to terminate.",
+    });
   }
   const previousTmuxSession = meta.tmuxSession;
-  try { fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n"); } catch { /* swallow */ }
+  try {
+    fs.appendFileSync(meta.c2sLogPath, "__peer_exit__\n");
+  } catch {
+    /* swallow */
+  }
   if (meta.tmuxSession) {
-    try { execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" }); } catch { /* already gone */ }
+    try {
+      execSync(`tmux kill-session -t ${JSON.stringify(meta.tmuxSession)}`, { stdio: "ignore" });
+    } catch {
+      /* already gone */
+    }
   }
   writeMeta(chId, { ...meta, tmuxSession: null });
   return toolOk({ terminated: true, channelId: chId, previousTmuxSession });

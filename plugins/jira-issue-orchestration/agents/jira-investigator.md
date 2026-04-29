@@ -77,7 +77,7 @@ Wait for `SendMessage({ ..., message: { type: "shutdown_request" } })` from the 
 Your output is the load-bearing input to the entire downstream pipeline:
 
 - The artifact feeds directly into `task-trellis-teams:create-trellis-issues`, which spawns writer and reviewer agents starting from cold context. Those agents have no access to the Jira ticket, the Confluence pages you fetched, or any framing you derived. Every scope decision, constraint, design choice, and motivation must be present in the artifact or it is lost.
-- Developer and code-reviewer agents begin implementation with only the Trellis issue bodies (which embed the artifact as an attachment). They cannot re-derive what you already had. If they need to understand *why* something is designed a specific way, that rationale must be in the artifact.
+- Developer and code-reviewer agents begin implementation with only the Trellis issue bodies (which embed the artifact as an attachment). They cannot re-derive what you already had. If they need to understand _why_ something is designed a specific way, that rationale must be in the artifact.
 
 **Brevity is a defect here.** Omitting rationale, constraints, or design decisions in the name of conciseness is a defect, not a feature. Downstream agents will implement and review based solely on what you produce. Gaps become implementation errors.
 

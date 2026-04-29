@@ -25,6 +25,7 @@ allowed-tools:
 The lead DOES NOT write issues, review issues, or call issue-management tools directly on child issues. Every prohibited action below must be routed to the appropriate teammate instead.
 
 Prohibited lead actions:
+
 - Calling `mcp__plugin_task-trellis-teams_task-trellis__create_issue` to create a child issue (writer's job).
 - Calling `mcp__plugin_task-trellis-teams_task-trellis__update_issue` on a child issue to apply review findings or fix content (writer's job after reviewer findings).
 - Writing or editing any Trellis issue body directly from the lead session for a child issue.
@@ -76,7 +77,8 @@ Capture the returned task ID as `requirementsTaskId`. This task is a read-only r
 
 **2b. Classify lead-meta vs. product requirements.**
 
-Before embedding requirements in tasks, scan the original input for sentences or clauses that are *addressed to the lead* rather than specifying what issues should contain. Lead-meta directives typically match patterns such as:
+Before embedding requirements in tasks, scan the original input for sentences or clauses that are _addressed to the lead_ rather than specifying what issues should contain. Lead-meta directives typically match patterns such as:
+
 - "Before you shut down…" / "at the end of the run…"
 - "Ask [teammates / agents] for…"
 - "Pay attention to how…" / "observe whether…"
@@ -101,11 +103,11 @@ Resolve the level in this order:
 
 1. **Parent ID provided** — use the parent's type to pick the child type:
 
-   | Parent Type | Child Type to Create |
-   |-------------|----------------------|
-   | Project (`P-`) | Epics |
-   | Epic (`E-`) | Features |
-   | Feature (`F-`) | Tasks |
+   | Parent Type    | Child Type to Create |
+   | -------------- | -------------------- |
+   | Project (`P-`) | Epics                |
+   | Epic (`E-`)    | Features             |
+   | Feature (`F-`) | Tasks                |
 
    Nothing else to decide; proceed to step 4.
 
@@ -239,12 +241,15 @@ Task({
 Once the creation/review task pairs are on the shared task list, the writer and reviewer coordinate directly:
 
 1. **Lead sends start nudge.** After spawning both teammates (step 6 complete), the lead MUST send a `SendMessage` to the writer:
+
    ```
    SendMessage({ to: "writer-<level>-<parent-id>", summary: "<creation-task-id> begin", message: "claim and begin <task-list-task-id>" })
    ```
+
    where `<task-list-task-id>` is the ID of the first creation task (from the name→ID map built in step 5). Wait for the writer's ack `SendMessage({ to: 'team-lead', ..., message: 'claimed' })`. If no ack arrives within ~60s, inspect `TaskList` first; re-nudge only if the task is still unclaimed.
 
    For subsequent creation tasks in the same level, the lead sends a new pointer nudge naming the next task ID after the previous review task completes.
+
 2. Writer claims a creation task via `TaskUpdate` (via its normal claim mechanism).
 3. Writer creates the child issue, marks the creation task done.
 4. Writer sends a pointer-only activation nudge to `reviewer-<level>-<parent-id>` via `SendMessage`. See `plugins/task-trellis-teams/PROTOCOL.md` §Reviewer activation gate.
@@ -414,12 +419,12 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
 
 ## Error Handling
 
-| Situation | Action |
-|-----------|--------|
-| Teammate spawn fails | STOP, clean up any created team, report to user |
-| Teammate reports permission / MCP error | Surface to user via `AskUserQuestion`, do NOT retry automatically |
+| Situation                                     | Action                                                                                                                            |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Teammate spawn fails                          | STOP, clean up any created team, report to user                                                                                   |
+| Teammate reports permission / MCP error       | Surface to user via `AskUserQuestion`, do NOT retry automatically                                                                 |
 | Fix loop exceeds 3 rounds on the same finding | Interrupt both teammates via `SendMessage`; escalate to the user via `AskUserQuestion` for a decision before allowing a 4th round |
-| Teammate goes silent / stalls | Check `TaskList` state; if stuck, send `SendMessage` nudge; if still stuck, escalate to user |
+| Teammate goes silent / stalls                 | Check `TaskList` state; if stuck, send `SendMessage` nudge; if still stuck, escalate to user                                      |
 
 ## References
 

@@ -17,13 +17,13 @@ Apply a version bump to the version files whose diff scope actually changed. The
 
 Invoked via `$ARGUMENTS`:
 
-| Form | Meaning |
-|---|---|
-| `major` / `minor` / `patch` | Bump at the specified level. |
-| `--infer` (or `infer`) | Read the diff and pick the level per `reference/semver-guide.md`. |
-| `--version <level>` | Equivalent to `<level>`. Accepted for compatibility with orchestrators that forward a `--version` flag. |
-| `--version` (no value) | Equivalent to `--infer`. |
-| *(empty)* | Error — print usage and stop without touching any files. |
+| Form                        | Meaning                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `major` / `minor` / `patch` | Bump at the specified level.                                                                            |
+| `--infer` (or `infer`)      | Read the diff and pick the level per `reference/semver-guide.md`.                                       |
+| `--version <level>`         | Equivalent to `<level>`. Accepted for compatibility with orchestrators that forward a `--version` flag. |
+| `--version` (no value)      | Equivalent to `--infer`.                                                                                |
+| _(empty)_                   | Error — print usage and stop without touching any files.                                                |
 
 **Explicit opt-in required.** Empty `$ARGUMENTS` is an error. The skill never bumps "by default" — the caller must say what they want, or explicitly ask for inference.
 
@@ -58,14 +58,14 @@ Merge the committed diff with any uncommitted working-tree changes — both cont
 
 Probe the repo root for indicators. Record every indicator present; multiple can coexist in a monorepo.
 
-| Indicator | Implication for this skill |
-|---|---|
+| Indicator                                          | Implication for this skill                                                                                                                                                           |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.claude-plugin/marketplace.json` at the repo root | Claude Code plugin marketplace. Files under `plugins/*/agents/`, `plugins/*/skills/`, `plugins/*/commands/`, `plugins/*/hooks/`, and `plugins/*/.claude-plugin/` are runtime config. |
-| `.claude-plugin/plugin.json` (at any depth) | That directory is a Claude Code plugin. Files under its `agents/`, `skills/`, `commands/`, `hooks/` are runtime config. |
-| `package.json` | Node/JS package. `.md` files are typically prose. |
-| `pyproject.toml` / `setup.cfg` | Python package. `.md` files are typically prose. |
-| `Cargo.toml` | Rust crate. `.md` files are typically prose. |
-| `VERSION` | Plain-text version file at that directory. |
+| `.claude-plugin/plugin.json` (at any depth)        | That directory is a Claude Code plugin. Files under its `agents/`, `skills/`, `commands/`, `hooks/` are runtime config.                                                              |
+| `package.json`                                     | Node/JS package. `.md` files are typically prose.                                                                                                                                    |
+| `pyproject.toml` / `setup.cfg`                     | Python package. `.md` files are typically prose.                                                                                                                                     |
+| `Cargo.toml`                                       | Rust crate. `.md` files are typically prose.                                                                                                                                         |
+| `VERSION`                                          | Plain-text version file at that directory.                                                                                                                                           |
 
 Use `Glob` with patterns like `.claude-plugin/plugin.json`, `**/.claude-plugin/plugin.json`, `package.json`, `**/package.json` to find indicators quickly. Resolve per-diff-scope: the indicator(s) that apply to a given changed file are the ones closest to it walking upward.
 

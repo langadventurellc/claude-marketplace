@@ -52,6 +52,7 @@ Based on the user's request, determine which issue type to create:
    - Anything else the user referenced while scoping the work
 
    If planning output exists only as in-chat text, save it to a temp file (e.g., `/tmp/trellis-<timestamp>-requirements.md`) using `Write` before attaching. The type-specific file below specifies holder placement rules and `## Attachments` format.
+
 3. **Validate the provided inputs** against the current codebase (see below)
 4. **Read the type-specific file** (per the table above) and follow it.
 

@@ -41,11 +41,13 @@ Analyze the project description to identify remaining epics:
 ### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
+
 - Epic granularity (default to coarser-grained epics)
 - How many epics to create (use your judgment)
 - Whether to proceed with epic creation (just create the epics and stop)
 
 **Only ask clarifying questions when:**
+
 - Requirements are genuinely ambiguous with multiple valid interpretations
 - Critical technical information is missing that cannot be inferred
 - A decision has significant irreversible consequences

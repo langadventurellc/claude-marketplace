@@ -68,27 +68,33 @@ Produce the following block and nothing else. The developer who invoked this ski
 ## Implementation Plan
 
 ### Research Summary
+
 - **Files examined**: [list every file read during research]
 - **Key findings**: [patterns and conventions identified, similar implementations reviewed, external docs consulted]
 - **Assumptions**: [decisions made where multiple approaches were possible; flag anything uncertain]
 
 ### Prerequisites
+
 [Required dependencies, tools, or setup steps with version requirements if relevant. Omit section if none.]
 
 ### File Modifications
 
 #### 1. [CREATE | MODIFY | DELETE] `path/to/file`
+
 **Purpose**: [why this file changes]
 **Changes**:
+
 - [specific change with exact location context — e.g., "after the last import statement", "in the `createUser` method, replace lines 23–45"]
 - [additional change]
-**Depends on**: [other numbered items this change depends on, if any]
-**Impacts**: [downstream files affected by this change]
+  **Depends on**: [other numbered items this change depends on, if any]
+  **Impacts**: [downstream files affected by this change]
 
 #### 2. [CREATE | MODIFY | DELETE] `path/to/file`
+
 [repeat pattern for each file]
 
 ### Implementation Order
+
 1. [first file or group — no dependencies]
 2. [depends on #1]
 3. [depends on #2, etc.]

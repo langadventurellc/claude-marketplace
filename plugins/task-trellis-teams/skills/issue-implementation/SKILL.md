@@ -99,12 +99,14 @@ Execute the plan from step 2.
    Then wait for the reviewer's ack `SendMessage({ to: ..., message: "claimed" })`. If no ack within ~60s, inspect `TaskList` first; re-nudge only if the reviewer's task is still unclaimed.
 
 **Why this order matters:** Each step unblocks the next and protects a downstream gate:
+
 - `complete_task` must precede the task-list `TaskUpdate` — marking the task-list entry done first triggers a downstream lookup that fails with "ID undefined" because the Trellis task is not yet in `done` state.
 - The pointer-only nudge names the review task-list task ID, allowing the reviewer to self-claim on receipt. Send the nudge only after the impl task-list entry is marked `completed` (step 3) — the reviewer reads that entry immediately on claiming.
 
 Note: `append_issue_log` is optional and is not part of the required finalize sequence; you may call it at any point during implementation to record progress notes.
 
 **Reviewer will block if any of the following are true at review time:**
+
 - The Trellis task status is not `done` (i.e., `complete_task` was not called or failed).
 - `modifiedFiles` on the Trellis task is absent or empty (i.e., `append_modified_files` was not called).
 

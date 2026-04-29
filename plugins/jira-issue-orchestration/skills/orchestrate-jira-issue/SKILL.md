@@ -48,11 +48,13 @@ Execute these steps in order; each is a prerequisite for the next.
    Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__claim-conductor`, optionally passing `label` (e.g., the Jira issue key).  
    Store the returned `channelId`, `c2sLogPath`, and `s2cLogPath`. Hold `channelId` for the entire run — do not call `claim-conductor` again.
 
-2. **Arm persistent Monitor** *(must happen before any launch)*  
+2. **Arm persistent Monitor** _(must happen before any launch)_  
    Start a persistent Monitor on `s2cLogPath`:
+
    ```
    Monitor({ persistent: true, command: "tail -n 0 -F <s2cLogPath>" })
    ```
+
    Do not proceed to the Jira fetch or any launch until this Monitor is running.
 
 3. **Validate Jira issue**  

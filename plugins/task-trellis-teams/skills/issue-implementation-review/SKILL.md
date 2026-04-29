@@ -108,6 +108,7 @@ When the task body includes an `## Attachments` section, read each referenced fi
 **Blocking rule:**
 
 Block when:
+
 - The task had an `## Attachments` section AND the implementation does not reflect the attached materials AND the developer's completion summary provides no explanation.
 - A reusable asset was explicitly referenced and the implementation recreated it instead of using it.
 
@@ -173,6 +174,7 @@ Return only actionable findings. Skip positive assessments, status indicators, a
 ### Examples
 
 **When issues are found:**
+
 ```
 ## Review Findings
 
@@ -185,6 +187,7 @@ Return only actionable findings. Skip positive assessments, status indicators, a
 ```
 
 **When no issues are found:**
+
 ```
 No issues found.
 ```

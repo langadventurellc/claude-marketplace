@@ -49,11 +49,13 @@ Analyze requirements to identify remaining tasks:
 ### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
+
 - Task granularity (default to coarser-grained tasks)
 - How many tasks to create (use your judgment)
 - Whether to proceed with task creation (just create the tasks and stop)
 
 **Only ask clarifying questions when:**
+
 - Requirements are genuinely ambiguous with multiple valid interpretations
 - Critical technical information is missing that cannot be inferred
 - A decision has significant irreversible consequences
@@ -99,6 +101,7 @@ For each task, create:
 - **Testable outcome** - Tasks should have defined acceptance criteria
 
 **Why coarser tasks:**
+
 - Easier for AI agents to understand context and implement correctly
 - Reduces overhead of switching between many small tasks
 - Fewer dependencies to manage
@@ -197,4 +200,3 @@ Common task patterns:
 - **API Endpoint**: Implement with input validation and error handling
 - **Frontend Component**: Create with interactivity and state handling
 - **Security**: Input validation, authorization, rate limiting
-

@@ -53,7 +53,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
   1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
   2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
   3. Then read the named task for instructions (lead-authored task list is still the source of truth).
-  See `PROTOCOL.md` §Activation-signal glossary.
+     See `PROTOCOL.md` §Activation-signal glossary.
 - **Metadata write**: Before marking a creation task done, write the created issue ID into the task metadata:
   TaskUpdate({ taskId: <your-creation-task-id>, metadata: { createdIssueId: "<T-xxx>" } })
   This gives the reviewer a deterministic lookup point.
@@ -148,6 +148,7 @@ The writer is the custodian of source materials for the issues it creates.
 ### Source-Material Inventory
 
 Before creating any issues, inventory what artifacts exist in the current conversation:
+
 - In-chat output from `planning:requirements-creation` or `planning:discovery`
 - User-supplied file paths (design files, screenshots, PDFs, spec docs)
 - Anything else the user referenced while scoping the work

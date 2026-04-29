@@ -22,6 +22,7 @@ Follow these five steps in order.
 ### 1. Load current values
 
 Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind:
+
 - `current.atlassianBaseUrl` ← `values.atlassianBaseUrl` (may be missing)
 - `current.atlassianCloudId` ← `values.atlassianCloudId` (may be missing)
 - `current.jiraProjectKey` ← `values.jiraProjectKey` (may be missing)
@@ -40,6 +41,7 @@ Current Jira orchestration config:
 ### 3. Collect new/updated values
 
 Use a single `AskUserQuestion` round, one question per key grouped into one message:
+
 - If a key is currently set: offer `Keep "<value>" (Recommended)` plus `Update`. The auto-`Other` choice covers freeform replacement input.
 - If a key is currently unset: ask for it. The auto-`Other` choice provides the entry slot.
 
@@ -52,7 +54,13 @@ Trim whitespace from any user-supplied values.
 Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__set-config` once with all three keys:
 
 ```json
-{ "values": { "atlassianBaseUrl": "<final>", "atlassianCloudId": "<final>", "jiraProjectKey": "<final>" } }
+{
+  "values": {
+    "atlassianBaseUrl": "<final>",
+    "atlassianCloudId": "<final>",
+    "jiraProjectKey": "<final>"
+  }
+}
 ```
 
 Passing all three keys is safe — `set-config` merges (preserves unspecified keys), so the call is harmless whether values changed or not.

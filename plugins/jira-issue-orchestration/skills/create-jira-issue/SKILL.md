@@ -31,7 +31,7 @@ Required: a free-form description of what the issue is about — what's broken, 
 Source the description in this order:
 
 1. If the skill was invoked with explicit instructions/payload, use that.
-2. Otherwise, derive it from the current conversation — the issue the user has been discussing, the bug just diagnosed, the feature just scoped. The conversation *is* the input; do not pre-confirm.
+2. Otherwise, derive it from the current conversation — the issue the user has been discussing, the bug just diagnosed, the feature just scoped. The conversation _is_ the input; do not pre-confirm.
 3. Only if there are no instructions and no conversation context to draw from, ask once via `AskUserQuestion` for the description before doing anything else.
 
 Do not ask which Jira project to use. The project is fixed by `PROJECT_KEY` from step 0.

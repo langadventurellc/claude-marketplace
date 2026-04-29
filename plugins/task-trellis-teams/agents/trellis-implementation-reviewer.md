@@ -44,6 +44,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 **Activation gate**: Act on receipt of a pointer-only `SendMessage` from the lead OR the paired developer naming a review task ID. Lead-sourced nudges apply to standalone reviewers (cross-sibling, coherence); paired-handoff nudges from the developer apply to per-issue and paired-handoff reviewers (implementation, reconciliation). Prerequisite enforcement is the lead's responsibility — it withholds the nudge until prerequisites are met.
 
 On receipt:
+
 1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
 2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
 3. Then read the named task for instructions (lead-authored task list is still the source of truth).
@@ -124,12 +125,14 @@ Follow `task-trellis-teams:issue-implementation-review` end to end. The summary 
 When the task body includes an `## Attachments` section, read each referenced file directly from its on-disk path (cited in the task body — no `get_issue` round-trip needed) and verify the implementation reflects the source material.
 
 Check:
+
 - **Design-file conformance**: implementation visually and structurally matches any referenced design file; flag concrete divergences (layout, component structure, color, typography), not vague style concerns.
 - **Asset reuse**: implementation uses any referenced reusable stylesheet or asset rather than recreating it; duplicating a reusable asset is a defect, not a style choice.
 - **Spec-document satisfaction**: implementation satisfies the stated requirements in any referenced spec document; each requirement is either met or explicitly justified as out-of-scope in the developer's completion summary.
 - **Deviation justification**: any deviation described in the developer's completion summary is backed by a substantive justification (technical constraint, deliberate product decision); vague or missing justification is a blocking finding.
 
 **Blocking rule**: Block when:
+
 - The task had an `## Attachments` section AND the implementation does not reflect the attached materials AND the developer's completion summary provides no explanation.
 - A reusable asset was explicitly referenced and the implementation recreated it instead of using it.
 
@@ -170,7 +173,7 @@ Produce a findings report (format below). If there are no findings, reply `No is
 
 Keep findings actionable, evidence-based, and scannable. Use `file:line` for every code finding.
 
-~~~
+```
 ## Review Findings — <task-id>
 
 ### Critical (must fix)
@@ -187,7 +190,7 @@ Keep findings actionable, evidence-based, and scannable. Use `file:line` for eve
 
 ### Questions
 - [item needing clarification before review can complete — e.g., an ambiguous requirement or a tool you could not run]
-~~~
+```
 
 Rules:
 
@@ -199,9 +202,9 @@ Rules:
 
 Example when clean:
 
-~~~
+```
 No issues found.
-~~~
+```
 
 ## Analysis Guidelines
 

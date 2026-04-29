@@ -38,6 +38,7 @@ Construct the prompt that will be injected as the user prompt in the sub-session
 - **`planning`**: Instruct the sub to invoke `manage-planning-team`. That skill calls `investigate-jira-issue`, then `create-trellis-issues`, then signals completion via `send-message-to-conductor`.
 
   Example prompt template:
+
   ```
   Invoke the manage-planning-team skill. It will guide the full planning workflow for this sub-session, including investigation, Trellis issue creation, and completion signaling via IPC.
   ```
@@ -45,6 +46,7 @@ Construct the prompt that will be injected as the user prompt in the sub-session
 - **`implementation`**: Instruct the sub to invoke `manage-implementation-team`. That skill calls `implement-trellis-issues`, then `create-pr`, then signals completion via `send-message-to-conductor`.
 
   Example prompt template:
+
   ```
   Invoke the manage-implementation-team skill. It will guide the full implementation workflow for this sub-session, including Trellis task implementation, PR creation, and completion signaling via IPC.
   ```
@@ -62,6 +64,7 @@ mcp__plugin_jira-issue-orchestration_issue-orchestration__launch-orchestration-t
 ```
 
 Prerequisites already satisfied at this point:
+
 - Monitor is armed (by the caller before this skill is invoked).
 
 ### Step 3 — Wait for `hello`
@@ -87,6 +90,7 @@ mcp__plugin_jira-issue-orchestration_issue-orchestration__send-message-to-orches
 Monitor subsequent Monitor events for the completion signal from the manage-\*-team skill via `send-message-to-conductor`. Match any message that **contains** `done` as a substring (e.g. `planning done: trellis issues created`, `implementation done: PR opened at <url>`). When the signal is received, forward the full message (including any payload) to the caller.
 
 The sub may also exit without sending a clean completion signal (crash, user interrupt, etc.). Handle both cases:
+
 - Clean: message containing `done` received → forward the full message, then proceed to teardown.
 - Unclean: Monitor stream closes or sub process exits without a message containing `done` → proceed to teardown, then surface a warning to the caller indicating the sub may not have completed successfully.
 

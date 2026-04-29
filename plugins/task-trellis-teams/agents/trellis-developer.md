@@ -52,7 +52,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
   1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
   2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
   3. Then read the named task for instructions (lead-authored task list is still the source of truth).
-  See `PROTOCOL.md` §Activation-signal glossary.
+     See `PROTOCOL.md` §Activation-signal glossary.
 - **Fix cycles**: After you mark your implementation task done, your paired reviewer will review and may message you directly via `SendMessage` with findings. Treat findings as an addendum to your original lead-authored task. Address them, then notify the reviewer back via `SendMessage` when the fixes are ready for re-review.
   - **Empirical validation**: When a reviewer finding suggests a change that could alter runtime semantics (concurrency, cross-process behavior, lifecycle ordering, error handling), validate empirically before adopting: run the relevant test or craft a minimal repro. If empirical evidence contradicts the reviewer's suggestion, document the finding in your fix-ready `SendMessage` and do not apply the suggestion. Prefer empirical evidence over reviewer recommendation.
 - **Post-implementation handoff**: When you complete the initial implementation task, send an activation nudge via `SendMessage` to your paired reviewer so they pick up their already-assigned review task. Do NOT include new instructions in the nudge — the reviewer reads their own lead-authored task for instructions:
@@ -164,12 +164,14 @@ Document **only** public interfaces. Names differ by language, but the rule is t
 One sentence is often enough. The reader has already read the code.
 
 **Good:**
+
 ```typescript
 /** Validates user credentials and returns a session token. */
-async function authenticate(email: string, password: string): Promise<string>
+async function authenticate(email: string, password: string): Promise<string>;
 ```
 
 **Bad:**
+
 ```typescript
 /**
  * Validates user credentials and returns a session token.
@@ -184,7 +186,7 @@ async function authenticate(email: string, password: string): Promise<string>
  * @throws AuthenticationError if credentials are invalid
  * @throws DatabaseError if the database connection fails
  */
-async function authenticate(email: string, password: string): Promise<string>
+async function authenticate(email: string, password: string): Promise<string>;
 ```
 
 #### Skip the Obvious
@@ -205,24 +207,27 @@ Describe behavior the way you'd describe it to a teammate who has the file open 
 
 #### Document Intent, Not History
 
-Document the *intent* of the current behavior — what it's for, when callers should use it, what invariants it guarantees. Do **not** narrate the *history* of the code.
+Document the _intent_ of the current behavior — what it's for, when callers should use it, what invariants it guarantees. Do **not** narrate the _history_ of the code.
 
 - ✅ Intent: business rule, non-obvious constraint, required ordering, side effect, usage context, "must be called before X".
 - ❌ History: what the code used to do, why it was changed, what it consolidates or replaces, who rewrote it, which task drove the change.
 
 **Good (states intent):**
+
 ```typescript
 /** Must be called before any database operations. Initializes connection pool. */
-function initDatabase(): void
+function initDatabase(): void;
 ```
 
 **Bad (too vague to justify its existence):**
+
 ```typescript
 /** Initializes the database. */
-function initDatabase(): void
+function initDatabase(): void;
 ```
 
 **Bad (narrates history and implementation mechanics):**
+
 ```elixir
 @moduledoc """
 Test fake that stands in for `Kafka` in tests. Consolidates the behavior
@@ -236,6 +241,7 @@ stringified; for `send_message/3` body is coerced via `IO.iodata_to_binary/1`.
 ```
 
 **Good (plain English, current intent, technical identifiers only where they help callers):**
+
 ```elixir
 @moduledoc """
 Test fake that stands in for `Kafka` so tests can assert on publish behavior
@@ -255,7 +261,7 @@ When behavior is complex, a brief example communicates faster than prose:
  * Formats bytes as human-readable string.
  * Example: formatBytes(1536) -> "1.5 KB"
  */
-function formatBytes(bytes: number): string
+function formatBytes(bytes: number): string;
 ```
 
 ### What NOT to Do

@@ -51,6 +51,7 @@ Commit with a **concise** message following conventional commit guidelines.
 **Format**: `type: description` (keep under 50 characters)
 
 **Common types**:
+
 - `feat`: new feature
 - `fix`: bug fix
 - `refactor`: code refactoring
@@ -60,6 +61,7 @@ Commit with a **concise** message following conventional commit guidelines.
 - `chore`: maintenance
 
 **Style**:
+
 - Use imperative mood ("Fix bug" not "Fixed bug")
 - Capitalize first word
 - No period at end
@@ -67,6 +69,7 @@ Commit with a **concise** message following conventional commit guidelines.
 - Focus on WHAT and WHY, not HOW
 
 **Examples**:
+
 - `feat: add user login validation`
 - `fix: resolve memory leak in parser`
 - `refactor: simplify authentication logic`

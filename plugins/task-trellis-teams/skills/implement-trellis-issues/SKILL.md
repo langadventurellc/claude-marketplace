@@ -27,6 +27,7 @@ allowed-tools:
 The lead DOES NOT write, edit, or debug code. The lead DOES NOT fix issues in Trellis child bodies during a run. Every prohibited action below must be routed to the appropriate teammate.
 
 Prohibited lead actions:
+
 - Calling `Edit` or `Write` on any file under `src/`, `plugins/`, or any repo code path (developer's job).
 - Running tests, lint checks, or builds to validate or fix a teammate's code (developer's job).
 - Calling `mcp__plugin_task-trellis-teams_task-trellis__update_issue` on a child Trellis issue to patch its body or description mid-run (developer's job via update_issue if truly needed; reviewer's job to request it).
@@ -213,12 +214,15 @@ The §0 Cross-Task Coherence Review reviewer always uses `task-trellis-teams:tre
 The lead does not intervene once the pair is running. Expected flow:
 
 0. **Lead sends start nudge.** After authoring the two task-list entries for this pair (impl + review), the lead MUST send a `SendMessage` to the developer:
+
    ```
    SendMessage({ to: "<developer-name>", summary: "<impl-task-id> begin", message: "claim and begin <impl-task-list-task-id>" })
    ```
+
    where `<impl-task-list-task-id>` is the shared-task-list task ID for the impl entry (captured in §1). The reviewer does not need a nudge — its task is blocked until the developer completes.
 
    Wait for the developer's ack `SendMessage({ to: 'team-lead', ... message: 'claimed' })`. If no ack within ~60s, inspect `TaskList` first; re-nudge only if the task is still unclaimed.
+
 1. Developer claims the impl task-list entry and the Trellis task (`mcp__plugin_task-trellis-teams_task-trellis__claim_task`), implements, runs its own checks, marks the Trellis task done via `complete_task`, marks the impl task-list entry done, and sends a `SendMessage` nudge to the reviewer:
    ```
    SendMessage({ to: "<reviewer-name>", summary: "<review-task-id> begin", message: "claim and begin <review-task-list-task-id>" })
@@ -226,7 +230,7 @@ The lead does not intervene once the pair is running. Expected flow:
 2. Reviewer's task-list entry unblocks. Reviewer claims it, reviews the changes, and either:
    - **Approves:** Marks the review task-list entry done.
    - **Has findings:** `SendMessage` directly to the developer with findings. Does NOT mark the review task done.
-   See `PROTOCOL.md` §Reviewer activation gate.
+     See `PROTOCOL.md` §Reviewer activation gate.
 3. Developer receives findings, fixes, then `SendMessage`s the reviewer when fixes are ready. Reviewer re-reviews. Repeat until approved.
 4. Once the review task-list entry is marked done, the pair's work is complete.
 
@@ -251,6 +255,7 @@ Pair spawning is **wave-based**. A **wave** is the complete set of pairs the lea
 ### Candidate queue
 
 The candidate queue contains every leaf task whose:
+
 - Status is not `done` or `wont-do`, AND
 - All prerequisite tasks are `done`.
 
@@ -359,12 +364,14 @@ Mark this task-list entry `completed` only on a clean review (no Critical findin
 ```
 
 Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
+
 ```
 SendMessage({ to: "rev-coherence-<scope-id>", summary: "<coherence-task-id> begin", message: "claim and begin <coherenceTaskId>" })
 ```
+
 Wait for the reviewer to either (a) mark the task-list entry `done` (no Critical findings) — then shut it down, or (b) `SendMessage` the lead with Critical findings — leave the reviewer alive for the §0a Reconciliation Pass and re-review (it is shut down in §0a after a clean re-review).
 
-If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user *instead* of running §0a:
+If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user _instead_ of running §0a:
 
 - A finding requires changes to files that were not modified by any implemented task in this run.
 - A finding requires creating new Trellis issues or otherwise expanding scope beyond the implemented set (the no-new-issues rule is absolute).
@@ -378,11 +385,13 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 **Triggering condition:** The cross-task coherence reviewer (§0) returns Critical findings that span multiple already-closed sibling tasks, OR the user directs a cross-cutting terminology or consistency fix after implementation is otherwise complete.
 
 **What the reconciliation pass is:**
+
 - A named exception to the fresh-pair-per-issue rule.
 - The lead authors ONE developer task-list entry and ONE reviewer task-list entry (with the reviewer blocked on the developer, per the standard two-step pattern).
 - These entries do NOT correspond to any single Trellis issue — no `claim_task` or `complete_task` is called. The developer applies fixes directly to the working tree; the reviewer verifies via `git diff`. The Trellis task-list entries are the only tracking mechanism for this pass.
 
 **Lead steps:**
+
 1. Author the developer task-list entry with the full list of findings to fix and the files to touch. Make clear this is a reconciliation pass (not a new Trellis task) so the developer does not attempt `claim_task` or `complete_task`. The body MUST instruct the developer to (a) apply fixes directly to the working tree, (b) mark this task-list entry `completed` when done, and (c) send a pointer-only `SendMessage` to the paired reviewer (`rev-reconcile-<scope>`) naming the reviewer's task-list task ID immediately after marking the entry `completed` — this mirrors the standard Per-Issue Pair Lifecycle §3 step 1 handoff and is required for the reviewer's activation gate to fire.
 2. Author the reviewer task-list entry blocked on the developer entry. The body MUST include:
    - The paired developer teammate name (e.g., `dev-reconcile-<scope>`).
@@ -396,10 +405,12 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 5. Wait for the reviewer to mark the review entry done, then shut both teammates down.
 
 **After the pass:**
+
 - The lead nudges the original coherence reviewer (still alive from §0 — its task-list entry is not yet `done`) to re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to either re-approve (mark its task-list entry `done`) or surface further Critical findings. After a clean re-review, shut the coherence reviewer down.
 - **Iteration cap:** Cap Reconciliation Passes at **2 per run**. If the second re-review still returns Critical findings, stop and `AskUserQuestion` — recurrence beyond two passes is a signal that automated remediation is not converging and human judgment is required.
 
 **Constraints:**
+
 - The lead NEVER creates new Trellis issues during a reconciliation pass. If the reconciliation scope grows beyond the original findings, STOP and surface the expansion to the user via `AskUserQuestion`.
 - The developer in the reconciliation pass MUST NOT call `claim_task` or `complete_task` — there is no corresponding Trellis task. They implement and mark the task-list entry done only.
 - The reconciliation pass is limited to the changes needed to resolve the coherence findings. Do not use it to opportunistically add features or refactor unrelated code.
@@ -467,7 +478,7 @@ Write a concise conventional-commit subject: `type: description`, under ~50 char
 
 - **Types:** `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`.
 - **Style:** imperative mood, capitalize the first word, no trailing period.
-- **Focus:** describe *what changed and why* based on the actual diff. Skip run mechanics — **do not** include wave ordinals, task IDs, phase names (e.g., "post-implementation"), or teammate/pair details.
+- **Focus:** describe _what changed and why_ based on the actual diff. Skip run mechanics — **do not** include wave ordinals, task IDs, phase names (e.g., "post-implementation"), or teammate/pair details.
 - **Examples:** `feat: add login rate limiting`, `refactor: extract session validation`, `docs: update plugin install steps`.
 
 Pick the subject by inspecting the staged diff (`git diff --cached --stat` and spot-check changes as needed), not by summarizing the task list.
@@ -491,6 +502,7 @@ After all pairs in a wave are approved and shut down:
 2. Spawn a fresh `trellis-developer` teammate for that task with a lead-authored task-list entry asking them to fix the hook error. Include the full hook output in the task body.
 
    **Intentional exception to the fresh-pair-per-issue rule:** spawn a lone developer here, NOT a new developer/reviewer pair. The fix is narrowly scoped to satisfying the commit hook; if it expands beyond that scope, stop and `AskUserQuestion`.
+
 3. Wait for the fix, shut that developer down, and re-attempt the wave commit.
 4. Repeat until the commit succeeds.
 

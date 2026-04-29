@@ -71,7 +71,7 @@ Pick one of the two downstream planning skills based on what you see. Do not ask
 
 **Use `planning:discovery` otherwise** — i.e. when the ticket is well-specified and the value is in research and analysis:
 
-- Clear outcome stated; the question is *how* and *where*, not *what*
+- Clear outcome stated; the question is _how_ and _where_, not _what_
 - "Investigate the feasibility of X"
 - "Scope the impact of changing Y"
 - A concrete change with enough detail to start mapping code, risks, and trade-offs
@@ -130,7 +130,7 @@ After the document is produced, decide how to hand off based on your invocation 
 
 **You silently:**
 
-1. Fetch `ACME-3412`. It says: *"Add WebP support to the image ingest pipeline. Acceptance: ingest accepts WebP, stored variants include WebP, CDN serves WebP to supporting clients."*
+1. Fetch `ACME-3412`. It says: _"Add WebP support to the image ingest pipeline. Acceptance: ingest accepts WebP, stored variants include WebP, CDN serves WebP to supporting clients."_
 2. Notice a linked Confluence page titled "WebP rollout plan" — clearly relevant, fetch it. Notice a linked epic `ACME-3648` "Image Format Modernization" — relevant, pull its summary. Skip a linked "Team OKRs Q2" page — generic, not ticket-specific.
 3. Decide: ticket is well-specified with clear acceptance; value is in mapping affected code and risks → route to `planning:discovery`.
 4. Invoke `planning:discovery` with the ticket content, the WebP rollout page excerpt, the epic framing, and the user's focus instruction. Instruct it to examine local ingest-pipeline code; do **not** instruct it to search the web or Confluence further.

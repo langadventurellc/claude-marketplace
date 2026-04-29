@@ -20938,7 +20938,11 @@ function writeConfig(values) {
 
 // src/tools.ts
 function toolOk(payload) {
-  return { content: [{ type: "text", text: typeof payload === "string" ? payload : JSON.stringify(payload) }] };
+  return {
+    content: [
+      { type: "text", text: typeof payload === "string" ? payload : JSON.stringify(payload) }
+    ]
+  };
 }
 function toolError(message) {
   return { isError: true, content: [{ type: "text", text: message }] };
@@ -20959,7 +20963,10 @@ var TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
-        label: { type: "string", description: 'Optional human-readable label for this channel (e.g. "KAN-1").' }
+        label: {
+          type: "string",
+          description: 'Optional human-readable label for this channel (e.g. "KAN-1").'
+        }
       },
       additionalProperties: false
     }
@@ -20971,7 +20978,10 @@ var TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         channelId: { type: "string", description: "Channel ID returned by claim-conductor." },
-        prompt: { type: "string", description: "Optional user prompt to pass to the sub instance." }
+        prompt: {
+          type: "string",
+          description: "Optional user prompt to pass to the sub instance."
+        }
       },
       required: ["channelId"],
       additionalProperties: false
@@ -20996,7 +21006,10 @@ var TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         channelId: { type: "string", description: "Channel ID to send the message to." },
-        message: { type: "string", description: "Single-line message to send to the orchestration team." }
+        message: {
+          type: "string",
+          description: "Single-line message to send to the orchestration team."
+        }
       },
       required: ["channelId", "message"],
       additionalProperties: false
@@ -21121,11 +21134,10 @@ function launchOrchestrationTeam(args) {
   if (!fs2.existsSync(scriptPath)) {
     return toolError(`Launcher script missing at ${scriptPath}`);
   }
-  const child = spawn(
-    scriptPath,
-    [chId, prompt, sessionName, meta3.c2sLogPath, meta3.s2cLogPath],
-    { detached: true, stdio: "ignore" }
-  );
+  const child = spawn(scriptPath, [chId, prompt, sessionName, meta3.c2sLogPath, meta3.s2cLogPath], {
+    detached: true,
+    stdio: "ignore"
+  });
   child.unref();
   writeMeta(chId, { ...meta3, tmuxSession: sessionName });
   return toolOk({ tmuxSession: sessionName, channelId: chId, prompt });
@@ -21135,7 +21147,11 @@ function stopOrchestrationTeam(args) {
   if (typeof chId !== "string") return chId;
   const meta3 = readMeta(chId);
   if (meta3 === null) {
-    return toolOk({ stopped: false, channelId: chId, reason: "channel not found; nothing to stop." });
+    return toolOk({
+      stopped: false,
+      channelId: chId,
+      reason: "channel not found; nothing to stop."
+    });
   }
   try {
     fs2.appendFileSync(meta3.c2sLogPath, "__peer_exit__\n");
@@ -21189,7 +21205,11 @@ function terminateSub(args) {
   if (typeof chId !== "string") return chId;
   const meta3 = readMeta(chId);
   if (meta3 === null) {
-    return toolOk({ terminated: false, channelId: chId, reason: "channel not found; nothing to terminate." });
+    return toolOk({
+      terminated: false,
+      channelId: chId,
+      reason: "channel not found; nothing to terminate."
+    });
   }
   const previousTmuxSession = meta3.tmuxSession;
   try {

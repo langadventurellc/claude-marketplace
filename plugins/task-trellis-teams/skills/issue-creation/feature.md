@@ -50,11 +50,13 @@ Analyze requirements to identify remaining features:
 ### 3. Gather Additional Information (Only When Necessary)
 
 **Proceed autonomously unless information is truly ambiguous.** Do not ask about:
+
 - Feature granularity (default to coarser-grained features)
 - How many features to create (use your judgment)
 - Whether to proceed with feature creation (just create the features and stop)
 
 **Only ask clarifying questions when:**
+
 - Requirements are genuinely ambiguous with multiple valid interpretations
 - Critical technical information is missing that cannot be inferred
 - A decision has significant irreversible consequences
@@ -92,6 +94,7 @@ For each feature, create:
 - **Testable outcomes** - Features should have clear success criteria
 
 **Why coarser features:**
+
 - Easier for AI agents to understand context and implement correctly
 - Reduces overhead of managing many small features
 - Fewer dependencies between features

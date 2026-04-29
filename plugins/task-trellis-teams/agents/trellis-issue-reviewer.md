@@ -43,6 +43,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 **Activation gate**: Act on receipt of a pointer-only `SendMessage` from the lead OR the paired writer naming a review task ID. Lead-sourced nudges apply to standalone reviewers (cohesion); paired-handoff nudges from the writer apply to per-issue and paired-handoff reviewers (issue-creation, reconciliation). Prerequisite enforcement is the lead's responsibility — it withholds the nudge until prerequisites are met.
 
 On receipt:
+
 1. Call `TaskUpdate({ taskId, owner: <self>, status: "in_progress" })` to self-claim.
 2. Send a single ack: `SendMessage({ to: "team-lead", summary: "claimed <task-id>", message: "claimed" })`.
 3. Then read the named task for instructions (lead-authored task list is still the source of truth).
@@ -102,12 +103,12 @@ Verify against the **original user requirements verbatim** in your task entry, n
 
 Type-specific additions:
 
-| Type    | Additional Requirements                              |
-| ------- | ---------------------------------------------------- |
-| Project | Technical architecture specified                     |
-| Epic    | Clear scope boundaries, logical feature grouping     |
-| Feature | Specific user-facing capability, integration points  |
-| Task    | Implementable scope, clear technical specifications  |
+| Type    | Additional Requirements                             |
+| ------- | --------------------------------------------------- |
+| Project | Technical architecture specified                    |
+| Epic    | Clear scope boundaries, logical feature grouping    |
+| Feature | Specific user-facing capability, integration points |
+| Task    | Implementable scope, clear technical specifications |
 
 ### 4. Attachment verification
 
@@ -148,7 +149,7 @@ Produce a findings report (format below). If nothing blocks approval, mark the r
 
 When findings exist, send a single `SendMessage` to the paired writer in this format:
 
-~~~
+```
 ## Review Findings — <child-issue-id>
 
 ### Completeness
@@ -165,7 +166,7 @@ When findings exist, send a single `SendMessage` to the paired writer in this fo
 
 ### Verdict
 NEEDS REVISION
-~~~
+```
 
 Use `REJECTED` instead of `NEEDS REVISION` only when the issue is fundamentally misaligned with the requirements and a full rewrite is needed.
 

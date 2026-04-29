@@ -20,8 +20,8 @@ Tenancy values (Jira project prefix, Atlassian base URL, Atlassian cloud ID) are
 
 Parse from invocation arguments before doing anything else:
 
-| Flag | Effect |
-|---|---|
+| Flag         | Effect                                   |
+| ------------ | ---------------------------------------- |
 | `--no-draft` | Create a non-draft PR. Default is draft. |
 
 ## Workflow
@@ -48,12 +48,12 @@ The "pending change set" = everything that will be in the PR: uncommitted change
 
 Scan the combined file list and (where relevant) the diff content for any of the following. If **any** trigger fires, **halt** and alert the user in-chat with what was found and where. Do not auto-commit, do not push. Wait for the user to either fix it, explicitly override (`"proceed anyway"` / `"it's fine"`), or cancel.
 
-| Trigger | What to look for |
-|---|---|
-| **Secrets / credentials** | File names matching `.env*` (except `.env.example`, `.env.sample`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*.p12`, `service-account*.json`. In diff content: lines matching `(api[_-]?key|secret|token|password|authorization)\s*[:=]\s*["']?[A-Za-z0-9_\-./+=]{16,}`, AWS key patterns (`AKIA[0-9A-Z]{16}`), private key headers (`-----BEGIN (RSA |EC |DSA |OPENSSH |)PRIVATE KEY-----`). |
-| **Large/binary/artifact files** | Paths under `node_modules/`, `dist/`, `build/`, `target/`, `out/`, `.next/`, `.cache/`, `coverage/`, `__pycache__/`, `*.pyc`, `*.class`, `*.jar`, `*.zip`, `*.tar.gz`, `*.dmg`, `*.exe`, `*.so`, `*.dylib`. Also: any single file >1MB in the diff (check with `git diff <base>...HEAD --stat` and `ls -l`). |
-| **Scope creep / unrelated files** | Files whose paths don't plausibly relate to the Jira summary, branch name, or recent commit messages. This is a judgment call — only flag if it's *clearly* off-topic (e.g. branch is `ACME-1234-image-pipeline` but diff touches `billing/invoice_renderer.rb`). If unsure, don't flag. |
-| **Merge conflict markers** | Any tracked file containing `<<<<<<<`, `=======` (on its own line between markers), or `>>>>>>>`. Use `git grep -nE '^(<<<<<<<\|=======\|>>>>>>>)' -- ':(exclude)*.md'` as a fast check. |
+| Trigger                           | What to look for                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ----- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- | --- | --- | ------- | -------------------- |
+| **Secrets / credentials**         | File names matching `.env*` (except `.env.example`, `.env.sample`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*.p12`, `service-account*.json`. In diff content: lines matching `(api[_-]?key                                                                                                         | secret | token | password | authorization)\s*[:=]\s*["']?[A-Za-z0-9_\-./+=]{16,}`, AWS key patterns (`AKIA[0-9A-Z]{16}`), private key headers (`-----BEGIN (RSA | EC  | DSA | OPENSSH | )PRIVATE KEY-----`). |
+| **Large/binary/artifact files**   | Paths under `node_modules/`, `dist/`, `build/`, `target/`, `out/`, `.next/`, `.cache/`, `coverage/`, `__pycache__/`, `*.pyc`, `*.class`, `*.jar`, `*.zip`, `*.tar.gz`, `*.dmg`, `*.exe`, `*.so`, `*.dylib`. Also: any single file >1MB in the diff (check with `git diff <base>...HEAD --stat` and `ls -l`). |
+| **Scope creep / unrelated files** | Files whose paths don't plausibly relate to the Jira summary, branch name, or recent commit messages. This is a judgment call — only flag if it's _clearly_ off-topic (e.g. branch is `ACME-1234-image-pipeline` but diff touches `billing/invoice_renderer.rb`). If unsure, don't flag.                     |
+| **Merge conflict markers**        | Any tracked file containing `<<<<<<<`, `=======` (on its own line between markers), or `>>>>>>>`. Use `git grep -nE '^(<<<<<<<\|=======\|>>>>>>>)' -- ':(exclude)*.md'` as a fast check.                                                                                                                     |
 
 When halting, list each trigger with the file path and a one-line reason. Then stop. Example:
 
@@ -115,7 +115,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/load-pr-template.sh" "${CLAUDE_SKILL_DIR}/de
 **Drafting rules:**
 
 - **What**: plain-English prose, outcome-focused. No bullets, no "Key changes" block. Length follows change size. Implementation specifics (file paths, function names, flags) don't belong unless omitting them would mislead. Build from diff + commits; use Jira/Trellis to confirm intent, not to paste from.
-- **Why**: branch-level value (capability added, problem class prevented, contract established, risk removed) — not per-decision rationale. The triggering ticket or incident is *context*, not the answer. If Jira/Trellis context is unavailable, derive from commit bodies and the diff.
+- **Why**: branch-level value (capability added, problem class prevented, contract established, risk removed) — not per-decision rationale. The triggering ticket or incident is _context_, not the answer. If Jira/Trellis context is unavailable, derive from commit bodies and the diff.
 - **Steps to Validate**: only when you can actually infer it (new endpoint → `curl` example; new env var → mention setting it). Don't fabricate.
 - **Additional Notes**: info a reviewer needs that isn't obvious from the diff — deploy flags, env vars, ordering, follow-ups, non-obvious runtime impacts. **Never include development-process chronology** (Trellis IDs/trees, "wave N", per-task scope adjustments, implementation narrative). Most PRs leave this `N/A`.
 - If a section would be padding, write `N/A`.

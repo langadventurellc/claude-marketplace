@@ -46,12 +46,12 @@ Verify against the **original user requirements verbatim** in your inputs, not a
 
 **Type-specific additions:**
 
-| Type    | Additional Requirements                              |
-| ------- | ---------------------------------------------------- |
-| Project | Technical architecture specified                     |
-| Epic    | Clear scope boundaries, logical feature grouping     |
-| Feature | Specific user-facing capability, integration points  |
-| Task    | Implementable scope, clear technical specifications  |
+| Type    | Additional Requirements                             |
+| ------- | --------------------------------------------------- |
+| Project | Technical architecture specified                    |
+| Epic    | Clear scope boundaries, logical feature grouping    |
+| Feature | Specific user-facing capability, integration points |
+| Task    | Implementable scope, clear technical specifications |
 
 ### 3. Correctness Check
 
@@ -67,6 +67,7 @@ Check that source materials were properly attached and referenced per the attach
 **Check 1 — Correct holder placement**
 
 Attachments must follow the single-source-of-truth hierarchy:
+
 - When a parent exists (tasks under a feature, features under an epic, etc.): source materials belong on the **parent** issue only. Children must reference the parent's attachments — not hold their own copy.
 - When creating a project (top-level, no parent): attachments belong on the project.
 - When creating a flat list with no common ancestor: duplicate-attaching the same file to each issue is acceptable.
@@ -88,6 +89,7 @@ Every holder issue that has attachments must include an `## Attachments` section
 **Check 4 — `## Attachments` section in child issues**
 
 Every child issue that depends on an attached source material must include an `## Attachments` section that:
+
 - Names the holder issue ID and the specific filename (e.g., `See <filename> on <holder-id>`).
 - Includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path.
 
@@ -104,6 +106,7 @@ To spot-check `<projectKey>` against the on-disk directory, see [`../issue-creat
 If source materials were available during the writing session — planning output was produced, the user supplied file paths, or files were referenced in the task description or parent issue body — and the writer did NOT attach them to the appropriate holder, **block the review**. This is not a minor finding.
 
 Use these contextual signals to detect suspected omissions:
+
 - Prior planning-skill output visible in the conversation (requirements-creation summary, discovery report).
 - File paths mentioned in the task description or the requirements that the writer had access to.
 - Attachment listings on the parent issue that imply related source materials should propagate to children.
@@ -115,7 +118,7 @@ Evaluate for over-engineering:
 - Flag additions beyond what the verbatim requirements asked for.
 - Flag unnecessary abstractions or premature optimization.
 - Flag speculative content ("we might also want to...") that isn't anchored in the requirements.
-- Flag any issue whose primary deliverable is a version bump (e.g., bumping `plugin.json`, `package.json`, `pyproject.toml`, `Cargo.toml`, `VERSION`). Version bumps are handled by `planning:versioning` at the end of implementation, not as Trellis work. This is a REJECT-grade finding even if the original requirements explicitly asked for it — the writer should have dropped it from scope. This rule targets bumping a version *number* in metadata files; legitimately version-adjacent work (e.g., "add version detection to the runtime") is not in scope of this rule.
+- Flag any issue whose primary deliverable is a version bump (e.g., bumping `plugin.json`, `package.json`, `pyproject.toml`, `Cargo.toml`, `VERSION`). Version bumps are handled by `planning:versioning` at the end of implementation, not as Trellis work. This is a REJECT-grade finding even if the original requirements explicitly asked for it — the writer should have dropped it from scope. This rule targets bumping a version _number_ in metadata files; legitimately version-adjacent work (e.g., "add version detection to the runtime") is not in scope of this rule.
 
 **Exception**: Expanded scope is acceptable if the requirements explicitly asked for it (e.g., the words "comprehensive" or "future-proofed" appear verbatim). This exception does **not** apply to version bumps.
 
@@ -150,7 +153,6 @@ Output format depends on invocation context:
 
 - **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is silence + `TaskUpdate({ status: "done" })` — do NOT send a "looks good" message. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
 - **Direct invocation** (e.g., user-invoked via `/issue-creation-review`): produce a verification report with these sections:
-
   1. **Issue Details**: Type, ID, title
   2. **Completeness**: Complete/Partial/Incomplete with specific gaps
   3. **Correctness**: Correct/Issues Found, with codebase evidence

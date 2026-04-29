@@ -1,6 +1,6 @@
 # Determine Starting Issue Level
 
-**When to use this doc.** The lead reads this file from `SKILL.md` step 3 *only* when both of the following are true:
+**When to use this doc.** The lead reads this file from `SKILL.md` step 3 _only_ when both of the following are true:
 
 1. No parent issue ID was supplied.
 2. The user's requirements do not already name the level or types to create (e.g., they didn't say "create tasks for X", "a feature with tasks", "an epic and its features", "break this into features", etc.).
@@ -16,12 +16,12 @@ Before applying the heuristics below, you should have:
 
 ## Trellis hierarchy at a glance
 
-| Level | Typical scope | Duration shape | Example one-liner |
-|-------|---------------|----------------|-------------------|
-| Project | A full system or product initiative with multiple distinct workstreams | Many weeks to months | "Build an observability platform with ingest, storage, and dashboards." |
-| Epic | A major work area inside a larger system; often multiple user-facing features | Weeks | "Authentication and session management." |
-| Feature | A single implementable capability with a coherent user or developer story | Days to a week; 3–10 tasks | "Password reset via email link." |
-| Task | An atomic unit of work; ~1–2 hours for a developer | Hours | "Add rate-limiting middleware to `/api/register`." |
+| Level   | Typical scope                                                                 | Duration shape             | Example one-liner                                                       |
+| ------- | ----------------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| Project | A full system or product initiative with multiple distinct workstreams        | Many weeks to months       | "Build an observability platform with ingest, storage, and dashboards." |
+| Epic    | A major work area inside a larger system; often multiple user-facing features | Weeks                      | "Authentication and session management."                                |
+| Feature | A single implementable capability with a coherent user or developer story     | Days to a week; 3–10 tasks | "Password reset via email link."                                        |
+| Task    | An atomic unit of work; ~1–2 hours for a developer                            | Hours                      | "Add rate-limiting middleware to `/api/register`."                      |
 
 The sibling `issue-creation` skill's `project.md`, `epic.md`, `feature.md`, and `task.md` files define these levels in more detail. Consult them when a decision is borderline.
 

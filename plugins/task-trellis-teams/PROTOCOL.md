@@ -7,7 +7,7 @@ Single canonical reference for shared teammate protocol. Agent files point here 
 SendMessage accepts ONLY three fields: `to`, `summary`, `message`.
 
 Canonical call:
-  SendMessage({ to: "<teammate-name>", summary: "<5-10 word preview>", message: "<body>" })
+SendMessage({ to: "<teammate-name>", summary: "<5-10 word preview>", message: "<body>" })
 
 - Extra fields (`type`, `recipient`, `content`, etc.) are silently dropped but may produce spurious `task_assignment` envelopes. Send only `to`, `summary`, `message`.
 - Plain-text output (text outside of a tool call) is NOT visible to other teammates. You MUST use SendMessage to communicate.
@@ -19,6 +19,7 @@ Canonical call:
 ## Reviewer activation gate
 
 Two cases:
+
 - **Per-issue / paired-handoff reviewers** (implementation, issue-creation, reconciliation): activate on receipt of a pointer-only `SendMessage` from the paired developer or writer naming the review task-list task ID.
 - **Standalone reviewers** (cross-sibling, coherence): activate on receipt of a pointer-only `SendMessage` from the lead naming the review task-list task ID.
 
@@ -40,4 +41,3 @@ SendMessage({ to: "<sender>", message: { type: "shutdown_response", request_id: 
 ```
 
 Do NOT start new work, re-invoke skills, or re-read your task entry in response to a shutdown. Approving the shutdown terminates your process.
-

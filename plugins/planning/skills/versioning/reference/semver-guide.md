@@ -4,12 +4,12 @@ This guide is consulted by the `planning:versioning` skill when mode = `infer`. 
 
 ## Baseline Decision Rules
 
-| Change type | Bump level |
-|---|---|
-| Breaking change — removes or incompatibly changes existing behavior or a public API | `major` |
-| Additive, backward-compatible change — new feature, flag, endpoint, or skill that doesn't break existing callers | `minor` |
-| Bug fix, internal refactor, dependency update with no behavior change | `patch` |
-| Doc-only change (in a conventional code repo only — see "Project-type-aware classification" below) | `patch` or no bump (but the skill's mandatory-bump invariant forces at least `patch` when invoked) |
+| Change type                                                                                                      | Bump level                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Breaking change — removes or incompatibly changes existing behavior or a public API                              | `major`                                                                                            |
+| Additive, backward-compatible change — new feature, flag, endpoint, or skill that doesn't break existing callers | `minor`                                                                                            |
+| Bug fix, internal refactor, dependency update with no behavior change                                            | `patch`                                                                                            |
+| Doc-only change (in a conventional code repo only — see "Project-type-aware classification" below)               | `patch` or no bump (but the skill's mandatory-bump invariant forces at least `patch` when invoked) |
 
 ## Pre-1.0 Caveats
 
@@ -29,17 +29,17 @@ For `0.x.y` versions, semver allows using `minor` instead of `major` for breakin
 
 Use this table for changes inside a Claude Code plugin:
 
-| Change type | Bump level |
-|---|---|
-| Edit to SKILL.md body that changes documented behavior, default arguments, model selection, tool lists, or argument handling | `minor` |
-| Edit to agent frontmatter (`model`, `tools`, `allowed-tools`, `description`) that changes defaults or capabilities | `minor` |
-| Edit to SKILL.md or agent prose that clarifies without changing behavior (typo fix, rewording, tightened wording) | `patch` |
-| Add a new skill, agent, command, or hook | `minor` |
-| Remove or rename a skill, agent, command, or argument | `major` (or `minor` if pre-1.0) |
-| Change a user-facing flag or argument shape in a backward-incompatible way | `major` (or `minor` if pre-1.0) |
-| Edit to a file under a skill's `reference/` subdirectory | `patch` by default; `minor` if the reference encodes load-bearing rules that change caller behavior |
-| Edit to `.claude-plugin/marketplace.json` metadata (source, entries, versions) | Depends on the nature of the change — apply the baseline rules. Removing a plugin entry is `major`; adding one is `minor`. |
-| Edit to the plugin's own README.md | `patch` (plugin READMEs are user-facing docs, not runtime config). |
+| Change type                                                                                                                  | Bump level                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Edit to SKILL.md body that changes documented behavior, default arguments, model selection, tool lists, or argument handling | `minor`                                                                                                                    |
+| Edit to agent frontmatter (`model`, `tools`, `allowed-tools`, `description`) that changes defaults or capabilities           | `minor`                                                                                                                    |
+| Edit to SKILL.md or agent prose that clarifies without changing behavior (typo fix, rewording, tightened wording)            | `patch`                                                                                                                    |
+| Add a new skill, agent, command, or hook                                                                                     | `minor`                                                                                                                    |
+| Remove or rename a skill, agent, command, or argument                                                                        | `major` (or `minor` if pre-1.0)                                                                                            |
+| Change a user-facing flag or argument shape in a backward-incompatible way                                                   | `major` (or `minor` if pre-1.0)                                                                                            |
+| Edit to a file under a skill's `reference/` subdirectory                                                                     | `patch` by default; `minor` if the reference encodes load-bearing rules that change caller behavior                        |
+| Edit to `.claude-plugin/marketplace.json` metadata (source, entries, versions)                                               | Depends on the nature of the change — apply the baseline rules. Removing a plugin entry is `major`; adding one is `minor`. |
+| Edit to the plugin's own README.md                                                                                           | `patch` (plugin READMEs are user-facing docs, not runtime config).                                                         |
 
 ### Mixed repos
 
