@@ -115,8 +115,9 @@ Evaluate for over-engineering:
 - Flag additions beyond what the verbatim requirements asked for.
 - Flag unnecessary abstractions or premature optimization.
 - Flag speculative content ("we might also want to...") that isn't anchored in the requirements.
+- Flag any issue whose primary deliverable is a version bump (e.g., bumping `plugin.json`, `package.json`, `pyproject.toml`, `Cargo.toml`, `VERSION`). Version bumps are handled by `planning:versioning` at the end of implementation, not as Trellis work. This is a REJECT-grade finding even if the original requirements explicitly asked for it — the writer should have dropped it from scope. This rule targets bumping a version *number* in metadata files; legitimately version-adjacent work (e.g., "add version detection to the runtime") is not in scope of this rule.
 
-**Exception**: Expanded scope is acceptable if the requirements explicitly asked for it (e.g., the words "comprehensive" or "future-proofed" appear verbatim).
+**Exception**: Expanded scope is acceptable if the requirements explicitly asked for it (e.g., the words "comprehensive" or "future-proofed" appear verbatim). This exception does **not** apply to version bumps.
 
 ## Cohesion Review (parent + children)
 

@@ -92,3 +92,4 @@ All issue types share these principles:
 - **Include acceptance criteria** - All issues should have measurable success criteria.
 - **Create sequentially** - When creating multiple issues, do them one at a time, not in parallel.
 - **No integration or performance tests** - Do not add integration or performance tests unless specifically requested in the input.
+- **Do not create issues for version bumps** - Version bumps (to `plugin.json`, `package.json`, `pyproject.toml`, `Cargo.toml`, `VERSION`, etc.) are handled at the end of implementation by the `planning:versioning` skill, not as standalone Trellis work. If the original requirements mention a version bump, drop it from the issue set — do not create a task, feature, or epic for it, even if the requirements ask for it explicitly.
