@@ -30,7 +30,7 @@ Follow these steps in order. Each step's output is required for the next.
 
 ### 0. Preflight: load configuration
 
-Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl`, `PROJECT_KEY` from `values.jiraProjectKey`, and `CLOUD_ID` from `values.atlassianCloudId`. If any are missing or empty, stop: `Config missing or incomplete. Run /orchestrate-jira-issue first to set up configuration.`
+Call `mcp__plugin_jira-issue-orchestration_issue-orchestration__get-config` with no arguments. Bind `BASE_URL` from `values.atlassianBaseUrl`, `PROJECT_KEY` from `values.jiraProjectKey`, and `CLOUD_ID` from `values.atlassianCloudId`. If any are missing or empty, stop: `Config missing or incomplete. Run /configure-jira-orchestration to set it up, then re-run this skill.`
 
 ```!
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/collect-pr-context.sh"

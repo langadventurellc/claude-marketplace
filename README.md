@@ -42,13 +42,14 @@ The skills that make the orchestration land cleanly. Useful on their own; depend
 
 Runs a single command to autonomously take a Jira issue all the way to an open draft PR.
 
+- `/configure-jira-orchestration` — sets the per-project Atlassian base URL, cloud ID, and Jira project key. Run once before the other skills; re-run any time to update values. The other skills halt with a pointer here if config is missing.
 - `/orchestrate-jira-issue <JIRA-ID>` — validates the issue, spawns a planning sub-session that investigates the ticket and creates Trellis tasks, then spawns an implementation sub-session that implements those tasks and opens a draft PR. Both sub-sessions communicate with the conductor over IPC log files managed by the `issue-orchestration` MCP server.
 - `/investigate-jira-issue <JIRA-ID>` — standalone investigation step. Fetches the ticket, pulls linked context, then routes to `planning:requirements-creation` (underspecified) or `planning:discovery` (well-specified) to produce a requirements artifact.
 - `/create-pr` — commit, push, and open a draft GitHub PR with Jira context auto-detected. Enforces `{JIRA-ID}: {outcome}` title format; halts on suspicious staged content. Set `TT_PR_TEMPLATE` to a readable file path to swap the default PR body template for your team's template for the rest of the session.
 
 **Prerequisites:** `task-trellis-teams` must also be installed (it is a declared plugin dependency). The MCP server is bundled in the plugin and self-registers — no manual setup required. Requires Claude Code v2.1.98+, macOS + iTerm2 + tmux, and Node ≥ 22.
 
-**First-run config:** Run `/orchestrate-jira-issue` once per project before using the standalone skills — it prompts for your Atlassian base URL, cloud ID, and Jira project key and persists them per-project via the `issue-orchestration` MCP server. `/investigate-jira-issue` and `/create-pr` require that config to already exist and will not prompt for missing values.
+**First-run config:** Run `/configure-jira-orchestration` once per project to set your Atlassian base URL, cloud ID, and Jira project key — values are persisted per-project via the `issue-orchestration` MCP server. `/orchestrate-jira-issue`, `/investigate-jira-issue`, and `/create-pr` require that config to already exist; if any required key is missing they halt with a pointer back to `/configure-jira-orchestration`.
 
 ```
 /plugin install jira-issue-orchestration@task-trellis-marketplace
