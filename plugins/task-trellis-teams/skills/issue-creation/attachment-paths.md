@@ -10,4 +10,10 @@ ${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/<holder-path>/<holder-id>/
 
 ## Finding `<projectKey>`
 
-Call `mcp__plugin_task-trellis-teams_task-trellis__get_ui_info` and use the segment after `/projects/` in the returned `projectUrl`. It matches the directory name under `${TRELLIS_DATA_DIR:-~/.trellis}/projects/`.
+Read it from the SessionStart hook context already injected into your session. The hook emits a line like:
+
+```
+The Task Trellis browser UI is running at http://127.0.0.1:<port>/projects/<projectKey>.
+```
+
+`<projectKey>` is the 12-character segment after `/projects/`. It matches the directory name under `${TRELLIS_DATA_DIR:-~/.trellis}/projects/` exactly.

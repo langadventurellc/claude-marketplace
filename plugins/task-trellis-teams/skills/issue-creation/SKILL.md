@@ -6,7 +6,6 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__update_issue
   - mcp__plugin_task-trellis-teams_task-trellis__add_attachment
-  - mcp__plugin_task-trellis-teams_task-trellis__get_ui_info
   - Read
   - Glob
   - Grep
