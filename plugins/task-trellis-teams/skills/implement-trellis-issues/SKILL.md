@@ -8,7 +8,7 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
   - TeamCreate
   - TeamDelete
-  - Task
+  - Agent
   - TaskCreate
   - TaskUpdate
   - TaskList
@@ -35,7 +35,7 @@ Prohibited lead actions:
 Enforcement heuristic: If you find yourself about to call `Edit`, `Write`, or `update_issue` on a child — STOP and ask: is this a teammate's job? It almost certainly is.
 </critical>
 
-Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's **Agent Teams** API. The lead MUST call `TeamCreate` once at the start of the run; pair spawns and `SendMessage` routing depend on the team being live. A bare `Task` call with a `name` parameter does NOT join the team — it spawns a detached subagent that will appear to work (its name resolves for `SendMessage`) but is outside the team's coordination guarantees. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
+Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's **Agent Teams** API. The lead MUST call `TeamCreate` once at the start of the run; pair spawns and `SendMessage` routing depend on the team being live. Teammates are spawned with the `Agent` tool, passing `subagent_type`, `team_name`, and `name`. An `Agent` call missing `team_name` does NOT join the team — it spawns a detached subagent that will appear to work (its name resolves for `SendMessage`) but is outside the team's coordination guarantees. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
 
 ## Goal
 
@@ -122,7 +122,7 @@ TeamCreate({
 })
 ```
 
-Use a short, scope-descriptive `team_name` (e.g., `impl-F-add-user-auth`). Every later `Task` spawn for a teammate in this run MUST pass `team_name: "impl-<scope-id>"` so the spawn joins this team rather than running detached.
+Use a short, scope-descriptive `team_name` (e.g., `impl-F-add-user-auth`). Every later `Agent` spawn for a teammate in this run MUST pass `team_name: "impl-<scope-id>"` so the spawn joins this team rather than running detached.
 
 Team size: lead plus up to the maximum number of concurrent pairs you plan to run. Because each pair is two teammates, two concurrent pairs need four teammate slots plus the lead.
 
@@ -184,7 +184,7 @@ This dependency blocks the review task-list entry until the impl entry is marked
 
 ### 2. Spawn a fresh pair
 
-<critical>Each `Task` spawn here MUST pass `team_name: "impl-<scope-id>"` (the team created in §Team Creation). Omitting `team_name` falls back to a detached subagent — `SendMessage` to a `name`d subagent will succeed regardless, so a working `SendMessage` is NOT evidence that you are operating inside the team.</critical>
+<critical>Spawn teammates with the `Agent` tool: `Agent({ subagent_type: "<agent-type>", team_name: "impl-<scope-id>", name: "<teammate-name>", prompt: "..." })`. Each `Agent` spawn here MUST pass `team_name: "impl-<scope-id>"` (the team created in §Team Creation). Omitting `team_name` falls back to a detached subagent — `SendMessage` to a `name`d subagent will succeed regardless, so a working `SendMessage` is NOT evidence that you are operating inside the team. Do NOT use the `Task` tool for spawning; `Task` retrieves output from background processes and cannot create teammates.</critical>
 
 Spawn two teammates tied to this one task:
 
@@ -195,9 +195,9 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 #### Model selection
 
-**Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Task` tool when spawning teammates.** The `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
+**Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Agent` tool when spawning teammates.** The `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
 
-Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Task`. If a coding task genuinely needs deeper reasoning, the developer's `planning:create-implementation-plan` invocation at claim time will run on Opus (per that skill's frontmatter) and return a detailed plan to drive the Sonnet developer — do not reach for a stronger developer model.
+Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Agent`. If a coding task genuinely needs deeper reasoning, the developer's `planning:create-implementation-plan` invocation at claim time will run on Opus (per that skill's frontmatter) and return a detailed plan to drive the Sonnet developer — do not reach for a stronger developer model.
 
 For the **per-task reviewer**, pick the `subagent_type` based on the task body already fetched during candidate evaluation (no extra tool call needed):
 
@@ -554,6 +554,7 @@ Produce a concise final message covering:
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
-  <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. To switch models, change `subagent_type`. (See §Per-Issue Pair Lifecycle / Model selection for the rationale.)</critical>
+  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `team_name`, `name`, and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
+  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. To switch models, change `subagent_type`. (See §Per-Issue Pair Lifecycle / Model selection for the rationale.)</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a pointer-only `SendMessage` to the developer naming the impl task-list task ID before stepping back. The message body is `'claim and begin <impl-task-list-task-id>'`. Do NOT embed instructions. Do NOT rely on the developer picking up work autonomously.</critical>
 </rules>

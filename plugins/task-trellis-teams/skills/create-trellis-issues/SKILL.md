@@ -5,7 +5,7 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - TeamCreate
   - TeamDelete
-  - Task
+  - Agent
   - TaskCreate
   - TaskUpdate
   - TaskList
@@ -33,7 +33,7 @@ Prohibited lead actions:
 Enforcement heuristic: If you find yourself about to call `create_issue` or `update_issue` on a child, STOP and ask: is this a teammate's job? It almost certainly is.
 </critical>
 
-Orchestrate issue creation using Claude Code's Agent Teams feature. The lead session (you) creates a team, authors per-child creation/review task pairs on the shared task list, spawns one writer/reviewer pair per sibling set, and lets the writer and reviewer coordinate directly via `SendMessage` for fix loops.
+Orchestrate issue creation using Claude Code's Agent Teams feature. The lead session (you) creates a team, authors per-child creation/review task pairs on the shared task list, spawns one writer/reviewer pair per sibling set with the `Agent` tool (passing `subagent_type`, `team_name`, and `name`), and lets the writer and reviewer coordinate directly via `SendMessage` for fix loops. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates.
 
 ## Role of the Lead (You)
 
@@ -210,12 +210,14 @@ Spawn one writer AND one reviewer for the current sibling set. Both are scoped t
 
 **Naming rule (mandatory):** Teammate names MUST include the parent ID, not just the level — e.g. `writer-tasks-f-auth` / `reviewer-tasks-f-auth`, not `writer-tasks` / `reviewer`. This is required for unambiguous `SendMessage` routing when multiple pairs run in parallel at the same depth.
 
-**Do NOT pass a `model` parameter to `Task`.** Agent frontmatter is authoritative; the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.
+**Spawn teammates with the `Agent` tool, not the `Task` tool.** `Task` retrieves output from background processes and cannot create teammates. Every spawn MUST pass `team_name` (so the spawn joins the team rather than running as a detached subagent), `name`, and `subagent_type`.
+
+**Do NOT pass a `model` parameter to `Agent`.** Agent frontmatter is authoritative; the `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.
 
 Spawn the reviewer:
 
 ```
-Task({
+Agent({
   "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-reviewer",
   "name": "reviewer-<level>-<parent-id>",
@@ -227,7 +229,7 @@ Task({
 Spawn the writer (in the same step — both are spawned together):
 
 ```
-Task({
+Agent({
   "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-writer",
   "name": "writer-<level>-<parent-id>",
@@ -314,7 +316,7 @@ Use `task-trellis-teams:issue-creation-review` as your review guide and the cohe
 After authoring the cohesion task, spawn a dedicated reviewer teammate:
 
 ```
-Task({
+Agent({
   "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-reviewer",
   "name": "cohesion-reviewer-<parent-id>",
@@ -443,7 +445,8 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
   <critical>If a teammate reports a permission error or infrastructure failure, STOP and report to the user via AskUserQuestion. Do NOT attempt workarounds.</critical>
   <critical>Address ALL review findings. Do NOT categorize findings as minor and skip them. If the writer believes a finding is wrong, it must justify via SendMessage to the reviewer, not silently ignore.</critical>
-  <critical>NEVER pass a `model` parameter to the `Task` tool when spawning teammates. Agent frontmatter is authoritative — the `Task`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
+  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `team_name`, `name`, and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
+  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. Agent frontmatter is authoritative — the `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
   <important>Spawn one writer/reviewer pair per sibling set; shut BOTH down when the set's per-child reviews and cohesion review are complete. For the cohesion review (step 9a), spawn a FRESH reviewer teammate — never reuse the per-sibling-set reviewer — and shut it down on approval.</important>
   <important>Default to coarser-grained issues at the current level — fewer, larger children. Do NOT ask about granularity.</important>
   <important>Use unique, stable teammate names that include the parent ID (e.g., `writer-tasks-f-auth`, `reviewer-tasks-f-auth`) so SendMessage routing is unambiguous when multiple pairs run in parallel at the same depth.</important>
