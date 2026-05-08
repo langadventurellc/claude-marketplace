@@ -308,7 +308,14 @@ Check the following, in order:
 4. **Prerequisite coherence**: Are the prerequisite links between siblings correct? Flag any missing or spurious prerequisite. (No-op when only one child exists.)
 5. **Attachment consistency**: Verify the sibling set respects attachment custody rules — attachments reside on the shared parent (not duplicated across siblings), every sibling that depends on an attachment has a correctly formatted `## Attachments` section.
 
-Use `task-trellis-teams:issue-creation-review` as your review guide and the cohesion rubric in that skill's SKILL.md. Send findings directly to the writer (<writer-name>) via SendMessage if changes to child issues are needed. Approve (mark this task done) when no blocking cohesion issues remain.
+Use `task-trellis-teams:issue-creation-review` as your review guide and the cohesion rubric in that skill's SKILL.md. Send findings directly to the writer (<writer-name>) via SendMessage if changes to child issues are needed.
+
+**Always notify the lead (`team-lead`) of every decision via SendMessage — silence is NOT acceptance.** The lead is blocked waiting on an explicit signal; if you do not send one, the entire run stalls. Send a message to `team-lead` at each of these points:
+
+- **On approval (no blocking issues):** `SendMessage({ to: "team-lead", summary: "cohesion approved <parent-id>", message: "cohesion review approved; marked <cohesionTaskId> done" })` AND mark this task done via TaskUpdate.
+- **On findings sent to the writer:** after the SendMessage to the writer, also `SendMessage({ to: "team-lead", summary: "cohesion findings sent <parent-id>", message: "sent <N> findings to <writer-name>; awaiting fixes before re-review" })`.
+- **After each re-review iteration:** notify the lead of the new status (still iterating with new findings, now approved, or escalating).
+- **On escalation / blocker:** `SendMessage({ to: "team-lead", summary: "cohesion blocked <parent-id>", message: "<reason>" })` and stop.
 ```
 
 **Step 2 — Spawn the fresh cohesion reviewer:**
@@ -321,7 +328,7 @@ Agent({
   "subagent_type": "task-trellis-teams:trellis-issue-reviewer",
   "name": "cohesion-reviewer-<parent-id>",
   "description": "Fresh reviewer for cohesion pass under <parent-id>",
-  "prompt": "You are the cohesion reviewer for parent issue <parent-id>. Read your instructions from the shared task list only — specifically the cohesion-review task the lead authored for <parent-id>. Follow the task-trellis-teams:trellis-issue-reviewer agent guardrails. Send findings via SendMessage to the writer by name; mark the task done when no blocking issues remain."
+  "prompt": "You are the cohesion reviewer for parent issue <parent-id>. Read your instructions from the shared task list only — specifically the cohesion-review task the lead authored for <parent-id>. Follow the task-trellis-teams:trellis-issue-reviewer agent guardrails. Send findings via SendMessage to the writer by name; mark the task done when no blocking issues remain. **You MUST notify `team-lead` via SendMessage of every decision — approval, findings sent, ongoing iteration, or escalation. Silence is not acceptance; the lead stalls the entire run waiting on an explicit signal from you.**"
 })
 ```
 
@@ -333,7 +340,9 @@ SendMessage({ to: "cohesion-reviewer-<parent-id>", summary: "<cohesion-task-id> 
 
 **Step 3 — Wait for approval, then shut down the fresh cohesion reviewer:**
 
-Wait for `cohesionTaskId` to be marked done (poll via `TaskList` or watch for a completion message from the reviewer). Once approved:
+Wait for an explicit `SendMessage` from `cohesion-reviewer-<parent-id>` to `team-lead` reporting its decision (approval, findings sent, iteration in progress, or escalation). The reviewer is required to message the lead on every decision — do NOT treat silence as acceptance. `TaskList` polling is a backup signal only; if the cohesion task is marked done but no message arrived, something went wrong (re-nudge the reviewer or escalate).
+
+If the reviewer reports findings sent to the writer or an in-progress iteration, keep waiting for the eventual approval or escalation message — do not advance until cohesion is explicitly approved. Once approved:
 
 ```
 SendMessage({ to: "cohesion-reviewer-<parent-id>", message: { type: "shutdown_request" } })
@@ -453,4 +462,5 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   <important>Author review tasks with an explicit dependency on their paired creation task so the reviewer only unblocks after the writer completes.</important>
   <critical>After spawning both teammates, the lead MUST send a pointer-only `SendMessage` to the writer naming the first creation task ID before stepping back. The message body is `'claim and begin <task-list-task-id>'`. Do NOT embed instructions. Wait for the writer's 'claimed' ack before proceeding.</critical>
   <critical>Whenever a parent issue has children created under it in this run, the lead MUST author and wait for a cohesion review task before declaring level completion. Skip only when there is no parent (standalone children at the root). The cohesion review fires regardless of whether --no-recursive is set.</critical>
+  <critical>The cohesion reviewer MUST notify `team-lead` via SendMessage of every decision (approval, findings sent to the writer, ongoing iteration, escalation). Silence is NOT acceptance — the lead is blocked waiting on an explicit signal and the entire run stalls if the reviewer omits this. The lead-authored cohesion task description and the reviewer's spawn prompt both encode this requirement.</critical>
 </rules>
