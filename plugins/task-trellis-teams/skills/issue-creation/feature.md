@@ -110,15 +110,21 @@ For each feature, use `create_issue` with type `"feature"`, the generated title 
 
 Attach source materials inventoried in SKILL.md step 2 according to the hierarchy:
 
-**Features under an epic (parent exists):** Attach source materials to the **immediate parent epic**, not to each feature. Call `add_attachment` with the epic ID, then update the epic body to include a holder-style `## Attachments` section if not already present. Include a child-style `## Attachments` section in each feature body:
+**Features under an epic (parent exists):** Attach source materials to the **immediate parent epic**, not to each feature. Call `add_attachment` with the epic ID, then update the epic body to include a holder-style `## Attachments` section if not already present. Include a child-style `## Attachments` section in each feature body with a literal absolute path (no `~`, no `${...}` — `Read` does not expand them):
 
 ```markdown
 ## Attachments
 
-See `<filename>` on `<epic-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<epic-id>/attachments/<filename>`
+See `<filename>` on `<epic-id>`. Direct path: `/Users/<you>/.trellis/projects/<projectKey>/<epic-segments>/<epic-id>/attachments/<filename>`
 ```
 
-where `...` reflects the full hierarchy path up to but not including the holder ID (e.g., `p/<project-id>/e` for epics under a project, or `e` for standalone epics).
+`<epic-segments>` is `p/<project-id>/e` for epics under a project or `e` for standalone epics. To avoid hand-deriving it, run one Bash call after `add_attachment` to get the real absolute path:
+
+```
+bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}/projects/<projectKey>" -path "*/<epic-id>/attachments/<filename>"'
+```
+
+Paste the returned line verbatim into each feature body.
 
 **Standalone features (no parent):** The feature is the holder. Include a holder-style `## Attachments` section in the feature body (or update via `update_issue` if already created), then call `add_attachment` with the feature ID:
 

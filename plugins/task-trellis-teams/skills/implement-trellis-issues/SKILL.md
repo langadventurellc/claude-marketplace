@@ -143,7 +143,7 @@ Parent feature: F-<feature-id> (<feature title>)
 
 Claim and read the task body in one call: `mcp__plugin_task-trellis-teams_task-trellis__claim_task` with T-<task-id>. Do not call `get_issue` on this task ID — `claim_task` returns the full body.
 
-If the task body includes an `## Attachments` section, read each referenced file from its on-disk path before writing any code (no `get_issue` on the holder required). Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on any path.
+If the task body includes an `## Attachments` section, read each referenced file from the absolute on-disk path embedded in the section before writing any code. `Read` does not expand `~`, `$HOME`, or `${TRELLIS_DATA_DIR:-...}` — if the body's path is shell-templated or otherwise unreadable, fetch the holder issue via `get_issue` and inspect its top-level `attachments` array, then locate the file with `bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}" -name "<filename>" -path "*/<holder-id>/attachments/*"'`. Attachments are primary source material — the skill's attachment-consultation step is mandatory and is NOT skipped on any path.
 
 Skill: `task-trellis-teams:issue-implementation`
 

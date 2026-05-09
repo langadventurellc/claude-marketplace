@@ -114,13 +114,15 @@ Type-specific additions:
 
 Check that source materials were properly attached and referenced per the attachment custody rules.
 
+The authoritative list of attachments on any issue is the `attachments` array returned at the top level of `get_issue` — independent of whatever the body's `## Attachments` section claims. A child that references a parent holder will have its own `attachments` array empty; fetch the holder via `get_issue` to inspect that holder's `attachments`.
+
 **Check 1 — Correct holder placement**: Attachments must reside on the correct holder per the single-source-of-truth hierarchy. When a parent exists, source materials belong on the **parent** — not duplicated across children. When creating a project (top-level), attachments belong on the project. When creating a flat list with no common ancestor, duplicate-attaching is acceptable.
 
 **Check 2 — No redundant duplication**: When a shared parent exists, the same source file MUST NOT appear as an attachment on multiple sibling children. Confirm the flat-list exception (no common ancestor) applies before allowing duplicates.
 
 **Check 3 — `## Attachments` section in holder issues**: Every holder issue that has attachments must include an `## Attachments` section listing each filename with a one-line description.
 
-**Check 4 — `## Attachments` section in child issues**: Every child issue that depends on an attached source material must include an `## Attachments` section that names the holder issue ID and the specific filename (`See <filename> on <holder-id>`) and includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path. To verify `<projectKey>` against the on-disk directory, see `skills/issue-creation/attachment-paths.md`.
+**Check 4 — `## Attachments` section in child issues**: Every child issue that depends on an attached source material must include an `## Attachments` section that names the holder issue ID and the specific filename (`See <filename> on <holder-id>`) and includes a literal absolute on-disk path (e.g. `/Users/<you>/.trellis/projects/<projectKey>/.../attachments/<filename>`). Reject shell-style templates like `~/.trellis/...` or `${TRELLIS_DATA_DIR:-~/.trellis}/...` — `Read` does not expand them, so paths in either form are unusable. Confirm the path opens via `Read` before approving. See `skills/issue-creation/attachment-paths.md`.
 
 **Cross-reference blocking rule**: If source materials were available during the writing session (planning output was produced, user supplied paths, or files were referenced in the task description or parent issue body) and the writer did NOT attach them, **block the review** — this is not a minor finding. Use contextual signals (prior planning-skill output visible in the conversation, file references in the task description, parent-issue attachment listings) to detect suspected omissions.
 

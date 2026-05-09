@@ -64,6 +64,8 @@ Verify against the **original user requirements verbatim** in your inputs, not a
 
 Check that source materials were properly attached and referenced per the attachment custody rules.
 
+The authoritative list of attachments on any issue is the `attachments` array returned at the top level of `get_issue` — independent of whatever the body's `## Attachments` section claims. A child that references a parent holder will have its own `attachments` array empty; fetch the holder via `get_issue` to inspect its `attachments`.
+
 **Check 1 — Correct holder placement**
 
 Attachments must follow the single-source-of-truth hierarchy:
@@ -91,15 +93,15 @@ Every holder issue that has attachments must include an `## Attachments` section
 Every child issue that depends on an attached source material must include an `## Attachments` section that:
 
 - Names the holder issue ID and the specific filename (e.g., `See <filename> on <holder-id>`).
-- Includes a direct on-disk path using `${TRELLIS_DATA_DIR:-~/.trellis}` as the base — NOT a hardcoded `~/.trellis` path.
+- Includes a literal absolute on-disk path (e.g. `/Users/<you>/.trellis/projects/<projectKey>/.../attachments/<filename>`). Reject shell-style templates like `~/.trellis/...` or `${TRELLIS_DATA_DIR:-~/.trellis}/...` — `Read` does not expand them, so either form is unusable.
 
 ```markdown
 ## Attachments
 
-See `<filename>` on `<holder-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
+See `<filename>` on `<holder-id>`. Direct path: `/Users/<you>/.trellis/projects/<projectKey>/<holder-segments>/<holder-id>/attachments/<filename>`
 ```
 
-To spot-check `<projectKey>` against the on-disk directory, see [`../issue-creation/attachment-paths.md`](../issue-creation/attachment-paths.md).
+Confirm the cited path actually opens via `Read` before approving. See [`../issue-creation/attachment-paths.md`](../issue-creation/attachment-paths.md).
 
 **Cross-reference blocking rule**
 

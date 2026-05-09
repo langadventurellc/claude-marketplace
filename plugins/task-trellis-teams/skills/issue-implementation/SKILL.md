@@ -48,7 +48,7 @@ Use `claim_task` to claim the task.
 
 Before researching the codebase, check the task body for an `## Attachments` section. If one is present:
 
-1. Read each referenced file directly from its on-disk path. No `get_issue` call on the holder issue is required — the direct path in the task body is sufficient.
+1. Read each referenced file directly from the absolute on-disk path embedded in the section. `Read` does not expand `~`, `$HOME`, or `${TRELLIS_DATA_DIR:-...}` — if the body's path is shell-templated or otherwise unreadable, fetch the holder issue via `get_issue` and inspect its top-level `attachments` array, then locate the file with `bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}" -name "<filename>" -path "*/<holder-id>/attachments/*"'`.
 2. Treat each attachment as **primary source material**, not background reading:
    - If a design file is referenced → the implementation must visually and structurally conform to it.
    - If a spec document is referenced → its requirements are load-bearing, not advisory.

@@ -129,15 +129,21 @@ For each task, use `create_issue` with type `"task"`, the generated title and de
 
 Attach source materials inventoried in SKILL.md step 2 according to the hierarchy:
 
-**Tasks under a feature (parent exists):** The feature is the holder. Do NOT call `add_attachment` on the tasks themselves — attach source materials to the **parent feature** only (if not already attached). Include a child-style `## Attachments` section in each task body:
+**Tasks under a feature (parent exists):** The feature is the holder. Do NOT call `add_attachment` on the tasks themselves — attach source materials to the **parent feature** only (if not already attached). Include a child-style `## Attachments` section in each task body with a literal absolute path (no `~`, no `${...}` — `Read` does not expand them):
 
 ```markdown
 ## Attachments
 
-See `<filename>` on `<feature-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<feature-id>/attachments/<filename>`
+See `<filename>` on `<feature-id>`. Direct path: `/Users/<you>/.trellis/projects/<projectKey>/<feature-segments>/<feature-id>/attachments/<filename>`
 ```
 
-where `...` reflects the full hierarchy path up to but not including the holder ID (e.g., `p/<proj>/e/<epic>/f` or shorter for standalone ancestors).
+`<feature-segments>` is `p/<project-id>/e/<epic-id>/f`, `e/<epic-id>/f`, or `f` depending on ancestry. To avoid hand-deriving it, run one Bash call against the parent feature after `add_attachment` to get the real absolute path:
+
+```
+bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}/projects/<projectKey>" -path "*/<feature-id>/attachments/<filename>"'
+```
+
+Paste the returned line verbatim into each task body.
 
 **Standalone tasks (flat list, no common ancestor):** Duplicate-attaching the same file to each task is acceptable — there is no better holder. Each task is its own holder; include a holder-style `## Attachments` section and call `add_attachment` with each task ID:
 

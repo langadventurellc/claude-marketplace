@@ -18,6 +18,7 @@ tools:
   - Write
   - Glob
   - Grep
+  - Bash
   - WebFetch
   - WebSearch
 ---
@@ -180,15 +181,21 @@ The planning skills are NOT modified. Only the writer is responsible for this br
 - `<filename>` — <one-line description of what it is and why it matters>
 ```
 
-**Child issue** — reference the holder by ID and provide a direct on-disk path (no MCP round-trip needed):
+**Child issue** — reference the holder by ID and embed a literal absolute path so the reader can `Read` it without expansion:
 
 ```markdown
 ## Attachments
 
-See `<filename>` on `<holder-issue-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/.../<holder-type>/<holder-id>/attachments/<filename>`
+See `<filename>` on `<holder-issue-id>`. Direct path: `/Users/<you>/.trellis/projects/<projectKey>/<holder-segments>/<holder-id>/attachments/<filename>`
 ```
 
-For how to find `<projectKey>` and the per-type path layout, see `skills/issue-creation/attachment-paths.md` and `skills/issue-creation/<type>.md`.
+`Read` does not expand `~`, `$HOME`, or `${TRELLIS_DATA_DIR:-...}`. After each `add_attachment` succeeds, materialize the real absolute path with one Bash call and paste the result verbatim — do not re-introduce `~` or `${…}`:
+
+```
+bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}/projects/<projectKey>" -path "*/<holder-id>/attachments/<filename>"'
+```
+
+`<projectKey>` is the 12-character segment after `/projects/` in the SessionStart hook's Trellis UI URL. See `skills/issue-creation/attachment-paths.md` for the full reference.
 
 ## Error Handling
 

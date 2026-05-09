@@ -84,13 +84,21 @@ For each epic, use `create_issue` with type `"epic"`, the generated title and de
 
 Attach source materials inventoried in SKILL.md step 2 according to the hierarchy:
 
-**Epics under a project (parent exists):** Attach source materials to the **parent project**, not to each epic. Call `add_attachment` with the project ID, then update the project body to include a holder-style `## Attachments` section if not already present. Include a child-style `## Attachments` section in each epic body:
+**Epics under a project (parent exists):** Attach source materials to the **parent project**, not to each epic. Call `add_attachment` with the project ID, then update the project body to include a holder-style `## Attachments` section if not already present. Include a child-style `## Attachments` section in each epic body with a literal absolute path (no `~`, no `${...}` — `Read` does not expand them):
 
 ```markdown
 ## Attachments
 
-See `<filename>` on `<project-id>`. Direct path: `${TRELLIS_DATA_DIR:-~/.trellis}/projects/<projectKey>/p/<project-id>/attachments/<filename>`
+See `<filename>` on `<project-id>`. Direct path: `/Users/<you>/.trellis/projects/<projectKey>/p/<project-id>/attachments/<filename>`
 ```
+
+To get the real absolute path after `add_attachment`, run:
+
+```
+bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}/projects/<projectKey>" -path "*/<project-id>/attachments/<filename>"'
+```
+
+Paste the returned line verbatim into the body.
 
 **Standalone epics (no parent):** The epic itself is the holder. Include a holder-style `## Attachments` section in the epic body (or update via `update_issue` if already created), then call `add_attachment` with the epic ID:
 

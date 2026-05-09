@@ -93,7 +93,7 @@ Verify all requirements are addressed:
 
 ### 5. Attachment-Conformance Review
 
-When the task body includes an `## Attachments` section, read each referenced file directly from its on-disk path (cited in the task body — no `get_issue` round-trip required) and verify the implementation reflects the source material.
+When the task body includes an `## Attachments` section, read each referenced file directly from the absolute on-disk path embedded in the section. `Read` does not expand `~`, `$HOME`, or `${TRELLIS_DATA_DIR:-...}` — if the body's path is shell-templated or otherwise unreadable, fetch the holder via `get_issue` and inspect its top-level `attachments` array, then locate the file with `bash -c 'find "${TRELLIS_DATA_DIR:-$HOME/.trellis}" -name "<filename>" -path "*/<holder-id>/attachments/*"'`. Verify the implementation reflects the source material.
 
 **Four conformance checks:**
 
