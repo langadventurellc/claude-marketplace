@@ -1,6 +1,6 @@
 ---
 name: implement-trellis-issues
-description: Orchestrates implementation of Trellis issues using Claude Code Agent Teams. Use when asked to "implement feature", "implement trellis issues", "execute feature with teams", "implement tasks via agent teams", or whenever an agent-teams-based implementation run is desired. The lead spawns a fresh developer/reviewer pair per leaf task; teammates coordinate review/fix cycles via direct SendMessage. Supports --commit, --no-docs, and --version flags. Recursive by default; unplanned non-leaf issues are skipped, never expanded.
+description: Orchestrates implementation of Trellis issues using Claude Code Agent Teams. Use when asked to "implement feature", "implement trellis issues", "execute feature with teams", "implement tasks via agent teams", or whenever an agent-teams-based implementation run is desired. The lead spawns a fresh developer/reviewer pair per leaf task; teammates coordinate review/fix cycles via direct SendMessage. Commits per wave by default; supports --no-commit, --no-docs, and --version flags. Recursive by default; unplanned non-leaf issues are skipped, never expanded.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
   - mcp__plugin_task-trellis-teams_task-trellis__get_next_available_issue
@@ -45,14 +45,14 @@ Complete every planned leaf task under the given scope by:
 2. For each ready task, authoring two lead-owned task-list entries (impl task → review task with prerequisite), then spawning a fresh `trellis-developer` + `trellis-implementation-reviewer` pair.
 3. Letting the pair coordinate implementation, review, and fix cycles via direct `SendMessage`.
 4. Shutting down the pair on approval and moving to the next ready task.
-5. Updating documentation by default (unless `--no-docs` is passed) and/or committing changes per wave plus a final end-of-run commit capturing coherence-review and docs changes (`--commit`).
+5. Updating documentation by default (unless `--no-docs` is passed) and committing changes per wave plus a final end-of-run commit capturing coherence-review and docs changes (skipped when `--no-commit` is passed).
 
 ## Input
 
 `$ARGUMENTS` format:
 
 ```
-<scope> [--commit] [--no-docs] [--version [major|minor|patch]]
+<scope> [--no-commit] [--no-docs] [--version [major|minor|patch]]
 ```
 
 - `<scope>` (optional): A Trellis issue ID. Accepts:
@@ -61,15 +61,15 @@ Complete every planned leaf task under the given scope by:
   - **Project ID** (`P-xxx`) — recursively implements all tasks under all epics and features.
   - **Task ID** (`T-xxx`) — implements a single task.
   - **Empty** — lead calls `get_next_available_issue` (preferring `feature` type) to pick the next scope.
-- `--commit` (optional flag): After each wave drains, the lead commits that wave's changes. After all waves complete and the final-wave phases (coherence review §0, docs-updater §1, version bump §1.5) finish, the lead produces a final end-of-run commit for those changes. The lead authors a concise conventional-commit message for each commit (see §2).
-- `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after the final wave drains, before the final end-of-run commit). When `--commit` is also set without `--no-docs`, docs updates are always included in the final end-of-run commit.
+- `--no-commit` (optional flag): Skip committing entirely. Default behavior is: after each wave drains, the lead commits that wave's changes; and after all waves complete and the final-wave phases (coherence review §0, docs-updater §1, version bump §1.5) finish, the lead produces a final end-of-run commit for those changes. When `--no-commit` is set, neither per-wave commits nor the final commit run, and the run leaves uncommitted changes for the user. The lead authors a concise conventional-commit message for each commit it produces (see §2).
+- `--no-docs` (optional flag): Skip the docs-updater phase (default: docs are updated after the final wave drains, before the final end-of-run commit). When `--no-docs` is not set and committing is enabled, docs updates are always included in the final end-of-run commit.
 - `--version [major|minor|patch]` (optional flag): When set, the lead invokes the `planning:versioning` skill in Completion Phase §1.5 (after docs, before the final commit). If present without a value, the versioning skill infers the bump level from the diff. This flag is independent of `--no-docs` — version bumping runs whether or not docs were updated.
 
-If `--commit` is not set, the run leaves uncommitted changes for the user (docs-updater still runs unless `--no-docs` is passed; `planning:versioning` still runs if `--version` is passed).
+If `--no-commit` is set, the run leaves all changes uncommitted for the user (docs-updater still runs unless `--no-docs` is passed; `planning:versioning` still runs if `--version` is passed).
 
 ## Preflight
 
-Scan `$ARGUMENTS` for `--commit`, `--no-docs`, and `--version` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
+Scan `$ARGUMENTS` for `--no-commit`, `--no-docs`, and `--version` tokens and remove them from the scope argument. The remaining argument (if any) is the scope ID.
 
 ## Scope Resolution and Tree Walk
 
@@ -250,7 +250,7 @@ When a pair within the current wave is approved, wait for all remaining pairs in
 
 Pair spawning is **wave-based**. A **wave** is the complete set of pairs the lead spawns together after a single queue evaluation. All ready candidates at evaluation time are spawned together (applying the overlap heuristic and concurrency cap within the wave); the queue is re-evaluated only after the **current wave fully drains** — meaning all pairs in the wave are approved and shut down.
 
-> **Per-wave commit (under `--commit`):** After each wave drains, flush Trellis state for all tasks in the wave and commit immediately before evaluating the next wave. See Completion Phase §2 for the full per-wave commit procedure. Coherence Review (§0) is **not** performed between waves — it runs once after the final wave drains.
+> **Per-wave commit (default; skipped under `--no-commit`):** After each wave drains, flush Trellis state for all tasks in the wave and commit immediately before evaluating the next wave. See Completion Phase §2 for the full per-wave commit procedure. Coherence Review (§0) is **not** performed between waves — it runs once after the final wave drains.
 
 ### Candidate queue
 
@@ -289,11 +289,11 @@ Cap: 3
 Wave 1 (t=0):   A, B, D non-overlapping → spawn pair-A, pair-B, pair-D. (cap reached)
                 C blocked on A — held for next wave.
 Wave 1 drains (t=12): pair-A, pair-B, pair-D all approved and shut down.
-                [--commit] Flush Trellis state → commit changes.
+                [unless --no-commit] Flush Trellis state → commit changes.
                 A done → C unblocks → candidates: [C(ready)]
 Wave 2 (t=12):  C ready, non-overlapping → spawn pair-C.
 Wave 2 drains (t=15): pair-C approved and shut down.
-                [--commit] Flush Trellis state → commit changes.
+                [unless --no-commit] Flush Trellis state → commit changes.
 Queue empty. Continue to Completion Phase (§0 coherence review, §1 docs, §2 final commit).
 ```
 
@@ -336,7 +336,7 @@ If a developer sends a direct message to the lead saying "I can't complete T-xxx
 
 When every task in the implementation queue is either `done`, `wont-do`, or skipped by user direction, and all pairs have been shut down:
 
-> **Ordering note:** When `--commit` is set, per-wave commits occur during the queue loop (before this phase). The final-wave ordering is: Coherence Review (§0) → docs-updater (§1) → version bump (§1.5, only if `--version`) → final end-of-run commit (§2). Per-wave commits do not affect this ordering.
+> **Ordering note:** Unless `--no-commit` is set, per-wave commits occur during the queue loop (before this phase). The final-wave ordering is: Coherence Review (§0) → docs-updater (§1) → version bump (§1.5, only if `--version`) → final end-of-run commit (§2). Per-wave commits do not affect this ordering.
 
 ### 0. Cross-Task Coherence Review
 
@@ -466,11 +466,11 @@ Capture the skill's `## Version Bumps` output for the final-summary §4. If the 
 
 This step runs **independently of `--no-docs`**. Version bumping happens whenever `--version` was passed, regardless of whether docs were updated.
 
-If `--commit` is set, any version-file edits produced here are included in the final end-of-run commit in §2. If `--commit` is not set, the edits are left uncommitted alongside other changes.
+Unless `--no-commit` is set, any version-file edits produced here are included in the final end-of-run commit in §2. If `--no-commit` is set, the edits are left uncommitted alongside other changes.
 
-### 2. Commit (only if `--commit`)
+### 2. Commit (default; skipped if `--no-commit`)
 
-Commit behavior under `--commit` has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review, §1 docs-updater, and §1.5 version bump complete).
+Commit behavior has two parts: **per-wave commits** (performed during the queue loop after each wave drains) and a **final end-of-run commit** (performed here, after §0 coherence review, §1 docs-updater, and §1.5 version bump complete). When `--no-commit` is passed, both parts are skipped and all changes are left uncommitted for the user.
 
 #### Commit message style (applies to every commit the lead produces)
 
@@ -517,7 +517,7 @@ git add .
 git commit -m "<concise conventional-commit subject per the style rubric above>"
 ```
 
-If `--commit` is NOT set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`; `planning:versioning` still runs if `--version` was passed).
+If `--no-commit` IS set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`; `planning:versioning` still runs if `--version` was passed).
 
 ### 3. Team cleanup
 
@@ -539,7 +539,7 @@ Produce a concise final message covering:
 - **Docs updated** (yes/no).
 - **Version bumps** (one `path: old → new` line per bumped file, when `--version` was passed). If `--version` was passed but no files were bumped, emit a loud warning line: `⚠ --version was requested but no version files were bumped — check the planning:versioning output above.`
 - **Reconciliation pass** (yes/no, and count of findings resolved if yes) — so the user has post-hoc visibility into any auto-remediation the lead performed after the coherence review.
-- **Commit SHA** (if `--commit` ran) or a clear note that uncommitted changes remain.
+- **Commit SHA(s)** (when commits ran) or a clear note that uncommitted changes remain (under `--no-commit`).
 - **How to verify** the changes (e.g., run the test suite, try the new CLI command, visit the endpoint).
 
 <rules>
