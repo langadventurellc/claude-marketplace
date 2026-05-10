@@ -53,17 +53,59 @@ You are the **lead** — you do NOT write issues or review issues yourself. Your
 - `<parent-id>` — ID of the parent Trellis issue (e.g., `P-project-id`, `E-epic-id`, `F-feature-id`). Optional if the parent is obvious from prior conversation context.
 - `--no-recursive` — optional flag. When set, the lead stops after creating only the immediate child level. Default behavior is to recurse down the hierarchy, spawning a fresh writer/reviewer pair per sibling set until all levels are written.
 
-All remaining text in `$ARGUMENTS` is the **original user requirements** and MUST be preserved verbatim in the `requirements` task created in step 2 — and only there.
+All remaining text in `$ARGUMENTS` is the **original user requirements** and MUST be preserved verbatim in the `requirements` task created in step 4 — and only there.
 
 ## Process
 
 ### 1. Preflight
 
-Before doing anything else, **fetch the parent issue** via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 3 resolves the level.
+Before doing anything else, **fetch the parent issue** via `mcp__plugin_task-trellis-teams_task-trellis__get_issue` to confirm it exists and determine its type — only if a parent ID was supplied in `$ARGUMENTS`. If no parent ID is provided, defer this check until step 2 resolves the level.
 
-### 2. Capture Original Input Verbatim
+### 2. Determine Target Level
 
-Before authoring any shared-task-list entries, create a single dedicated task on the shared list as the canonical source of truth. Embed the exact user instructions verbatim — do NOT paraphrase, summarize, or modify them:
+Resolve the level in this order:
+
+1. **Parent ID provided** — use the parent's type to pick the child type:
+
+   | Parent Type    | Child Type to Create |
+   | -------------- | -------------------- |
+   | Project (`P-`) | Epics                |
+   | Epic (`E-`)    | Features             |
+   | Feature (`F-`) | Tasks                |
+
+   Nothing else to decide; proceed to step 3.
+
+2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), the lead authors a root creation task + review task pair on the shared task list using the step 5a/5b templates verbatim (omit the parent field from the creation task description; the authoring guide for the root comes from the matching `issue-creation/<type>.md` file). Spawn the writer/reviewer pair for the root level (step 6), send the pointer nudge for the root creation task (step 7), and wait for root approval before proceeding to child-level task authoring (step 5 for children).
+
+3. **No parent and no level guidance** — read [`determine-starting-level.md`](determine-starting-level.md) in this skill directory and follow its decision procedure. That doc covers:
+   - Picking the correct root level from scope signals.
+   - Authoring root creation+review task pairs when applicable.
+   - The narrow conditions under which you should escalate to the user.
+
+   Do NOT ask the user for the level as a first move — only ask when `determine-starting-level.md` says the decision is genuinely ambiguous.
+
+> **Root approval ordering constraint.** Root approval MUST complete (all root creation+review tasks marked done) before the lead authors child-level creation/review task pairs. Do not race ahead to child-level task authoring while root review is pending.
+
+### 3. Create the Agent Team
+
+> **Tool conventions used below:** `TaskCreate` returns an opaque task ID (persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls). `TaskUpdate` identifies tasks by `taskId` (not subject). `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string. `TeamDelete` takes no parameters.
+
+**Always call `TeamCreate` before any `TaskCreate` — including the `requirements` task in step 4.** `TeamCreate` initializes the shared task list on disk; any tasks authored before it are destroyed when the team is created and must be re-authored.
+
+Use `TeamCreate` to create the team:
+
+```
+TeamCreate({
+  "team_name": "trellis-create-<short-parent-id>",
+  "description": "Issue creation team for <parent-id> — writer creates children at the <level> level; reviewer verifies against original requirements."
+})
+```
+
+Choose a stable, human-readable `team_name`.
+
+### 4. Capture Original Input Verbatim
+
+With the team (and its shared task list) now in place, create a single dedicated task on the shared list as the canonical source of truth. Embed the exact user instructions verbatim — do NOT paraphrase, summarize, or modify them:
 
 ```
 TaskCreate({
@@ -75,7 +117,7 @@ TaskCreate({
 
 Capture the returned task ID as `requirementsTaskId`. This task is a read-only reference — never claimed, never completed by any teammate. The bias-prevention guarantee holds because writer and reviewer both read identical, unmodified bytes from this single source.
 
-**2b. Classify lead-meta vs. product requirements.**
+**4b. Classify lead-meta vs. product requirements.**
 
 Before embedding requirements in tasks, scan the original input for sentences or clauses that are _addressed to the lead_ rather than specifying what issues should contain. Lead-meta directives typically match patterns such as:
 
@@ -96,46 +138,6 @@ Then write lead-meta to `~/.cache/claude-trellis-teams/<team-name>/lead-meta.md`
 The **product requirements** are everything that is NOT lead-meta: the scope, constraints, and acceptance criteria that define what child issues should contain. Only this portion is embedded verbatim in creation and review task descriptions.
 
 If the entire user input is product requirements (no lead-meta), no classification is needed — embed the full input as before.
-
-### 3. Determine Target Level
-
-Resolve the level in this order:
-
-1. **Parent ID provided** — use the parent's type to pick the child type:
-
-   | Parent Type    | Child Type to Create |
-   | -------------- | -------------------- |
-   | Project (`P-`) | Epics                |
-   | Epic (`E-`)    | Features             |
-   | Feature (`F-`) | Tasks                |
-
-   Nothing else to decide; proceed to step 4.
-
-2. **No parent, but the user's requirements name the level or types** (e.g., "create tasks for this flow", "break this into features", "a feature with a handful of tasks", "an epic and its features") — use that guidance directly. If the user implied a root and its children (e.g., "a feature with tasks"), the lead authors a root creation task + review task pair on the shared task list using the step 5a/5b templates verbatim (omit the parent field from the creation task description; the authoring guide for the root comes from the matching `issue-creation/<type>.md` file). Create the agent team (step 4), spawn the writer/reviewer pair for the root level (step 6), send the pointer nudge for the root creation task (step 7), and wait for root approval before proceeding to child-level task authoring (step 5 for children).
-
-3. **No parent and no level guidance** — read [`determine-starting-level.md`](determine-starting-level.md) in this skill directory and follow its decision procedure. That doc covers:
-   - Picking the correct root level from scope signals.
-   - Authoring root creation+review task pairs when applicable.
-   - The narrow conditions under which you should escalate to the user.
-
-   Do NOT ask the user for the level as a first move — only ask when `determine-starting-level.md` says the decision is genuinely ambiguous.
-
-> **Root approval ordering constraint.** Root approval MUST complete (all root creation+review tasks marked done) before the lead authors child-level creation/review task pairs. Do not race ahead to child-level task authoring while root review is pending.
-
-### 4. Create the Agent Team
-
-> **Tool conventions used below:** `TaskCreate` returns an opaque task ID (persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls). `TaskUpdate` identifies tasks by `taskId` (not subject). `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string. `TeamDelete` takes no parameters.
-
-Use `TeamCreate` to create the team:
-
-```
-TeamCreate({
-  "team_name": "trellis-create-<short-parent-id>",
-  "description": "Issue creation team for <parent-id> — writer creates children at the <level> level; reviewer verifies against original requirements."
-})
-```
-
-Choose a stable, human-readable `team_name`. Note: `TeamCreate` also creates the shared task list on disk.
 
 ### 5. Author Per-Child Tasks on the Shared Task List
 
@@ -448,7 +450,8 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   - `task-trellis-teams:trellis-issue-reviewer`
 
 <rules>
-  <critical>The lead MUST create exactly one `requirements` task (step 2) containing the verbatim input. All other task descriptions reference it via `TaskGet taskId="<requirementsTaskId>"` — never inline. Lead-meta instructions (classified in step 2b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
+  <critical>The lead MUST create exactly one `requirements` task (step 4) containing the verbatim input. All other task descriptions reference it via `TaskGet taskId="<requirementsTaskId>"` — never inline. Lead-meta instructions (classified in step 4b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
+  <critical>Always call `TeamCreate` (step 3) before any `TaskCreate` — including the `requirements` task in step 4. `TeamCreate` initializes the shared task list on disk; any tasks authored before it are destroyed when the team is created.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
   <critical>Default behavior recurses down the hierarchy until every leaf level is written. With `--no-recursive`, stop after creating only the immediate child level.</critical>
   <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>

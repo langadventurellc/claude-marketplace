@@ -140,7 +140,7 @@ When your task is a cohesion review (not a single-issue review), the input is a 
 
 **Step 6 — Attachment consistency check.** Verify that the child set as a whole respects the attachment custody rules: attachments reside on the shared parent (not duplicated across children), every child that depends on an attachment has a correctly formatted `## Attachments` section, and no child holds a redundant copy of a file already on the parent.
 
-**Step 7 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (alignment gaps, overlap, coverage gaps, prerequisite issues, attachment issues). If no issues, mark the cohesion review task done.
+**Step 7 — Deliver findings.** Send a single `SendMessage` to the writer with grouped findings (alignment gaps, overlap, coverage gaps, prerequisite issues, attachment issues). If no issues, mark the cohesion review task done via `TaskUpdate` AND send a one-line DM to the lead: `SendMessage({ to: "team-lead", summary: "approved <parent-id>", message: "approved <parent-id>" })`. The one-line DM is required — the lead waits on it to advance. Do NOT send "looks good" or any other commentary.
 
 ## Teammate Mode
 
@@ -153,7 +153,7 @@ When running as a teammate inside an agent team:
 
 Output format depends on invocation context:
 
-- **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is silence + `TaskUpdate({ status: "done" })` — do NOT send a "looks good" message. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
+- **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is `TaskUpdate({ status: "done" })` plus a single one-line DM to the lead (`SendMessage({ to: "team-lead", summary: "approved <issue-id>", message: "approved <issue-id>" })`, ≤80 chars). The one-line DM is required — it is the lead's only signal that the review closed cleanly, and skipping it stalls the team. Do NOT send "looks good" or any other commentary; the one-liner is the only allowed approval signal. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
 - **Direct invocation** (e.g., user-invoked via `/issue-creation-review`): produce a verification report with these sections:
   1. **Issue Details**: Type, ID, title
   2. **Completeness**: Complete/Partial/Incomplete with specific gaps
