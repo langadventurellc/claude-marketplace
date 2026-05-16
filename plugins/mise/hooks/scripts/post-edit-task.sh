@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # PostToolUse hook for Edit/Write.
-# Surfaces lint and type-check results to the model via `additionalContext`
-# (a system reminder) on routine check failures, so the information arrives
-# as context rather than as a tool error. Reserves exit-2 for genuine
+# Lints only the file that was just edited so concurrent agents don't trip
+# over each other's in-flight changes. Surfaces lint results to the model
+# via `additionalContext` (a system reminder), reserving exit-2 for genuine
 # hook-internal failures the agent cannot resolve from the tool output.
 
 set -euo pipefail
@@ -22,7 +22,8 @@ MAX_LINES=25
 status() { echo "$@" >&2; }
 
 # Only run in git repos with mise configured.
-cd "$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$REPO_ROOT"
 
 if [ ! -f ".mise.toml" ] && [ ! -f "mise.toml" ] && [ ! -f ".tool-versions" ]; then
     exit 0
@@ -33,6 +34,29 @@ command -v jq >/dev/null || {
     echo "Stop and inform the user that the dev environment is missing jq." >&2
     exit 2
 }
+
+# Read hook payload from stdin and extract the edited file path.
+# Exit silently if no path is available — nothing to scope the check to.
+HOOK_INPUT=$(cat)
+FILE_PATH=$(jq -r '.tool_input.file_path // empty' <<< "$HOOK_INPUT")
+[ -n "$FILE_PATH" ] || exit 0
+
+# Resolve to a path relative to the repo root.
+case "$FILE_PATH" in
+    /*) REL_PATH="${FILE_PATH#$REPO_ROOT/}" ;;
+    *)  REL_PATH="$FILE_PATH" ;;
+esac
+
+# Only the MCP server has lint configured; skip anything outside it
+# or non-TypeScript files.
+MCP_PREFIX="plugins/jira-issue-orchestration/mcp-server/"
+case "$REL_PATH" in
+    "${MCP_PREFIX}src/"*.ts) ;;
+    *) exit 0 ;;
+esac
+
+# File must still exist (an edit could be a deletion-style rewrite).
+[ -f "$REL_PATH" ] || exit 0
 
 limit_output() {
     local content="$1" line_count
@@ -45,9 +69,6 @@ limit_output() {
     fi
 }
 
-# Emit a PostToolUse system reminder. Phrased as factual statements per
-# Claude Code hook guidance — imperative system instructions risk being
-# treated as untrusted input rather than context.
 emit_context() {
     printf '%s' "$1" | jq -Rs '{
         hookSpecificOutput: {
@@ -57,31 +78,20 @@ emit_context() {
     }'
 }
 
-REPORT=""
+status "🔧 Linting $REL_PATH..."
 
-status "🔧 Running post-edit checks..."
+# eslint resolves patterns relative to cwd, so run it from the MCP server dir
+# and target the file with a path relative to that dir.
+ESLINT_TARGET="${REL_PATH#$MCP_PREFIX}"
 
-status "📝 Running lint checks..."
-if LINT_OUTPUT=$(mise run lint 2>&1); then
-    status "✅ Lint checks passed"
-else
-    FILTERED=$(grep -E "(error|warning)" <<< "$LINT_OUTPUT" || echo "$LINT_OUTPUT")
-    REPORT+="Lint reports the following issues after the most recent edit:"$'\n'
-    REPORT+="$(limit_output "$FILTERED")"$'\n\n'
+if LINT_OUTPUT=$(cd "$MCP_PREFIX" && npm exec --silent -- eslint "$ESLINT_TARGET" 2>&1); then
+    status "✅ Lint passed"
+    exit 0
 fi
 
-status "📝 Running type checks..."
-if TYPE_OUTPUT=$(mise run type-check 2>&1); then
-    status "✅ Type checks passed"
-else
-    FILTERED=$(grep -E "(error|warning)" <<< "$TYPE_OUTPUT" || echo "$TYPE_OUTPUT")
-    REPORT+="Type-check reports the following issues after the most recent edit:"$'\n'
-    REPORT+="$(limit_output "$FILTERED")"$'\n\n'
-fi
-
-if [ -n "$REPORT" ]; then
-    REPORT+="These checks ran against the full repo and may include preexisting issues unrelated to this edit."
-    emit_context "$REPORT"
-fi
+FILTERED=$(grep -E "(error|warning)" <<< "$LINT_OUTPUT" || echo "$LINT_OUTPUT")
+REPORT="Lint reports the following issues in $REL_PATH after the most recent edit:"$'\n'
+REPORT+="$(limit_output "$FILTERED")"
+emit_context "$REPORT"
 
 exit 0
