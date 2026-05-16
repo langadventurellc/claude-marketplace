@@ -60,6 +60,23 @@ Read the parent feature/epic via `get_issue` to ground your work, then explore t
 
 Plan internally — do not write the plan back to the Trellis task.
 
+#### Verify the spec against reality
+
+**Trellis task specs are authored before implementation and routinely drift from the code they plug into.** Function signatures, return shapes, field names, types, error contracts, and component props in the spec are *claims about the world*, not ground truth. Treating them as ground truth and implementing literally is the single most common defect in this workflow.
+
+Before writing any code, for every interface the task touches (functions, modules, APIs, hooks, components, data structures, CLI flags, env vars, message formats):
+
+1. **Find the call sites.** Use `Grep` / `Glob` to locate every existing place that will consume the new or changed code. Include tests as call sites — test expectations are part of the contract.
+2. **Read each call site.** Confirm that what the spec describes (input arguments, return shape, types, thrown errors, side effects, naming) matches what the callers actually pass in and destructure / consume on the other side.
+3. **Treat the callers as the source of truth when they disagree with the spec.** The spec was written from a guess about the surrounding code; the callers *are* the surrounding code.
+
+When you find a mismatch, classify it:
+
+- **Resolvable mismatch** — the right behavior is clear from the call sites (spec named a field `userId` but every caller reads `accountId`; spec returns a single object but every caller iterates an array; spec omits an error case the callers explicitly handle). Implement what the call sites actually need and **call out the deviation in the `complete_task` summary** so the reviewer can see why your implementation diverges from the task body.
+- **Ambiguous mismatch** — multiple callers want incompatible things, intent is genuinely unclear, or following the spec literally would break callers in a way you can't unilaterally resolve. **Stop and use `AskUserQuestion` before implementing.** Describe the spec's claim, what the call sites actually expect, and the candidate resolutions.
+
+Do not implement the spec literally when it conflicts with the actual call sites. A working integration matters more than a faithful transcription of the task description, and silent literal implementations against a wrong spec are the failure mode this step exists to prevent.
+
 ### 3. Clarify Before Implementing
 
 **When in doubt, ask.** Use AskUserQuestion to clarify requirements or approach. Agents tend to be overconfident about what they can infer—a human developer would ask more questions, not fewer. If you're making assumptions, stop and ask instead.
