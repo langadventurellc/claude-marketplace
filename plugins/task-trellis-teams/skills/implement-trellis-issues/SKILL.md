@@ -195,19 +195,7 @@ Give the pair distinguishable teammate names (e.g., `dev-T-add-login` and `rev-T
 
 #### Model selection
 
-**Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Agent` tool when spawning teammates.** The `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in an agent's frontmatter — passing `model` at spawn time silently strips `[1m]` and downgrades the teammate's context window. To pick a different model, pick a different `subagent_type`.
-
-Developer teammates are always `task-trellis-teams:trellis-developer` (Sonnet). Never pass a `model` override to `Agent`. If a coding task genuinely needs deeper reasoning, the developer's `planning:create-implementation-plan` invocation at claim time will run on Opus (per that skill's frontmatter) and return a detailed plan to drive the Sonnet developer — do not reach for a stronger developer model.
-
-For the **per-task reviewer**, pick the `subagent_type` based on the task body already fetched during candidate evaluation (no extra tool call needed):
-
-- Use `task-trellis-teams:trellis-implementation-reviewer-sonnet` **only when ALL expected changes fall into these non-code surfaces:**
-  - Documentation: `*.md`, `*.mdx`, `docs/**`, `README*`, `CHANGELOG*`
-  - Skill/agent prompt files: `**/SKILL.md`, `**/agents/*.md`, frontmatter edits
-  - Configuration/manifests: `*.json`, `*.yaml`, `*.yml`, `*.toml`, `plugin.json`, `marketplace.json`
-- Use `task-trellis-teams:trellis-implementation-reviewer` (Opus) in all other cases — including when in doubt.
-
-The §0 Cross-Task Coherence Review reviewer always uses `task-trellis-teams:trellis-implementation-reviewer` (Opus), unconditionally. The per-task heuristic above does NOT apply to the coherence reviewer.
+**Agent frontmatter is authoritative for model selection. NEVER pass a `model` parameter to the `Agent` tool when spawning teammates.**
 
 ### 3. Pair executes autonomously
 
@@ -363,7 +351,7 @@ Follow the "Cross-Task Coherence Review" section of that skill. Read each implem
 Mark this task-list entry `completed` only on a clean review (no Critical findings). On Critical findings, send them to the lead via `SendMessage` and stay alive — the lead will trigger a Reconciliation Pass and nudge you to re-review.
 ```
 
-Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override — trust the agent's frontmatter (`opus[1m]`). After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
+Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override. After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
 
 ```
 SendMessage({ to: "rev-coherence-<scope-id>", summary: "<coherence-task-id> begin", message: "claim and begin <coherenceTaskId>" })
@@ -555,6 +543,6 @@ Produce a concise final message covering:
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
   <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `team_name`, `name`, and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
-  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. To switch models, change `subagent_type`. (See §Per-Issue Pair Lifecycle / Model selection for the rationale.)</critical>
+  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a pointer-only `SendMessage` to the developer naming the impl task-list task ID before stepping back. The message body is `'claim and begin <impl-task-list-task-id>'`. Do NOT embed instructions. Do NOT rely on the developer picking up work autonomously.</critical>
 </rules>

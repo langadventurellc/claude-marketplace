@@ -1,6 +1,6 @@
 ---
 name: issue-implementation
-description: Claims a single Trellis task and runs a plan-then-implement workflow — researches the task and parent feature, generates or skips an implementation plan via planning:create-implementation-plan, writes the code, calls complete_task, and hands off to the paired reviewer teammate. Leaves changes uncommitted for review. Use when the user asks to "implement task", "claim task", or "work on task" by ID or scope. For multi-task feature orchestration, use task-trellis-teams:implement-trellis-issues instead.
+description: Claims a single Trellis task and runs a plan-then-implement workflow — researches the task and parent feature, plans the implementation, writes the code, calls complete_task, and hands off to the paired reviewer teammate. Leaves changes uncommitted for review. Use when the user asks to "implement task", "claim task", or "work on task" by ID or scope. For multi-task feature orchestration, use task-trellis-teams:implement-trellis-issues instead.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__claim_task
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
@@ -10,7 +10,6 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - SendMessage
-  - Skill
   - Glob
   - Grep
   - Read
@@ -55,27 +54,11 @@ Before researching the codebase, check the task body for an `## Attachments` sec
    - If an existing stylesheet or asset is referenced as reusable → reuse it; do not recreate it.
 3. If your implementation deviates from an attached source file, explain why in the `complete_task` summary. Unexplained deviations are treated as defects by the implementation reviewer.
 
-#### Plan-generation decision
+#### Research and plan
 
-After consulting attachments, evaluate the skip heuristic. **Skip plan generation only when ALL of the following are true:**
+Read the parent feature/epic via `get_issue` to ground your work, then explore the codebase enough to form a concrete implementation plan: which files change, what the changes are, and the order to make them. Verify referenced file paths exist before planning changes against them.
 
-1. Single file touched
-2. ≤ ~15 lines of net change
-3. No new exported symbols introduced
-4. No cross-cutting concerns (auth, migrations, routing, public APIs, schema changes)
-5. Non-coding work (docs-only edits, prompt-only changes that don't touch runtime code paths, single-value config changes)
-
-When in doubt, generate the plan.
-
-**Generate path (default):** Read the parent feature/epic via `get_issue` to ground the brief, then invoke:
-
-```
-Skill(skill="planning:create-implementation-plan", args="<brief>")
-```
-
-Where `<brief>` is the task title, the full task body, the parent feature/epic IDs and titles, and any attachment paths. The skill returns an `## Implementation Plan` block. Use its `### File Modifications` and `### Implementation Order` as the primary guide for §4 Implementation. Do **not** write the returned plan back to the Trellis task — it is for your use in this run only.
-
-**Skip path:** Perform a lightweight research pass — read the parent feature, verify 2–3 file paths exist, then proceed.
+Plan internally — do not write the plan back to the Trellis task.
 
 ### 3. Clarify Before Implementing
 
