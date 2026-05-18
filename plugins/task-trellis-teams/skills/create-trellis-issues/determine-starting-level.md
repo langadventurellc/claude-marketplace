@@ -99,8 +99,17 @@ Use `AskUserQuestion` only when the determination is **genuinely** hard. Typical
 
 When you do ask, present a focused question with concrete options drawn from this guide — do not dump the full four-level choice on the user unless the request is truly level-agnostic.
 
+## Sibling-set sizing interacts with the root choice
+
+`SKILL.md` step 5.0 caps any parent at 5 direct children per run. When the root-level decision would obviously force a single root with >5 children (e.g. the user describes work that clearly decomposes into 8 features, or 13 tasks), prefer to:
+
+- Pick a **higher root level** so the work naturally fans out across multiple parents (e.g. an Epic with 2 Features, each with ≤5 tasks, instead of one Feature with 9 tasks), OR
+- Plan to author **multiple root-level siblings** at the chosen level (e.g. 2 Features instead of 1) and split the work along natural seams.
+
+Do not pick a root that would require breaking the max-5 rule downstream.
+
 ## Do not use this doc for
 
-- **How many** children to author at a given level — granularity is covered by the sibling `issue-creation` docs ("default to coarser").
+- **How many** children to author at a given level — granularity is covered by the sibling `issue-creation` docs ("default to coarser") and the max-5 sibling-set rule in `SKILL.md` step 5.0.
 - Whether to set `--no-recursive` — that depends on whether the user wants to stop at the immediate child level rather than continue down to leaves; it is independent of the root-level decision.
 - Deciding the **child** level when a parent is known — use the parent-type table in `SKILL.md` step 3 instead.

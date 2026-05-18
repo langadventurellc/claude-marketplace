@@ -143,6 +143,20 @@ If the entire user input is product requirements (no lead-meta), no classificati
 
 Decide on the set of children to create based on the original requirements plus research of the codebase. You may use `Read`, `Grep`, `Bash`, or any available information-gathering tool (e.g. Perplexity, Gemini, context7, WebSearch/WebFetch) to scope the level before authoring tasks. Default to **coarser-grained** issues — fewer, larger children at the current level — not deeper decomposition.
 
+#### 5.0 Sibling-set sizing rule — max 5 children per parent
+
+**Hard cap: no parent may have more than 5 direct children in a single run.** Writers and reviewers degrade in quality and coherence once a sibling set exceeds 5 — they lose track of what has already been written, repeat or contradict each other across siblings, and reviewers miss issues. (The cohesion reviewer sees parent + children = up to 6 items, which is still tractable because it only runs once at the end.)
+
+Before authoring creation/review task pairs for a level, count the planned children under each parent. If any parent would exceed 5, restructure **before** authoring tasks:
+
+- **Split the parent into multiple parents at the same level**, each owning ≤5 children. Examples:
+  - A feature that would have 9 tasks → split into 2 features (5 + 4 tasks).
+  - An epic that would have 13 features → split into 3 epics (~4-5 features each).
+  - A project that would have 8 epics → split into 2 projects (4 + 4 epics).
+- Choose the split along natural seams in the work (e.g., user-facing vs. infra, distinct subsystems, independent user stories) — not by arbitrary slicing of a cohesive unit.
+- **If the parent was supplied by the user** (the run's root parent ID, or a lead-created intermediate parent already approved earlier in this run), the lead must restructure the level above it: create additional sibling parents at the same level as the supplied parent and redistribute the planned children. Note the restructure in the final summary so the user can see what happened.
+- This rule applies at **every level** the run produces — root-level fan-out, mid-level recursion, and leaf-level sibling sets. When recursing (step 9b) into a newly-created parent, apply the same count-then-split check before authoring that parent's children.
+
 For EACH planned child, author **two** dependent tasks via `TaskCreate`:
 
 #### 5a. Creation Task (claimable by the writer)
@@ -461,6 +475,7 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
   <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. Agent frontmatter is authoritative — the `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
   <important>Spawn one writer/reviewer pair per sibling set; shut BOTH down when the set's per-child reviews and cohesion review are complete. For the cohesion review (step 9a), spawn a FRESH reviewer teammate — never reuse the per-sibling-set reviewer — and shut it down on approval.</important>
   <important>Default to coarser-grained issues at the current level — fewer, larger children. Do NOT ask about granularity.</important>
+  <critical>Hard cap of 5 children per parent in any single run. Before authoring creation/review task pairs for a level, count the planned children under each parent; if any would exceed 5, split that parent into multiple parents at the same level (each owning ≤5 children) before authoring tasks. Applies at every level — including recursion in step 9b. Writers and reviewers lose coherence above 5 siblings; the cohesion reviewer's parent+children view of up to 6 is fine because it only fires once.</critical>
   <important>Use unique, stable teammate names that include the parent ID (e.g., `writer-tasks-f-auth`, `reviewer-tasks-f-auth`) so SendMessage routing is unambiguous when multiple pairs run in parallel at the same depth.</important>
   <important>Author review tasks with an explicit dependency on their paired creation task so the reviewer only unblocks after the writer completes.</important>
   <critical>After spawning both teammates, the lead MUST send a pointer-only `SendMessage` to the writer naming the first creation task ID before stepping back. The message body is `'claim and begin <task-list-task-id>'`. Do NOT embed instructions. Wait for the writer's 'claimed' ack before proceeding.</critical>
