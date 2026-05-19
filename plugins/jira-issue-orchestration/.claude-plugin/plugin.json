@@ -1,5 +1,5 @@
 {
   "name": "jira-issue-orchestration",
-  "version": "1.17.0",
+  "version": "2.0.0",
   "dependencies": [{ "name": "task-trellis-teams" }]
 }
