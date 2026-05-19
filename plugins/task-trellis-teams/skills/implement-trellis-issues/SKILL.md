@@ -348,16 +348,32 @@ Skill: `task-trellis-teams:issue-implementation-review`
 
 Follow the "Cross-Task Coherence Review" section of that skill. Read each implemented task via `get_issue`, examine all modified files across the sibling set, and produce findings in `## Review Findings` format.
 
-Mark this task-list entry `completed` only on a clean review (no Critical findings). On Critical findings, send them to the lead via `SendMessage` and stay alive — the lead will trigger a Reconciliation Pass and nudge you to re-review.
+**Always notify the lead (`team-lead`) of every decision via SendMessage — silence is NOT acceptance.** The lead is blocked waiting on an explicit signal; if you do not send one, the entire run stalls. Send a message to `team-lead` at each of these points:
+
+- **On approval (clean review, no Critical findings):** mark this task-list entry `completed` via TaskUpdate AND `SendMessage({ to: "team-lead", summary: "coherence approved <scope-id>", message: "coherence review approved; marked <coherence-task-id> done" })`.
+- **On Critical findings:** `SendMessage({ to: "team-lead", summary: "coherence findings <scope-id>", message: "<N> Critical findings — <brief>" })` and stay alive — the lead will trigger a Reconciliation Pass and nudge you to re-review. Do NOT mark this task-list entry done.
+- **After each re-review iteration:** notify the lead of the new status (re-approved, still finding Critical issues, or escalating).
 ```
 
-Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override. After authoring the task-list entry, send a pointer-only `SendMessage` nudge to start the reviewer:
+Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with NO `model` override. The spawn prompt MUST include the signaling mandate so it survives even if the reviewer skims the task body:
+
+```
+Agent({
+  "team_name": "impl-<scope-id>",
+  "subagent_type": "task-trellis-teams:trellis-implementation-reviewer",
+  "name": "rev-coherence-<scope-id>",
+  "description": "Fresh reviewer for cross-task coherence under <scope-id>",
+  "prompt": "You are the coherence reviewer for the sibling tasks implemented under <scope-id>. Read your instructions from the shared task list only — specifically the coherence-review task the lead authored. Follow the task-trellis-teams:trellis-implementation-reviewer agent guardrails. **You MUST notify `team-lead` via SendMessage of every decision — approval, Critical findings, ongoing iteration, or escalation. Silence is not acceptance; the lead stalls the entire run waiting on an explicit signal from you. On a clean review, mark the task-list entry done AND send the approval message in the same turn.**"
+})
+```
+
+After spawning, send a pointer-only `SendMessage` nudge to start the reviewer:
 
 ```
 SendMessage({ to: "rev-coherence-<scope-id>", summary: "<coherence-task-id> begin", message: "claim and begin <coherenceTaskId>" })
 ```
 
-Wait for the reviewer to either (a) mark the task-list entry `done` (no Critical findings) — then shut it down, or (b) `SendMessage` the lead with Critical findings — leave the reviewer alive for the §0a Reconciliation Pass and re-review (it is shut down in §0a after a clean re-review).
+Wait for an explicit `SendMessage` from `rev-coherence-<scope-id>` to `team-lead` reporting its decision — do NOT treat silence or a polled task-list status as the signal. `TaskList` polling is a backup only; if the coherence task is marked done but no approval message arrived, something went wrong (re-nudge the reviewer to confirm). On the explicit message: (a) **approval** → shut the reviewer down; or (b) **Critical findings** → leave the reviewer alive for the §0a Reconciliation Pass and re-review (it is shut down in §0a after a clean re-review).
 
 If the coherence review surfaces Critical findings, the **default behavior is to auto-trigger the §0a Reconciliation Pass** — do not gate on `AskUserQuestion`. The lead proceeds directly into §0a unless any of the following apply, in which case the lead uses `AskUserQuestion` to surface the findings to the user _instead_ of running §0a:
 
@@ -394,7 +410,7 @@ Otherwise, proceed into §0a directly. The lead NEVER writes code to fix finding
 
 **After the pass:**
 
-- The lead nudges the original coherence reviewer (still alive from §0 — its task-list entry is not yet `done`) to re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for the coherence reviewer to either re-approve (mark its task-list entry `done`) or surface further Critical findings. After a clean re-review, shut the coherence reviewer down.
+- The lead nudges the original coherence reviewer (still alive from §0 — its task-list entry is not yet `done`) to re-review: `SendMessage({ to: "rev-coherence-<scope>", summary: "reconciliation applied, re-review", message: "reconciliation changes applied — please re-review" })`. Wait for an explicit `SendMessage` from the coherence reviewer reporting its re-review decision (re-approval or further Critical findings) — do NOT treat a polled task-list status as the signal; the reviewer is required to message the lead on every decision. After a clean re-review, shut the coherence reviewer down.
 - **Iteration cap:** Cap Reconciliation Passes at **2 per run**. If the second re-review still returns Critical findings, stop and `AskUserQuestion` — recurrence beyond two passes is a signal that automated remediation is not converging and human judgment is required.
 
 **Constraints:**
@@ -539,6 +555,7 @@ Produce a concise final message covering:
   <critical>The lead owns team cleanup at the end of the run. Teammates never tear down the team.</critical>
   <critical>Pair spawning is wave-based: spawn all ready candidates together as a wave after each queue evaluation. Evaluate the queue for the next wave only after the current wave fully drains (all pairs approved and shut down). For overlap judgment within a wave, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
+  <critical>The coherence reviewer (§0) MUST notify `team-lead` via SendMessage of every decision (approval, Critical findings, ongoing iteration, escalation). Silence is NOT acceptance — the lead is blocked waiting on an explicit signal and the entire run stalls if the reviewer omits it. On a clean review the reviewer marks the task-list entry done AND sends the approval message; the lead treats `TaskList` polling as a backup only. The coherence task description and the reviewer's spawn prompt both encode this requirement.</critical>
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
