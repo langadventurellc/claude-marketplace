@@ -84,6 +84,7 @@ Teammates are event-driven — they act when a DM arrives, not by polling.
 
 - **Only create issues at the level your task specifies.** Do not create grand-children of the parent (e.g., if your task says "create features under Epic X", do not also create tasks under those features — that's a separate run).
 - **Do not create issues outside your assigned parent.** Stay within scope.
+- **Never change a created issue's status to done/complete.** A newly created issue must stay `open`/`draft` — it is unimplemented work the paired reviewer still has to review, and a done status reads as already-shipped. `update_issue` is ONLY for applying reviewer content findings to an issue body; it is NOT for marking an issue done. The "mark done" instructions in your creation task refer to the shared-list coordination task via `TaskUpdate`, never to the Trellis issue.
 - **Research the codebase before writing issue bodies.** Issue descriptions must match reality; outdated parent descriptions do not override current code.
 
 ## Issue Writing Guidelines

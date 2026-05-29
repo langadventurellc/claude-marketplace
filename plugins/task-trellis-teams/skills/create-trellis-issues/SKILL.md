@@ -183,7 +183,7 @@ Skill: `task-trellis-teams:issue-creation`
 
 After creating:
 1. Store the created ID: `TaskUpdate({ taskId: <THIS_TASK_ID>, metadata: { createdIssueId: "<T-xxx>" } })`
-2. Mark this task done via TaskUpdate.
+2. Mark THIS shared-list creation task done via `TaskUpdate`. Do NOT touch the created Trellis issue's status — leave it `open`/`draft`. "Done" here is the coordination task, never the issue; the per-child reviewer still has to review it.
 3. Nudge: `SendMessage({ to: "reviewer-<level>-<parent-id>", summary: "<review-task-id> begin", message: "claim and begin <review-task-list-task-id>" })` — substitute the actual reviewer name, level, parent ID, and review task-list task ID.
 ```
 

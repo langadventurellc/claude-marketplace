@@ -89,6 +89,7 @@ The codebase is the source of truth.
 
 All issue types share these principles:
 
+- **Leave every created issue `open`/`draft`** - Creating an issue never includes marking it done or complete. A created issue is unimplemented work awaiting review; do not call `update_issue` to change its status.
 - **Default to coarser granularity** - Prefer fewer, larger issues that are easier for AI agents to orchestrate. Don't create many tiny issues.
 - **Ask questions only when necessary** - Only ask when requirements are genuinely ambiguous, critical information is missing, or decisions have significant irreversible consequences.
 - **Include acceptance criteria** - All issues should have measurable success criteria.
