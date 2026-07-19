@@ -82,12 +82,11 @@ Action if matched:
 
 Once the root level is determined (for Project / Epic / Feature cases):
 
-1. Create the agent team (SKILL.md step 4) — `TeamCreate` produces the shared task list that subsequent `TaskCreate` calls require.
-2. Author a root creation task + review task pair on the shared task list (step 5a/5b templates; omit `parent` from the creation task description).
-3. Spawn the writer/reviewer pair for the root level (step 6). The root level is a sibling set of size 1 — spawn one pair the same way as any other sibling-set pair.
-4. Send the 'begin assigned work' nudge and wait for root approval (all root tasks marked done).
-5. Use the root issue ID from the creation task's metadata (`createdIssueId`) as the parent for child-level task pairs.
-6. Continue with the rest of SKILL.md (spawn a fresh writer/reviewer pair for each next-level sibling set, author child creation/review task pairs, etc.).
+1. Author a root creation task + review task pair on the shared task list (step 5a/5b templates; omit `parent` from the creation task description).
+2. Spawn the writer/reviewer pair for the root level (step 6). The root level is a sibling set of size 1 — spawn one pair the same way as any other sibling-set pair.
+3. Send the 'begin assigned work' nudge and wait for root approval (all root tasks marked done).
+4. Use the root issue ID from the creation task's metadata (`createdIssueId`) as the parent for child-level task pairs.
+5. Continue with the rest of SKILL.md (spawn a fresh writer/reviewer pair for each next-level sibling set, author child creation/review task pairs, etc.).
 
 ## When to escalate to the user
 

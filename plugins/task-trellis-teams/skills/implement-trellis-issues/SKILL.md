@@ -6,8 +6,6 @@ allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_next_available_issue
   - mcp__plugin_task-trellis-teams_task-trellis__append_issue_log
   - mcp__plugin_task-trellis-teams_task-trellis__list_issues
-  - TeamCreate
-  - TeamDelete
   - Agent
   - TaskCreate
   - TaskUpdate
@@ -35,7 +33,7 @@ Prohibited lead actions:
 Enforcement heuristic: If you find yourself about to call `Edit`, `Write`, or `update_issue` on a child — STOP and ask: is this a teammate's job? It almost certainly is.
 </critical>
 
-Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's **Agent Teams** API. The lead MUST call `TeamCreate` once at the start of the run; pair spawns and `SendMessage` routing depend on the team being live. Teammates are spawned with the `Agent` tool, passing `subagent_type`, `team_name`, and `name`. An `Agent` call missing `team_name` does NOT join the team — it spawns a detached subagent that will appear to work (its name resolves for `SendMessage`) but is outside the team's coordination guarantees. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
+Orchestrate the implementation of a Trellis scope (feature, epic, task, or next-available) using Claude Code's **Agent Teams** API. The session has a single implicit team — it forms when the first teammate is spawned, and there is no setup step. Teammates are spawned with the `Agent` tool, passing `subagent_type` and `name`. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates. The lead session walks the issue tree, spawns a fresh developer/reviewer pair per leaf task, and lets those teammates coordinate review/fix cycles by direct `SendMessage`. On completion, optionally update docs and/or commit.
 
 ## Goal
 
@@ -110,22 +108,6 @@ git branch --show-current
 
 Stash the captured SHA on the run — it is passed into the docs-updater task body in Completion Phase §1 so docs-updater can diff the working tree against it (`git diff <base>`) and see every change on the branch, committed or uncommitted.
 
-## Team Creation
-
-Call `TeamCreate` exactly once at the start of the run, before any pair spawn. The team lives for the duration of the run and is torn down by `TeamDelete()` in §3 cleanup.
-
-```
-TeamCreate({
-  team_name: "impl-<scope-id>",       // e.g. "impl-F-add-user-auth"
-  agent_type: "team-lead",
-  description: "Implementation run for <scope-id>"
-})
-```
-
-Use a short, scope-descriptive `team_name` (e.g., `impl-F-add-user-auth`). Every later `Agent` spawn for a teammate in this run MUST pass `team_name: "impl-<scope-id>"` so the spawn joins this team rather than running detached.
-
-Team size: lead plus up to the maximum number of concurrent pairs you plan to run. Because each pair is two teammates, two concurrent pairs need four teammate slots plus the lead.
-
 ## Per-Issue Pair Lifecycle
 
 For each ready leaf task in the queue, the lead executes this lifecycle. Multiple ready tasks may run in parallel (see "Parallelism" below).
@@ -184,7 +166,7 @@ This dependency blocks the review task-list entry until the impl entry is marked
 
 ### 2. Spawn a fresh pair
 
-<critical>Spawn teammates with the `Agent` tool: `Agent({ subagent_type: "<agent-type>", team_name: "impl-<scope-id>", name: "<teammate-name>", prompt: "..." })`. Each `Agent` spawn here MUST pass `team_name: "impl-<scope-id>"` (the team created in §Team Creation). Omitting `team_name` falls back to a detached subagent — `SendMessage` to a `name`d subagent will succeed regardless, so a working `SendMessage` is NOT evidence that you are operating inside the team. Do NOT use the `Task` tool for spawning; `Task` retrieves output from background processes and cannot create teammates.</critical>
+<critical>Spawn teammates with the `Agent` tool: `Agent({ subagent_type: "<agent-type>", name: "<teammate-name>", prompt: "..." })`. Every spawn MUST pass `name` — `SendMessage` routing addresses teammates by name. Do NOT use the `Task` tool for spawning; `Task` retrieves output from background processes and cannot create teammates.</critical>
 
 Spawn two teammates tied to this one task:
 
@@ -359,7 +341,6 @@ Spawn this reviewer as `task-trellis-teams:trellis-implementation-reviewer` with
 
 ```
 Agent({
-  "team_name": "impl-<scope-id>",
   "subagent_type": "task-trellis-teams:trellis-implementation-reviewer",
   "name": "rev-coherence-<scope-id>",
   "description": "Fresh reviewer for cross-task coherence under <scope-id>",
@@ -523,12 +504,9 @@ git commit -m "<concise conventional-commit subject per the style rubric above>"
 
 If `--no-commit` IS set, leave all uncommitted changes for the user (docs-updater still runs unless `--no-docs`; `planning:versioning` still runs if `--version` was passed).
 
-### 3. Team cleanup
+### 3. Teammate cleanup
 
-**The lead owns team cleanup.** After the run completes (or is aborted by user direction):
-
-1. Shut down every remaining teammate via `SendMessage({ to: "<teammate-name>", message: { type: "shutdown_request" } })` and wait for each `shutdown_response`. `TeamDelete` fails if any teammate is still running.
-2. Tear down the agent team with `TeamDelete()` — takes no parameters; the team name comes from session context.
+**The lead owns teammate cleanup.** After the run completes (or is aborted by user direction), shut down every remaining teammate via `SendMessage({ to: "<teammate-name>", message: { type: "shutdown_request" } })` and wait for each `shutdown_response`. Leaving teammates running past the end of the run burns tokens on idle sessions.
 
 Teammates must not run cleanup themselves.
 
@@ -552,14 +530,14 @@ Produce a concise final message covering:
   <critical>Non-leaf issues with no children are SKIPPED (logged), never expanded into new issues.</critical>
   <critical>Every teammate's initial instructions come from a lead-authored task-list entry. SendMessage is only for activation nudges and fix-cycle iteration.</critical>
   <critical>Spawn a FRESH pair per leaf task. Shut down BOTH teammates on approval before moving on.</critical>
-  <critical>The lead owns team cleanup at the end of the run. Teammates never tear down the team.</critical>
+  <critical>The lead owns teammate cleanup at the end of the run — shut every remaining teammate down via the shutdown handshake. Teammates never run cleanup themselves.</critical>
   <critical>Pair spawning is wave-based: spawn all ready candidates together as a wave after each queue evaluation. Evaluate the queue for the next wave only after the current wave fully drains (all pairs approved and shut down). For overlap judgment within a wave, read ready task bodies and serialize tasks that plausibly share files. Do NOT rely on post-hoc modifiedFiles metadata.</critical>
   <critical>Never bypass commit hooks. If a hook fails, spawn a developer teammate to fix it, then re-commit.</critical>
   <critical>The coherence reviewer (§0) MUST notify `team-lead` via SendMessage of every decision (approval, Critical findings, ongoing iteration, escalation). Silence is NOT acceptance — the lead is blocked waiting on an explicit signal and the entire run stalls if the reviewer omits it. On a clean review the reviewer marks the task-list entry done AND sends the approval message; the lead treats `TaskList` polling as a backup only. The coherence task description and the reviewer's spawn prompt both encode this requirement.</critical>
   <critical>Cross-Task Coherence Review Critical findings default to the §0a Reconciliation Pass (fresh dev/reviewer pair) — do NOT gate on `AskUserQuestion` by default. Escalate to the user only when a finding needs unmodified-file edits, new Trellis issues, is tagged `[requires-user-decision]`, or recurs after a prior reconciliation pass. Reconciliation passes are capped at 2 per run.</critical>
   <critical>Stop for infrastructure errors (permissions, missing tools, network) and `AskUserQuestion`. Do not work around them.</critical>
   <critical>Before each wave commit and before the final end-of-run commit, flush Trellis state — all `complete_task`, `append_modified_files`, and `append_issue_log` calls for that wave's tasks must complete so `.trellis/` changes are included in the commit.</critical>
-  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `team_name`, `name`, and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
+  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `name` and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
   <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates.</critical>
   <critical>After authoring a pair's task-list entries, the lead MUST send a pointer-only `SendMessage` to the developer naming the impl task-list task ID before stepping back. The message body is `'claim and begin <impl-task-list-task-id>'`. Do NOT embed instructions. Do NOT rely on the developer picking up work autonomously.</critical>
 </rules>

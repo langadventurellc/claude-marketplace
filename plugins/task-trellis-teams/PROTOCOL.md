@@ -9,7 +9,7 @@ SendMessage accepts ONLY three fields: `to`, `summary`, `message`.
 Canonical call:
 SendMessage({ to: "<teammate-name>", summary: "<5-10 word preview>", message: "<body>" })
 
-- Extra fields (`type`, `recipient`, `content`, etc.) are silently dropped but may produce spurious `task_assignment` envelopes. Send only `to`, `summary`, `message`.
+- Extra fields (`type`, `recipient`, `content`, etc.) are a hard schema validation error — the call fails outright. Send only `to`, `summary`, `message`.
 - Plain-text output (text outside of a tool call) is NOT visible to other teammates. You MUST use SendMessage to communicate.
 
 ## Activation-signal glossary

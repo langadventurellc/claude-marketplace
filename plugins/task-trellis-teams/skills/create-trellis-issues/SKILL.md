@@ -3,8 +3,6 @@ name: create-trellis-issues
 description: Orchestrates Trellis issue creation using Claude Code Agent Teams. Use when asked to "create trellis issues", "create and review issues", "create verified issues", or when you want issues created by a writer teammate and automatically reviewed by a reviewer teammate with direct-message fix loops.
 allowed-tools:
   - mcp__plugin_task-trellis-teams_task-trellis__get_issue
-  - TeamCreate
-  - TeamDelete
   - Agent
   - TaskCreate
   - TaskUpdate
@@ -33,18 +31,17 @@ Prohibited lead actions:
 Enforcement heuristic: If you find yourself about to call `create_issue` or `update_issue` on a child, STOP and ask: is this a teammate's job? It almost certainly is.
 </critical>
 
-Orchestrate issue creation using Claude Code's Agent Teams feature. The lead session (you) creates a team, authors per-child creation/review task pairs on the shared task list, spawns one writer/reviewer pair per sibling set with the `Agent` tool (passing `subagent_type`, `team_name`, and `name`), and lets the writer and reviewer coordinate directly via `SendMessage` for fix loops. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates.
+Orchestrate issue creation using Claude Code's Agent Teams feature. The lead session (you) authors per-child creation/review task pairs on the shared task list, spawns one writer/reviewer pair per sibling set with the `Agent` tool (passing `subagent_type` and `name`), and lets the writer and reviewer coordinate directly via `SendMessage` for fix loops. Do NOT use the `Task` tool for spawning — `Task` is an output-retrieval tool for background processes and cannot create teammates.
 
 ## Role of the Lead (You)
 
 You are the **lead** — you do NOT write issues or review issues yourself. Your job is to:
 
 1. Run preflight checks.
-2. Create the agent team.
-3. Author tasks on the shared task list with the original user requirements verbatim.
-4. Spawn teammates.
-5. Route `AskUserQuestion` when teammates escalate blockers.
-6. Clean up the team at the end.
+2. Author tasks on the shared task list with the original user requirements verbatim.
+3. Spawn teammates.
+4. Route `AskUserQuestion` when teammates escalate blockers.
+5. Shut teammates down at the end.
 
 ## Input
 
@@ -86,26 +83,13 @@ Resolve the level in this order:
 
 > **Root approval ordering constraint.** Root approval MUST complete (all root creation+review tasks marked done) before the lead authors child-level creation/review task pairs. Do not race ahead to child-level task authoring while root review is pending.
 
-### 3. Create the Agent Team
+### 3. Tool Conventions
 
-> **Tool conventions used below:** `TaskCreate` returns an opaque task ID (persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls). `TaskUpdate` identifies tasks by `taskId` (not subject). `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string. `TeamDelete` takes no parameters.
-
-**Always call `TeamCreate` before any `TaskCreate` — including the `requirements` task in step 4.** `TeamCreate` initializes the shared task list on disk; any tasks authored before it are destroyed when the team is created and must be re-authored.
-
-Use `TeamCreate` to create the team:
-
-```
-TeamCreate({
-  "team_name": "trellis-create-<short-parent-id>",
-  "description": "Issue creation team for <parent-id> — writer creates children at the <level> level; reviewer verifies against original requirements."
-})
-```
-
-Choose a stable, human-readable `team_name`.
+`TaskCreate` returns an opaque task ID — persist a name→ID map across the run so you can reference tasks in later `TaskUpdate` calls. `TaskUpdate` identifies tasks by `taskId`, not subject, and its `status` values are `pending`, `in_progress`, `completed`, and `deleted`. `SendMessage` uses `to` (not `recipient`) and requires `summary` when `message` is a plain string.
 
 ### 4. Capture Original Input Verbatim
 
-With the team (and its shared task list) now in place, create a single dedicated task on the shared list as the canonical source of truth. Embed the exact user instructions verbatim — do NOT paraphrase, summarize, or modify them:
+Create a single dedicated task on the shared task list as the canonical source of truth. Embed the exact user instructions verbatim — do NOT paraphrase, summarize, or modify them:
 
 ```
 TaskCreate({
@@ -130,10 +114,10 @@ Before embedding requirements in tasks, scan the original input for sentences or
 First, create the directory if it does not exist:
 
 ```bash
-Bash({ command: "mkdir -p ~/.cache/claude-trellis-teams/<team-name>" })
+Bash({ command: "mkdir -p ~/.cache/claude-trellis-teams/<parent-id>" })
 ```
 
-Then write lead-meta to `~/.cache/claude-trellis-teams/<team-name>/lead-meta.md` (where `<team-name>` is the name used in `TeamCreate`) using the `Write` tool. Read it back with the `Read` tool whenever you need it later in the run. Do NOT include it in any task description or `SendMessage` to a teammate.
+Then write lead-meta to `~/.cache/claude-trellis-teams/<parent-id>/lead-meta.md` (where `<parent-id>` is the run's root parent ID) using the `Write` tool. Read it back with the `Read` tool whenever you need it later in the run. Do NOT include it in any task description or `SendMessage` to a teammate.
 
 The **product requirements** are everything that is NOT lead-meta: the scope, constraints, and acceptance criteria that define what child issues should contain. Only this portion is embedded verbatim in creation and review task descriptions.
 
@@ -226,15 +210,14 @@ Spawn one writer AND one reviewer for the current sibling set. Both are scoped t
 
 **Naming rule (mandatory):** Teammate names MUST include the parent ID, not just the level — e.g. `writer-tasks-f-auth` / `reviewer-tasks-f-auth`, not `writer-tasks` / `reviewer`. This is required for unambiguous `SendMessage` routing when multiple pairs run in parallel at the same depth.
 
-**Spawn teammates with the `Agent` tool, not the `Task` tool.** `Task` retrieves output from background processes and cannot create teammates. Every spawn MUST pass `team_name` (so the spawn joins the team rather than running as a detached subagent), `name`, and `subagent_type`.
+**Spawn teammates with the `Agent` tool, not the `Task` tool.** `Task` retrieves output from background processes and cannot create teammates. Every spawn MUST pass `name` and `subagent_type`.
 
-**Do NOT pass a `model` parameter to `Agent`.** Agent frontmatter is authoritative; the `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.
+**Do NOT pass a `model` parameter to `Agent`.** Agent frontmatter is authoritative.
 
 Spawn the reviewer:
 
 ```
 Agent({
-  "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-reviewer",
   "name": "reviewer-<level>-<parent-id>",
   "description": "Reviewer for <parent-id> creation at the <level> level",
@@ -246,7 +229,6 @@ Spawn the writer (in the same step — both are spawned together):
 
 ```
 Agent({
-  "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-writer",
   "name": "writer-<level>-<parent-id>",
   "description": "Writer creating <child-type> under <parent-id>",
@@ -340,7 +322,6 @@ After authoring the cohesion task, spawn a dedicated reviewer teammate:
 
 ```
 Agent({
-  "team_name": "<team_name>",
   "subagent_type": "task-trellis-teams:trellis-issue-reviewer",
   "name": "cohesion-reviewer-<parent-id>",
   "description": "Fresh reviewer for cohesion pass under <parent-id>",
@@ -386,14 +367,11 @@ SendMessage({ to: "reviewer-<level>-<parent-id>", message: { type: "shutdown_req
 
 Do NOT recurse past the leaf level (tasks have no children).
 
-### 10. Team Cleanup
+### 10. Teammate Cleanup
 
-At the end of the run (successful or not):
+At the end of the run (successful or not), shut down every still-active teammate: for each one, call `SendMessage({ to: "<teammate-name>", message: { type: "shutdown_request" } })` and wait for its `shutdown_response`. Leaving teammates running past the end of the run burns tokens on idle sessions.
 
-1. Shut down every still-active teammate: for each one, call `SendMessage({ to: "<teammate-name>", message: { type: "shutdown_request" } })` and wait for its `shutdown_response`. All teammates MUST be shut down before `TeamDelete` — `TeamDelete` fails if any teammate is still running.
-2. Delete the team: `TeamDelete()` — takes no parameters; the team name comes from session context.
-
-Cleanup is the **lead's** responsibility. Teammates MUST NOT run cleanup. If cleanup fails, report the failure to the user but do NOT leave the team in a half-cleaned state silently.
+Cleanup is the **lead's** responsibility. Teammates MUST NOT run cleanup. If a teammate fails to acknowledge shutdown, report that to the user rather than silently moving on.
 
 ### 11. Report Summary
 
@@ -465,14 +443,13 @@ When given a parent issue ID **or** clear level guidance in the user's requireme
 
 <rules>
   <critical>The lead MUST create exactly one `requirements` task (step 4) containing the verbatim input. All other task descriptions reference it via `TaskGet taskId="<requirementsTaskId>"` — never inline. Lead-meta instructions (classified in step 4b) MUST NOT appear in the `requirements` task or any teammate-visible task descriptions.</critical>
-  <critical>Always call `TeamCreate` (step 3) before any `TaskCreate` — including the `requirements` task in step 4. `TeamCreate` initializes the shared task list on disk; any tasks authored before it are destroyed when the team is created.</critical>
   <critical>Bias guarantee: initial instructions to writer and reviewer come ONLY from lead-authored task-list entries, NEVER from each other. Direct messages between teammates are limited to activation nudges and fix-cycle iterations.</critical>
   <critical>Default behavior recurses down the hierarchy until every leaf level is written. With `--no-recursive`, stop after creating only the immediate child level.</critical>
-  <critical>Team cleanup is the lead's responsibility. Call `TeamDelete` at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
+  <critical>Teammate cleanup is the lead's responsibility. Shut every still-active teammate down via the shutdown handshake at the end of the run (success or failure). Teammates MUST NOT run cleanup.</critical>
   <critical>If a teammate reports a permission error or infrastructure failure, STOP and report to the user via AskUserQuestion. Do NOT attempt workarounds.</critical>
   <critical>Address ALL review findings. Do NOT categorize findings as minor and skip them. If the writer believes a finding is wrong, it must justify via SendMessage to the reviewer, not silently ignore.</critical>
-  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `team_name`, `name`, and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
-  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. Agent frontmatter is authoritative — the `Agent`-tool `model` enum (`sonnet | opus | haiku`) does not preserve the `[1m]` context-window variant declared in frontmatter, so a spawn-time override silently strips `[1m]` and downgrades the teammate's context window. To switch models, change `subagent_type` instead.</critical>
+  <critical>Spawn teammates with the `Agent` tool, not the `Task` tool. Every spawn MUST pass `name` and `subagent_type`. The `Task` tool retrieves output from background processes and cannot create teammates.</critical>
+  <critical>NEVER pass a `model` parameter to the `Agent` tool when spawning teammates. Agent frontmatter is authoritative.</critical>
   <important>Spawn one writer/reviewer pair per sibling set; shut BOTH down when the set's per-child reviews and cohesion review are complete. For the cohesion review (step 9a), spawn a FRESH reviewer teammate — never reuse the per-sibling-set reviewer — and shut it down on approval.</important>
   <important>Default to coarser-grained issues at the current level — fewer, larger children. Do NOT ask about granularity.</important>
   <critical>Hard cap of 5 children per parent in any single run. Before authoring creation/review task pairs for a level, count the planned children under each parent; if any would exceed 5, split that parent into multiple parents at the same level (each owning ≤5 children) before authoring tasks. Applies at every level — including recursion in step 9b. Writers and reviewers lose coherence above 5 siblings; the cohesion reviewer's parent+children view of up to 6 is fine because it only fires once.</critical>

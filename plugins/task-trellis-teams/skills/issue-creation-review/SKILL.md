@@ -153,7 +153,7 @@ When running as a teammate inside an agent team:
 
 Output format depends on invocation context:
 
-- **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is `TaskUpdate({ status: "done" })` plus a single one-line DM to the lead (`SendMessage({ to: "team-lead", summary: "approved <issue-id>", message: "approved <issue-id>" })`, ≤80 chars). The one-line DM is required — it is the lead's only signal that the review closed cleanly, and skipping it stalls the team. Do NOT send "looks good" or any other commentary; the one-liner is the only allowed approval signal. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
+- **Teammate mode** (running inside an agent team): see `Teammate Mode` above. Approval is `TaskUpdate({ taskId, status: "completed" })` plus a single one-line DM to the lead (`SendMessage({ to: "team-lead", summary: "approved <issue-id>", message: "approved <issue-id>" })`, ≤80 chars). The one-line DM is required — it is the lead's only signal that the review closed cleanly, and skipping it stalls the team. Do NOT send "looks good" or any other commentary; the one-liner is the only allowed approval signal. Revisions go to the writer via `SendMessage` using the findings format defined by your host agent. Cohesion review uses the grouped-findings format from step 7.
 - **Direct invocation** (e.g., user-invoked via `/issue-creation-review`): produce a verification report with these sections:
   1. **Issue Details**: Type, ID, title
   2. **Completeness**: Complete/Partial/Incomplete with specific gaps
